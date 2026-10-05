@@ -19,12 +19,17 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	roomID := rooms[0].ID
-	if _, err := app.DB.CreateMessage(ctx, user.ID, roomID, "initial", "initial", "initial"); err != nil {
+	initial, err := app.DB.CreateMessage(ctx, user.ID, roomID, "initial", "initial", "initial")
+	if err != nil {
 		t.Fatal(err)
 	}
 	// Preserve fractional milliseconds to check Rails' epoch-millisecond truncation.
 	stamp := time.Now().Add(-time.Minute).Truncate(time.Second).Add(123456 * time.Microsecond)
-	if _, err := app.DB.Write.ExecContext(ctx, "UPDATE rooms SET updated_at=? WHERE id=?", stamp.UTC().Format("2006-01-02 15:04:05.000000"), roomID); err != nil {
+	value := stamp.UTC().Format("2006-01-02 15:04:05.000000")
+	if _, err := app.DB.Write.ExecContext(ctx, "UPDATE messages SET created_at=?,updated_at=? WHERE id=?", value, value, initial.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.DB.Write.ExecContext(ctx, "UPDATE rooms SET updated_at=? WHERE id=?", value, roomID); err != nil {
 		t.Fatal(err)
 	}
 	room, err := app.DB.Room(ctx, user.ID, roomID)
