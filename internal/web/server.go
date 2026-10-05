@@ -370,7 +370,9 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if s.Push.VAPID != nil {
 		p.VAPIDPublicKey = s.Push.VAPID.PublicKey()
 	}
-	p.LoadedAt = strconv.FormatInt(s.DB.Now().UnixMilli(), 10)
+	// Keep the refresh cursor at the room version read before the message query.
+	// A render-time clock could skip a message committed between query and render.
+	p.LoadedAt = strconv.FormatInt(p.Room.UpdatedAt.UnixMilli(), 10)
 	p.Origin = s.origin(r)
 	p.CanCreateRooms = p.User.Role == 1 || !a.RestrictRooms()
 	if p.Chat || name == "search" || name == "welcome" {
