@@ -14,6 +14,41 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
+func TestMessageControllersRenderFreshRecords(t *testing.T) {
+	app, server, cookie, user := testApp(t)
+	ctx := context.Background()
+	rooms, err := app.DB.Rooms(ctx, user.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "record-input", "<p>record before</p>", "record before")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.DB.CreateBoost(ctx, user.ID, message.ID, "record boost"); err != nil {
+		t.Fatal(err)
+	}
+	check := func(body string) {
+		t.Helper()
+		for _, endpoint := range []struct{ path, content string }{
+			{fmt.Sprintf("/rooms/%d/messages/%d", message.RoomID, message.ID), body},
+			{fmt.Sprintf("/rooms/%d/messages/%d/edit", message.RoomID, message.ID), body},
+			{fmt.Sprintf("/messages/%d/boosts", message.ID), "record boost"},
+			{fmt.Sprintf("/messages/%d/boosts/new", message.ID), "new_boost_message_" + message.ClientID},
+		} {
+			response, data := perform(t, server, "GET", endpoint.path, "", nil, cookie)
+			if response.StatusCode != 200 || !strings.Contains(string(data), endpoint.content) {
+				t.Fatalf("%s: status %d, missing %q", endpoint.path, response.StatusCode, endpoint.content)
+			}
+		}
+	}
+	check("record before")
+	if _, err := app.DB.UpdateMessage(ctx, user.ID, message.ID, "<p>record after</p>", "record after"); err != nil {
+		t.Fatal(err)
+	}
+	check("record after")
+}
+
 func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 	app, _, _, user := testApp(t)
 	ctx := context.Background()

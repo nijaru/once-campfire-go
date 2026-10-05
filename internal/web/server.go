@@ -62,6 +62,9 @@ type botView struct {
 	Rooms []database.Room
 }
 type page struct {
+	// Controller input. render builds views only for templates that need them.
+	messageRecords []database.Message
+
 	MessagesHTML                 template.HTML
 	Version                      string
 	UserDivider                  int
@@ -387,12 +390,10 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if a.CustomStyles != "" {
 		p.CustomStyles = template.HTML("<style>" + a.CustomStyles + "</style>")
 	}
+	raw := p.messageRecords
+	p.messageRecords = nil
 	var recorded *fragmentEntry
-	if len(p.Messages) > 0 {
-		raw := make([]database.Message, len(p.Messages))
-		for i, m := range p.Messages {
-			raw[i] = m.Message
-		}
+	if len(raw) > 0 {
 		if name == "room" || name == "messages" || name == "search" {
 			var entry fragmentEntry
 			entry, err = s.messageList(r.Context(), raw)
@@ -724,7 +725,7 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 		return
 	}
 	s.rememberRoom(w, r, strconv.FormatInt(room.ID, 10))
-	s.render(w, r, "room", 200, page{Invitation: invitation, Stream: s.Secrets.SignStream(rails.RoomStream(room.Type, room.ID)), Title: room.Name, User: u, Room: room, Messages: viewMessages(messages)})
+	s.render(w, r, "room", 200, page{Invitation: invitation, Stream: s.Secrets.SignStream(rails.RoomStream(room.Type, room.ID)), Title: room.Name, User: u, Room: room, messageRecords: messages})
 }
 func (s *Server) messages(w http.ResponseWriter, r *http.Request, u database.User) {
 	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
@@ -750,7 +751,7 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request, u database.Use
 	if messageFreshness(w, r, messages) {
 		return
 	}
-	s.render(w, r, "messages", 200, page{Messages: viewMessages(messages)})
+	s.render(w, r, "messages", 200, page{messageRecords: messages})
 }
 func (s *Server) createMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !requireMessage(w, r) {
@@ -860,7 +861,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "search", 200, page{Title: "Search", Query: q, User: u, Rooms: rooms, Messages: viewMessages(messages), RecentSearches: recent})
+	s.render(w, r, "search", 200, page{Title: "Search", Query: q, User: u, Rooms: rooms, messageRecords: messages, RecentSearches: recent})
 }
 
 func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.User) {

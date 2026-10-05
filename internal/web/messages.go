@@ -180,12 +180,7 @@ func (s *Server) showMessage(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	views, err := s.messageItems(r.Context(), []database.Message{m})
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.render(w, r, "show-message", 200, page{User: u, Messages: views})
+	s.render(w, r, "show-message", 200, page{User: u, messageRecords: []database.Message{m}})
 }
 func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, true)
@@ -193,7 +188,7 @@ func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "edit-message", 200, page{User: u, Messages: viewMessages([]database.Message{m})})
+	s.render(w, r, "edit-message", 200, page{User: u, messageRecords: []database.Message{m}})
 }
 func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, true)
@@ -252,12 +247,7 @@ func (s *Server) boosts(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	views, err := s.messageViews(r.Context(), []database.Message{m})
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.render(w, r, "boosts-index", 200, page{User: u, Messages: views})
+	s.render(w, r, "boosts-index", 200, page{User: u, messageRecords: []database.Message{m}})
 }
 func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
@@ -265,7 +255,7 @@ func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "new-boost", 200, page{User: u, Messages: viewMessages([]database.Message{m})})
+	s.render(w, r, "new-boost", 200, page{User: u, messageRecords: []database.Message{m}})
 }
 func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
