@@ -3,8 +3,8 @@ package web
 import (
 	"container/list"
 	"context"
+	"encoding/binary"
 	"html/template"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -87,8 +87,33 @@ func (c *fragmentCache) putEntry(entry fragmentEntry) fragmentEntry {
 	}
 	return entry
 }
+
+const messageVersionSize = 20
+
+// Match Stamp's UTC, microsecond-truncated identity without formatting dates.
+// Separate seconds and fractions avoid UnixNano/UnixMicro's narrower date range.
+func messageVersion(message database.Message) [messageVersionSize]byte {
+	var version [messageVersionSize]byte
+	binary.LittleEndian.PutUint64(version[:8], uint64(message.ID))
+	binary.LittleEndian.PutUint64(version[8:16], uint64(message.UpdatedAt.Unix()))
+	binary.LittleEndian.PutUint32(version[16:], uint32(message.UpdatedAt.Nanosecond()/1000))
+	return version
+}
+
 func messageCacheKey(message database.Message) string {
-	return "message/" + database.Stamp(message.UpdatedAt) + "/" + strconv.FormatInt(message.ID, 10)
+	version := messageVersion(message)
+	return "message/" + string(version[:])
+}
+
+func messageListCacheKey(messages []database.Message) string {
+	var key strings.Builder
+	key.Grow(len("message-list/") + messageVersionSize*len(messages))
+	key.WriteString("message-list/")
+	for _, message := range messages {
+		version := messageVersion(message)
+		key.Write(version[:])
+	}
+	return key.String()
 }
 func (s *Server) messageItems(ctx context.Context, messages []database.Message) ([]messageView, error) {
 	views := viewMessages(messages)

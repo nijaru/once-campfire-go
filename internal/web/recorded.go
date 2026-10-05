@@ -16,13 +16,8 @@ import (
 // the cached message list without copying it through template/fmt/page buffers.
 
 func (s *Server) messageList(ctx context.Context, messages []database.Message) (fragmentEntry, error) {
-	var key strings.Builder
-	key.WriteString("message-list/")
-	for _, message := range messages {
-		key.WriteString(messageCacheKey(message))
-		key.WriteByte('/')
-	}
-	if entry, ok := s.fragments.entry(key.String()); ok {
+	key := messageListCacheKey(messages)
+	if entry, ok := s.fragments.entry(key); ok {
 		return entry, nil
 	}
 	views, err := s.messageItems(ctx, messages)
@@ -34,8 +29,8 @@ func (s *Server) messageList(ctx context.Context, messages []database.Message) (
 		body.WriteString(string(view.Fragment))
 	}
 	html := template.HTML(body.String())
-	s.fragments.put(key.String(), html)
-	if entry, ok := s.fragments.entry(key.String()); ok {
+	s.fragments.put(key, html)
+	if entry, ok := s.fragments.entry(key); ok {
 		return entry, nil
 	}
 	return fragmentEntry{html: html, part: responsebody.NewPart([]byte(html))}, nil
