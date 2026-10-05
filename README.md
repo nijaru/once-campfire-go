@@ -111,6 +111,8 @@ build, with identity results roughly unchanged. [Immutable shell assembly](bench
 then improved room throughput another 55% with gzip and 27% with identity, at higher observed
 whole-process memory. [Binary message-version keys](bench/results/binary-keys-20261005/README.md)
 added a further 10% gzip room improvement over static shells, with smaller gains elsewhere.
+[Direct record input](bench/results/record-input-20261005/README.md) removed an unnecessary
+view/record round-trip and improved room throughput another 11% gzip and 12% identity.
 These are separate same-VM comparisons, not multiplied headline ratios.
 
 The [upstream comparison](bench/results/optimization-next-20261003/README.md) measures the
