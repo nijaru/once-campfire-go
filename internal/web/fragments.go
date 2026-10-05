@@ -13,11 +13,11 @@ import (
 )
 
 type fragmentEntry struct {
-	key                         string
-	html                        template.HTML
-	bytes                       int
-	part                        responsebody.Part
-	messageMarker, loadedMarker string
+	key   string
+	html  template.HTML
+	bytes int
+	part  responsebody.Part
+	shell *roomShellEntry
 }
 type fragmentCache struct {
 	mu           sync.Mutex
@@ -51,7 +51,11 @@ func (c *fragmentCache) put(key string, html template.HTML) template.HTML {
 }
 func (c *fragmentCache) putEntry(entry fragmentEntry) fragmentEntry {
 	key, html := entry.key, entry.html
-	size := len(key) + len(html) + len(entry.messageMarker) + len(entry.loadedMarker) + 240
+	size := len(key) + len(html) + 240
+	if entry.shell != nil {
+		// Three Part headers/digests plus the shell allocation and size field.
+		size += entry.shell.bytes + 192
+	}
 	if strings.HasPrefix(key, "message-list/") {
 		size += len(html)
 	}

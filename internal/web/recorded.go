@@ -52,6 +52,10 @@ func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, f
 		part = responsebody.NewPart([]byte(fragment.html))
 	}
 	parts := []responsebody.Part{responsebody.NewPart([]byte(before)), part, responsebody.NewPart([]byte(after))}
+	writeParts(w, status, parts)
+}
+
+func writeParts(w http.ResponseWriter, status int, parts []responsebody.Part) {
 	if w.Header().Get("ETag") == "" {
 		digest := responsebody.Digest(parts)
 		w.Header().Set("ETag", fmt.Sprintf("W/\"%x\"", digest[:16]))

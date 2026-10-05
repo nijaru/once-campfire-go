@@ -415,13 +415,13 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
 	}
 	if name == "room" && recorded != nil {
-		shell, marker, err := s.roomShell(p)
+		parts, err := s.roomParts(p, recorded.part)
 		if err != nil {
 			s.fail(w, err)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		writeRecorded(w, status, shell, marker, *recorded)
+		writeParts(w, status, parts)
 		return
 	}
 	sidebarKey := ""

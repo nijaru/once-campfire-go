@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"html/template"
-	"strings"
 	"testing"
+
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 func TestRoomShellPreservesBytesAndRequestData(t *testing.T) {
@@ -17,12 +18,17 @@ func TestRoomShellPreservesBytesAndRequestData(t *testing.T) {
 		if err := app.templates.ExecuteTemplate(&expected, "room", p); err != nil {
 			t.Fatal(err)
 		}
-		shell, marker, err := app.roomShell(p)
+		parts, err := app.roomParts(p, responsebody.NewPart([]byte(p.MessagesHTML)))
 		if err != nil {
 			t.Fatal(err)
 		}
-		actual := strings.ReplaceAll(shell, marker, string(p.MessagesHTML))
-		if actual != expected.String() {
+		var actual bytes.Buffer
+		for _, part := range parts {
+			if _, err := part.WriteTo(&actual); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if actual.String() != expected.String() {
 			t.Fatal("cached room shell differs from uncached template")
 		}
 	}
