@@ -101,12 +101,16 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 This fork fixes the room refresh cursor and removes repeated compression, hashing and
 rendering preparation while keeping authorization, queries, headers and cookies fresh.
-The [latest request-work comparison](bench/results/request-work-20261005/README.md) measured
+The [request-work comparison](bench/results/request-work-20261005/README.md) measured
 22,152 gzip and 15,319 identity room requests/sec in a Linux/arm64 VM: 16% and 15% over the
 preceding direct-record build. Search/static performance was essentially unchanged. The report
 includes rejected candidates, raw samples, checks, memory costs and reproduction commands.
 These are not native AMD or Go/Rust comparisons, and reduced allocation did not consistently
-reduce resident memory.
+reduce resident memory. A [final ownership cleanup](bench/results/ownership-20261005/README.md)
+removes duplicate retained message-list payloads without claiming a broad throughput or
+process-memory reduction. [Timestamp parsing](bench/results/timestamp-20261005/README.md)
+and [default PGO](bench/results/pgo-20261005/README.md) trials were not justified by their
+application results; the latter report explains the remaining costs and stopping point.
 
 Earlier same-VM iterations have separate pinned comparisons:
 [prepared gzip](bench/results/prepared-gzip-20261005/README.md),

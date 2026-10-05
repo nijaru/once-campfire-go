@@ -8,7 +8,7 @@ rendering, cookies and headers still run on every request. No SQLite or template
 
 Compared with the previous prepared-gzip build, gzip throughput improved 24% for unchanged
 rooms, 60% for active rooms and 82% for history. Identity results stayed within about ±2%.
-These measurements use the same Apple M3 Max Docker Desktop Linux/arm64 VM as the
+These measurements use the same Apple M3 Max OrbStack Linux/arm64 VM as the
 [previous experiment](../prepared-gzip-20261005/README.md), not native AMD or Rust comparisons.
 
 ## Application results

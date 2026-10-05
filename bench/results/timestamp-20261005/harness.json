@@ -1,0 +1,21 @@
+{
+  "source_commit": "fd6517bdbdc8860db8531be69c77504c1f28adfe",
+  "harness_commit": "2a1514608ee37f88491a0859a03c9bebad775777",
+  "build_flags": [
+    "-trimpath",
+    "-buildvcs=false",
+    "-tags",
+    "sqlite_fts5"
+  ],
+  "environment_manifest": "../prepared-gzip-20261005/harness.json",
+  "mask_legacy_room_cursor": false,
+  "network": "none (loopback only)",
+  "status": "rejected; not shipped",
+  "source_staging": "archive fd6517b plus candidate.patch and validation_test.go.txt installed as internal/database/timestamp_test.go",
+  "binaries": {
+    "owned": "cb720bc734fb8eabd94d634221493ea1b042ab31837092d4d17bee39e8e918bc",
+    "timestamp": "1dcf373c315ea80d5790b766c24cb3877d84466f2cffc17e515f8f3ef54f61ba"
+  },
+  "fuzz_executions": 1456755,
+  "microbenchmark_scope": "canonical timestamp scan versus stdlib parse only; not application throughput"
+}

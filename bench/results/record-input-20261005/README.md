@@ -14,7 +14,7 @@ page output. Records are not retained in the shell key or cached as a query snap
 
 Three alternating repetitions, 16 clients, five-second samples after two-second warmups.
 Public HTTP/1.1 with access logging enabled, identical fresh seed data and active rooms
-at a target 20 commits/sec. Same Apple M3 Max Docker Desktop Linux/arm64 VM as the previous
+at a target 20 commits/sec. Same Apple M3 Max OrbStack Linux/arm64 VM as the previous
 iterations: server CPUs 0–3/GOMAXPROCS=4, load generator CPUs 4–7. No compilation, tests or
 agent workloads ran during timing. VM affinity does not pin physical Apple cores.
 

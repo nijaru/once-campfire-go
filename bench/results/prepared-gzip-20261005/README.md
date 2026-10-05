@@ -14,7 +14,7 @@ Three rotating repetitions, 16 clients, five-second samples after two-second war
 All candidates use the public HTTP listener, identical disposable Rails parity seeds,
 Go 1.27.1, four application workers, and fixed server/client CPU sets.
 
-**These are Docker Desktop Linux/arm64 VM measurements on an Apple M3 Max.** Affinity
+**These are OrbStack Linux/arm64 VM measurements on an Apple M3 Max.** Affinity
 pins VM vCPUs, not physical Apple cores. Host scheduling remains uncontrolled. Public
 request logging is enabled, including its bind-mounted log writes. These numbers are
 not comparable to the published native AMD Go/Rust table and establish no Rust ratio.

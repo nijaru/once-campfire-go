@@ -19,7 +19,7 @@ Cursor/message bytes remain independent immutable parts. No templates or respons
 
 ## Application measurements
 
-Same Apple M3 Max Docker Desktop Linux/arm64 VM as previous iterations. Three rotating
+Same Apple M3 Max OrbStack Linux/arm64 VM as previous iterations. Three rotating
 repetitions, public HTTP/1.1, 16 clients, five-second samples following two-second warmups.
 Identical fresh seed data, active rooms targeting 20 commits/sec, access logging enabled.
 Server VM CPUs 0–3/GOMAXPROCS=4; load generator CPUs 4–7. No agent, build or test workloads

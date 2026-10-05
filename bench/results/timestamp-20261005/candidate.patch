@@ -1,0 +1,41 @@
+--- a/internal/database/database.go
++++ b/internal/database/database.go
+@@ -159,0 +160,4 @@
++	if parsed, ok := canonicalTimestamp(raw); ok {
++		*t.value = parsed
++		return nil
++	}
+@@ -167,0 +172,33 @@
++
++// Stamp's fixed UTC format is common in SQLite rows. Other supported formats
++// and all malformed values remain subject to time.Parse and its validation.
++func canonicalTimestamp(raw string) (time.Time, bool) {
++	const pattern = "0000-00-00 00:00:00.000000"
++	if len(raw) != len(pattern) {
++		return time.Time{}, false
++	}
++	var fields [7]int
++	field := 0
++	for i := range len(pattern) {
++		if pattern[i] == '0' {
++			if raw[i] < '0' || raw[i] > '9' {
++				return time.Time{}, false
++			}
++			fields[field] = fields[field]*10 + int(raw[i]-'0')
++		} else {
++			if raw[i] != pattern[i] {
++				return time.Time{}, false
++			}
++			field++
++		}
++	}
++	year, month, day := fields[0], fields[1], fields[2]
++	if month < 1 || month > 12 || day < 1 || day > 31 || fields[3] > 23 || fields[4] > 59 || fields[5] > 59 {
++		return time.Time{}, false
++	}
++	parsed := time.Date(year, time.Month(month), day, fields[3], fields[4], fields[5], fields[6]*1000, time.UTC)
++	if parsed.Day() != day { // Reject Date's normalization of invalid month days.
++		return time.Time{}, false
++	}
++	return parsed, true
++}

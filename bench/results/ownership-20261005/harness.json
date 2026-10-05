@@ -1,0 +1,19 @@
+{
+  "source_commit": "fd6517bdbdc8860db8531be69c77504c1f28adfe",
+  "harness_commit": "2a1514608ee37f88491a0859a03c9bebad775777",
+  "build_flags": [
+    "-trimpath",
+    "-buildvcs=false",
+    "-tags",
+    "sqlite_fts5"
+  ],
+  "environment_manifest": "../prepared-gzip-20261005/harness.json",
+  "mask_legacy_room_cursor": false,
+  "network": "none (loopback only)",
+  "baseline_commit": "9e5c34948d8cdd4d11a06f08fbe4aca67c9eadf7",
+  "source_staging": "archive 2a15146 plus the four production/test files in fd6517b; byte-identical to committed files",
+  "binaries": {
+    "baseline": "a10862b3497bb818bad5b91275014fde2a6e94df3a7369a6f60a06fa875d7898",
+    "owned": "cb720bc734fb8eabd94d634221493ea1b042ab31837092d4d17bee39e8e918bc"
+  }
+}

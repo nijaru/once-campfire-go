@@ -1,0 +1,56 @@
+package database
+
+import (
+	"fmt"
+	"testing"
+	"time"
+)
+
+// time.Parse is the independent reference for the supported SQLite/RFC3339
+// input contract, including malformed canonical-looking dates.
+func FuzzTimestampScan(f *testing.F) {
+	for _, raw := range []string{
+		"0000-01-01 00:00:00.000000", "9999-12-31 23:59:59.999999",
+		"2000-02-29 12:34:56.123456", "1900-02-29 12:34:56.123456",
+		"2026-04-31 12:34:56.123456", "2026-00-01 00:00:00.000000",
+		"2026-01-00 00:00:00.000000", "2026-01-01 24:00:00.000000",
+		"2026-01-01 00:60:00.000000", "2026-01-01 00:00:60.000000",
+		"2026-01-01 00:00:00", "2026-01-01 00:00:00.123456789",
+		"2026-01-01 00:00:00,123456", "2026-01-01 00:00:00.123456+05:30",
+		"2026-01-01T00:00:00.123456Z", "2026-01-01T00:00:00.123456-07:00", "",
+	} {
+		f.Add(raw)
+	}
+	for i := range len("2026-01-01 00:00:00.123456") {
+		for _, char := range []byte{0xff, 'X'} {
+			raw := []byte("2026-01-01 00:00:00.123456")
+			raw[i] = char
+			f.Add(string(raw))
+		}
+	}
+	f.Fuzz(func(t *testing.T, raw string) {
+		var want time.Time
+		var parseErr error
+		for _, layout := range []string{"2006-01-02 15:04:05.999999999", "2006-01-02 15:04:05.999999999-07:00", time.RFC3339Nano} {
+			want, parseErr = time.Parse(layout, raw)
+			if parseErr == nil {
+				break
+			}
+		}
+		for _, value := range []any{raw, []byte(raw)} {
+			got := time.Unix(123, 456)
+			err := (timestamp{&got}).Scan(value)
+			if parseErr != nil {
+				if err == nil || err.Error() != fmt.Sprintf("invalid timestamp %q", raw) || got != time.Unix(123, 456) {
+					t.Fatalf("malformed input changed error or destination: %q: %v / %v", raw, got, err)
+				}
+				continue
+			}
+			_, wantOffset := want.Zone()
+			_, gotOffset := got.Zone()
+			if err != nil || !got.Equal(want) || gotOffset != wantOffset {
+				t.Fatalf("%q: got %v (%v), want %v", raw, got, err, want)
+			}
+		}
+	})
+}

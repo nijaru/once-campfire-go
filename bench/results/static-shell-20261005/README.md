@@ -13,7 +13,7 @@ This iteration removes that work from cache hits.
 ## Results
 
 Three alternating repetitions, public HTTP/1.1, 16 clients, five-second samples after
-two-second warmups, identical fresh canonical seeds. Same Apple M3 Max Docker Desktop
+two-second warmups, identical fresh canonical seeds. Same Apple M3 Max OrbStack
 Linux/arm64 VM, server CPUs 0–3/GOMAXPROCS=4 and load generator CPUs 4–7. Access logging
 remains enabled. No builds, tests or agent work ran during timing. VM CPU affinity does not
 control host physical-core scheduling; these are not native AMD or Rust comparisons.

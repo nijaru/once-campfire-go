@@ -17,7 +17,7 @@ not throughput observations or precise attribution of all allocator savings.
 
 Three alternating repetitions, 16 clients, five-second samples after two-second warmups.
 Public HTTP/1.1, identical fresh seed data, active rooms targeting 20 posts/sec. Same Apple
-M3 Max Docker Desktop Linux/arm64 VM as the previous iterations: server CPUs 0–3 with
+M3 Max OrbStack Linux/arm64 VM as the previous iterations: server CPUs 0–3 with
 GOMAXPROCS=4, load generator CPUs 4–7. Access logging stays enabled. No compilation,
 tests or other agent work ran during timing. VM affinity does not pin physical Apple cores.
 
