@@ -189,7 +189,7 @@ def main():
              changed=response.read()
              if response.headers.get('Content-Encoding')=='gzip':changed=gzip.decompress(changed)
             if b'bench active' not in changed:raise RuntimeError('active room response is stale')
-            result['active_validation']={'posts':len(active_posts),'persisted':active_saved,'indexed':active_indexed,'target_hz':a.active_room_hz}
+            result['active_validation']={'posts':len(active_posts),'persisted':active_saved,'indexed':active_indexed,'target_hz':a.active_room_hz,'final_plain_bytes':len(changed)}
            if before_writes is not None:
             with sqlite3.connect(db) as check:
              persisted=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(write_room,)).fetchone()[0]-before_writes

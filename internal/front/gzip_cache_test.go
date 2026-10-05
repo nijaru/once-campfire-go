@@ -112,16 +112,20 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
 	if cache.order.Len() != 2 {
 		t.Fatal("weak ETag reused a different body's gzip")
 	}
-	response := httptest.NewRecorder()
-	w := &gzipResponse{ResponseWriter: response, request: request, selected: "gzip", cache: cache}
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(200)
-	w.WriteBody([][]byte{[]byte(strings.Repeat("do not retain", 200))})
-	w.writer.Close()
-	w.writer.Reset(nil)
-	gzipPool.Put(w.writer)
-	if cache.order.Len() != 2 {
-		t.Fatal("no-store body was retained")
+	for _, test := range []struct{ method, control string }{{"GET", "no-store"}, {"POST", "private"}} {
+		request := httptest.NewRequest(test.method, "/", nil)
+		response := httptest.NewRecorder()
+		w := &gzipResponse{ResponseWriter: response, request: request, selected: "gzip", cache: cache}
+		w.Header().Set("Cache-Control", test.control)
+		w.WriteHeader(200)
+		body := []byte(strings.Repeat("do not retain", 200))
+		w.WriteBody([][]byte{body})
+		w.writer.Close()
+		w.writer.Reset(nil)
+		gzipPool.Put(w.writer)
+		if cache.order.Len() != 2 || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
+			t.Fatal("one-off body was retained or corrupted", test)
+		}
 	}
 }
 

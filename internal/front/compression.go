@@ -188,7 +188,7 @@ func (w *gzipResponse) WriteBody(parts [][]byte) (int, error) {
 	if w.drop || w.request.Method == "HEAD" {
 		return size, nil
 	}
-	if w.compress && w.writer == nil && w.cache != nil && w.cache.capacity > 0 &&
+	if w.request.Method == "GET" && w.compress && w.writer == nil && w.cache != nil && w.cache.capacity > 0 &&
 		(w.status == 200 || w.status == 201) && size >= 1024 && size <= gzipMaxBody &&
 		!strings.Contains(strings.ToLower(w.Header().Get("Cache-Control")), "no-store") {
 		w.complete = true
