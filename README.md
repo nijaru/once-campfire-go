@@ -99,21 +99,22 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-This fork fixes the room refresh cursor and reuses completed authenticated GET gzip bodies.
-In a controlled Linux/arm64 VM comparison, gzip throughput improved 1.95× for unchanged rooms,
-2.81× for history, and 1.72× for search; identity throughput was roughly unchanged. Sidebar
-throughput did not improve. These are not native AMD or Go/Rust comparisons. See the
-[fork measurement and reproduction report](bench/results/prepared-gzip-20261005/README.md)
-for raw results, active rooms, cache misses, memory costs, compressor trials and limitations.
-A [follow-up part-identity iteration](bench/results/part-identity-20261005/README.md) improved
-room, active-room and history gzip throughput another 24%, 60% and 82% over that prepared
-build, with identity results roughly unchanged. [Immutable shell assembly](bench/results/static-shell-20261005/README.md)
-then improved room throughput another 55% with gzip and 27% with identity, at higher observed
-whole-process memory. [Binary message-version keys](bench/results/binary-keys-20261005/README.md)
-added a further 10% gzip room improvement over static shells, with smaller gains elsewhere.
-[Direct record input](bench/results/record-input-20261005/README.md) removed an unnecessary
-view/record round-trip and improved room throughput another 11% gzip and 12% identity.
-These are separate same-VM comparisons, not multiplied headline ratios.
+This fork fixes the room refresh cursor and removes repeated compression, hashing and
+rendering preparation while keeping authorization, queries, headers and cookies fresh.
+The [latest request-work comparison](bench/results/request-work-20261005/README.md) measured
+22,152 gzip and 15,319 identity room requests/sec in a Linux/arm64 VM: 16% and 15% over the
+preceding direct-record build. Search/static performance was essentially unchanged. The report
+includes rejected candidates, raw samples, checks, memory costs and reproduction commands.
+These are not native AMD or Go/Rust comparisons, and reduced allocation did not consistently
+reduce resident memory.
+
+Earlier same-VM iterations have separate pinned comparisons:
+[prepared gzip](bench/results/prepared-gzip-20261005/README.md),
+[part identities](bench/results/part-identity-20261005/README.md),
+[static shell parts](bench/results/static-shell-20261005/README.md),
+[binary version keys](bench/results/binary-keys-20261005/README.md), and
+[direct record input](bench/results/record-input-20261005/README.md).
+Do not multiply ratios from these separately timed experiments.
 
 The [upstream comparison](bench/results/optimization-next-20261003/README.md) measures the
 initial Go version, optimized upstream Go, and Rust in three rotating runs. Median

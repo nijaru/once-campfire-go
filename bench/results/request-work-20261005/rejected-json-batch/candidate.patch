@@ -1,0 +1,44 @@
+--- a/internal/database/messages.go
++++ b/internal/database/messages.go
+@@ -323,21 +323,32 @@
+ 		query += "AND created_at < (SELECT created_at FROM messages WHERE id=? AND room_id=?) "
+ 		args = append(args, anchor, room)
+ 	}
+-	rows, err := d.Read.QueryContext(ctx, query+"ORDER BY created_at DESC LIMIT 40", args...)
+-	if err != nil {
++	// Aggregate this bounded page in SQLite to avoid a CGo/cancellable row
++	// step for every reference. The request context still owns the query.
++	var raw string
++	batch := "SELECT json_group_array(json_object('id',id,'updated_at',CAST(updated_at AS TEXT))) FROM (" + query + "ORDER BY created_at DESC LIMIT 40)"
++	if err := d.Read.QueryRowContext(ctx, batch, args...).Scan(&raw); err != nil {
+ 		return nil, err
+ 	}
+-	defer rows.Close()
++	var references []struct {
++		ID        int64
++		UpdatedAt any `json:"updated_at"`
++	}
++	if err := json.Unmarshal([]byte(raw), &references); err != nil {
++		return nil, err
++	}
+ 	var messages []Message
+-	for rows.Next() {
+-		message := Message{RoomID: room}
+-		if err := rows.Scan(&message.ID, timestamp{&message.UpdatedAt}); err != nil {
++	if len(references) != 0 {
++		messages = make([]Message, len(references))
++	}
++	for i, reference := range references {
++		message := &messages[len(messages)-1-i]
++		message.ID, message.RoomID = reference.ID, room
++		if err := (timestamp{&message.UpdatedAt}).Scan(reference.UpdatedAt); err != nil {
+ 			return nil, err
+ 		}
+-		messages = append(messages, message)
+ 	}
+-	slices.Reverse(messages)
+-	return messages, rows.Err()
++	return messages, nil
+ }
+ 
+ func (d *DB) MessagesByID(ctx context.Context, ids []int64) ([]Message, error) {

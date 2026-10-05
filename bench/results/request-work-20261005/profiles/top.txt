@@ -1,0 +1,44 @@
+Build ID: 367d8144aca5b2b80bbb827eefbc2f9b8b7262ee
+Type: cpu
+Time: 2026-10-05 15:27:18 UTC
+Duration: 12.30s, Total samples = 34.25s (278.45%)
+Showing nodes accounting for 18.19s, 53.11% of 34.25s total
+Dropped 879 nodes (cum <= 0.17s)
+Showing top 35 nodes out of 281
+      flat  flat%   sum%        cum   cum%
+     5.06s 14.77% 14.77%      5.70s 16.64%  runtime.cgocall
+     3.34s  9.75% 24.53%      3.34s  9.75%  internal/runtime/syscall/linux.Syscall6
+     0.99s  2.89% 27.42%      1.21s  3.53%  runtime.gcmarknewobject
+     0.71s  2.07% 29.49%      1.03s  3.01%  runtime.tryDeferToSpanScan
+     0.51s  1.49% 30.98%      0.51s  1.49%  runtime.nanotime (inline)
+     0.45s  1.31% 32.29%      0.46s  1.34%  time.nextStdChunk
+     0.35s  1.02% 33.31%      0.47s  1.37%  net/url.unescape
+     0.34s  0.99% 34.31%      0.34s  0.99%  runtime.memmove
+     0.33s  0.96% 35.27%      0.93s  2.72%  runtime.wbBufFlush1
+     0.33s  0.96% 36.23%      1.17s  3.42%  time.parse
+     0.32s  0.93% 37.17%      6.83s 19.94%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.32s  0.93% 38.10%      0.32s  0.93%  runtime.pageIndexOf (inline)
+     0.30s  0.88% 38.98%      3.12s  9.11%  runtime.mallocgc
+     0.29s  0.85% 39.82%      0.47s  1.37%  time.now
+     0.27s  0.79% 40.61%      0.51s  1.49%  net/textproto.CanonicalMIMEHeaderKey
+     0.26s  0.76% 41.37%      0.26s  0.76%  runtime.memclrNoHeapPointers
+     0.26s  0.76% 42.13%      0.29s  0.85%  runtime.typePointers.next
+     0.25s  0.73% 42.86%      0.36s  1.05%  runtime.findObject
+     0.25s  0.73% 43.59%      0.80s  2.34%  runtime.scanObjectsSmall
+     0.24s   0.7% 44.29%      1.63s  4.76%  database/sql.convertAssignRows
+     0.24s   0.7% 44.99%      0.24s   0.7%  runtime.memequal
+     0.23s  0.67% 45.66%      0.90s  2.63%  regexp.(*Regexp).doOnePass
+     0.21s  0.61% 46.28%      0.23s  0.67%  context.(*cancelCtx).Err
+     0.21s  0.61% 46.89%      0.86s  2.51%  encoding/json/v2.makeStructArshaler.func2
+     0.21s  0.61% 47.50%      0.22s  0.64%  runtime.exitsyscall
+     0.21s  0.61% 48.12%      0.71s  2.07%  runtime.scanObject
+     0.20s  0.58% 48.70%      0.20s  0.58%  golang.org/x/crypto/blowfish.encryptBlock
+     0.20s  0.58% 49.28%      0.30s  0.88%  runtime.reentersyscall
+     0.19s  0.55% 49.84%      0.20s  0.58%  context.(*valueCtx).Err
+     0.19s  0.55% 50.39%      7.16s 20.91%  database/sql.(*Rows).nextLocked
+     0.19s  0.55% 50.95%      1.99s  5.81%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+     0.19s  0.55% 51.50%      0.19s  0.55%  internal/runtime/maps.memHashAES
+     0.19s  0.55% 52.06%      0.19s  0.55%  regexp/syntax.(*Inst).MatchRunePos
+     0.19s  0.55% 52.61%      0.92s  2.69%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.17s   0.5% 53.11%      0.35s  1.02%  internal/runtime/maps.(*Iter).Next
+File: final-final-work
