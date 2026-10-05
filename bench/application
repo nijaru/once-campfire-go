@@ -23,6 +23,7 @@ def main():
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--seed',type=Path,help='reference parity seed directory')
     p.add_argument('--loadgen',type=Path,help='pinned reference load generator binary')
+    p.add_argument('--cpu-profile',action='store_true',help='save one CPU profile per application/repetition')
     p.add_argument('--reps',type=int,default=3)
     p.add_argument('--baseline-go',type=Path,help='optional unchanged Go binary for before/after comparisons')
     p.add_argument('--go-binary',type=Path,default=ROOT/'campfire')
@@ -39,12 +40,18 @@ def main():
     p.add_argument('--upload-reps',type=int,default=5)
     p.add_argument('--server-cpus',default='8-11')
     p.add_argument('--loadgen-cpus',default='12-15')
-    p.add_argument('--apps',nargs='+',default=['rust','go'],choices=['rust','go','go-before'])
+    p.add_argument('--candidate',action='append',default=[],metavar='NAME=PATH',help='additional named application binary')
+    p.add_argument('--apps',nargs='+',default=['rust','go'])
     a=p.parse_args(); rust=a.rust_root.resolve(); out=a.out.resolve(); out.mkdir(parents=True,exist_ok=a.resume)
     seed=(a.seed or rust/'parity/.seed/default').resolve(); labels=json.loads((seed/'labels.json').read_text())
     binaries={'go':a.go_binary.resolve(),'rust':rust/'target/release/campfire'}
     if a.baseline_go:binaries['go-before']=a.baseline_go.resolve()
-    if any(app not in binaries for app in a.apps):p.error('go-before requires --baseline-go')
+    for candidate in a.candidate:
+        name,sep,path=candidate.partition('=')
+        if not sep or not name or not path:p.error('--candidate requires NAME=PATH')
+        binaries[name]=Path(path).resolve()
+    if len(set(a.apps))!=len(a.apps):p.error('--apps must be unique')
+    if any(app not in binaries for app in a.apps):p.error('unknown app: supply --candidate NAME=PATH or --baseline-go')
     binaries={app:binaries[app] for app in a.apps}
     lg=(a.loadgen or rust/'target/bench/release/loadgen').resolve()
     if a.active_room_hz <= 0:p.error('--active-room-hz must be positive')
@@ -89,6 +96,7 @@ def main():
         while target==front:front=port()
         base=f'http://127.0.0.1:{front if a.listener=="public" else target}'
         runenv=env|dict(CAMPFIRE_DATABASE_PATH=str(db),CAMPFIRE_STORAGE_PATH=str(tmp/'storage-root'),CAMPFIRE_FILES_PATH=str(tmp/'storage-root/files'),TARGET_PORT=str(target),HTTP_PORT=str(front))
+        if a.cpu_profile:runenv['GO_CPU_PROFILE']=str(out/f'{app}-{rep}.pprof')
         result={'app':app,'rep':rep,'http':[],'cable':[],'load_start':Path('/proc/loadavg').read_text()}
         with (out/f'{app}-{rep}.log').open('w') as log:
          started=time.monotonic(); proc=subprocess.Popen(['taskset','-c',a.server_cpus,str(binaries[app]),'server'],cwd=ROOT,env=runenv,stdout=log,stderr=subprocess.STDOUT)
@@ -127,6 +135,17 @@ def main():
             with urllib.request.urlopen(req) as response:body=response.read()
             if name in ('room_show','active_room','messages_page') and b'data-message-id=' not in body and b'id="message_' not in body:raise RuntimeError(f'{app} empty {name}')
             result.setdefault('bodies',{})[name]={'bytes':len(body),'sha256':hashlib.sha256(body).hexdigest()}
+            encoded_request=urllib.request.Request(base+path,headers={'Cookie':cookie,'Accept-Encoding':'gzip' if a.gzip else 'identity'})
+            with urllib.request.urlopen(encoded_request) as encoded_response:
+             encoded=encoded_response.read();content_encoding=encoded_response.headers.get('Content-Encoding','identity')
+            decoded=gzip.decompress(encoded) if content_encoding=='gzip' else encoded
+            def canonical(value):
+             # The original binary's render-time cursor changes between requests;
+             # this one known correctness defect is not a compression mismatch.
+             return re.sub(rb'(data-refresh-room-loaded-at-value=")[0-9]+',rb'\g<1>CURSOR',value) if name in ('room_show','active_room') else value
+            if canonical(decoded)!=canonical(body):raise RuntimeError(f'{app} {name}: encoded body differs from full identity response')
+            result['bodies'][name].update(encoded_bytes=len(encoded),encoding=content_encoding)
+            if name=='room_show':(out/f'{app}-{rep}-room.html.gz').write_bytes(gzip.compress(body,mtime=0))
             semantic = sorted(set(re.findall(rb'data-message-id="([0-9]+)"',body))) if name in ('room_show','active_room','messages_page','search') else sorted(set(re.findall(rb'data-room-id="([0-9]+)"',body))) if name=='sidebar' else hashlib.sha256(body).hexdigest()
             if not semantic:raise RuntimeError(f'empty workload contract: {name}')
             if name in contracts and contracts[name]!=semantic:raise RuntimeError(f'{app} {name} differs from the first application response contract')
