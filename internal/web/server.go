@@ -184,8 +184,7 @@ func New(db *database.DB, secrets *rails.Secrets, secure bool, storagePaths ...s
 	return s, nil
 }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r = r.WithContext(context.WithValue(r.Context(), requestHostKey{}, r.Host))
-	r = r.WithContext(context.WithValue(r.Context(), requestOriginKey{}, s.origin(r)))
+	r = r.WithContext(context.WithValue(r.Context(), requestInfoKey{}, &requestInfo{host: r.Host, origin: s.origin(r)}))
 	if assets.Serve(w, r) {
 		return
 	}
@@ -367,7 +366,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if r.Header.Get("Turbo-Frame") != "" && name != "edit-message" && name != "show-message" && name != "incompatible-browser" && name != "room-not-found" {
 		p.Frame = true
 	}
-	p.Platform = useragent.Parse(r.UserAgent()).View()
+	p.Platform = requestAgent(r).View()
 	p.Screen = name
 	p.Chat = name == "room" && p.Room.ID != 0
 	if s.Push.VAPID != nil {
