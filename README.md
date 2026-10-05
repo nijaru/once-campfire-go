@@ -107,7 +107,9 @@ throughput did not improve. These are not native AMD or Go/Rust comparisons. See
 for raw results, active rooms, cache misses, memory costs, compressor trials and limitations.
 A [follow-up part-identity iteration](bench/results/part-identity-20261005/README.md) improved
 room, active-room and history gzip throughput another 24%, 60% and 82% over that prepared
-build, with identity results roughly unchanged.
+build, with identity results roughly unchanged. [Immutable shell assembly](bench/results/static-shell-20261005/README.md)
+then improved room throughput another 55% with gzip and 27% with identity, at higher observed
+whole-process memory. These are separate same-VM comparisons, not multiplied headline ratios.
 
 The [upstream comparison](bench/results/optimization-next-20261003/README.md) measures the
 initial Go version, optimized upstream Go, and Rust in three rotating runs. Median
