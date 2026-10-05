@@ -1,0 +1,27 @@
+{
+  "upstream_main": "8d2f7f24f56dac87dba0211b68b14d9e21e4b516",
+  "upstream_binary_source": "504428addff333549f1fc88b003c7331779a3c2a",
+  "upstream_difference": "README.md only, verified with git diff",
+  "fork_source": "fd6517bdbdc8860db8531be69c77504c1f28adfe",
+  "fork_head_at_measurement": "2e262f5f1e9117b990f369a949ea1c90d90c8805",
+  "build_flags": [
+    "-trimpath",
+    "-buildvcs=false",
+    "-tags",
+    "sqlite_fts5"
+  ],
+  "pgo": false,
+  "binaries": {
+    "upstream": "08f46672b5d24d805be3af1859dc352fddc6b1f0005cd6d70eddf7205f78a5b8",
+    "fork": "cb720bc734fb8eabd94d634221493ea1b042ab31837092d4d17bee39e8e918bc"
+  },
+  "environment_manifest": "../prepared-gzip-20261005/harness.json",
+  "harness_commit": "2e262f5f1e9117b990f369a949ea1c90d90c8805",
+  "mask_legacy_room_cursor": true,
+  "validation_exception": "Only the original render-time room refresh cursor is masked; remaining complete decoded body bytes are compared. Fork queried-room cursor behavior is covered by the permanent regression suite.",
+  "network": "none (loopback only)",
+  "http_samples": 84,
+  "http_errors": 0,
+  "acknowledged_http_posts": 189975,
+  "active_posts": 1668
+}
