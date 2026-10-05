@@ -50,24 +50,18 @@ func (c *fragmentCache) put(key string, html template.HTML) template.HTML {
 	return c.putEntry(fragmentEntry{key: key, html: html}).html
 }
 func (c *fragmentCache) putEntry(entry fragmentEntry) fragmentEntry {
-	key, html := entry.key, entry.html
-	size := len(key) + len(html) + 240
+	key := entry.key
+	size := len(key) + len(entry.html) + entry.part.Len() + 240
 	if entry.shell != nil {
 		// Three Part headers/digests plus the shell allocation and size field.
 		size += entry.shell.bytes + 192
 	}
-	if strings.HasPrefix(key, "message-list/") {
-		size += len(html)
-	}
 	if size > c.limit/4 {
 		return entry
 	}
-	if strings.HasPrefix(key, "message-list/") {
-		entry.part = responsebody.NewPart([]byte(html))
-	}
 	entry.bytes = size
-	// Hash/copy payloads before taking the LRU lock. Concurrent misses may do
-	// duplicate preparation, but unrelated hits never wait for a full-body hash.
+	// Callers prepare owned payloads before admission. Oversized/disabled-cache
+	// responses remain usable, and hits never wait for copying or hashing.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if e, ok := c.entries[key]; ok {

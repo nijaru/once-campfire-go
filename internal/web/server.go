@@ -23,6 +23,7 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/integrations"
 	"github.com/basecamp/once-campfire-go/internal/jobs"
 	"github.com/basecamp/once-campfire-go/internal/rails"
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 	"github.com/basecamp/once-campfire-go/internal/useragent"
@@ -391,10 +392,10 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	}
 	raw := p.messageRecords
 	p.messageRecords = nil
-	var recorded *fragmentEntry
+	var recorded *responsebody.Part
 	if len(raw) > 0 {
 		if name == "room" || name == "messages" || name == "search" {
-			var entry fragmentEntry
+			var entry responsebody.Part
 			entry, err = s.messageList(r.Context(), raw)
 			recorded = &entry
 			p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
@@ -415,7 +416,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
 	}
 	if name == "room" && recorded != nil {
-		parts, err := s.roomParts(p, recorded.part)
+		parts, err := s.roomParts(p, *recorded)
 		if err != nil {
 			s.fail(w, err)
 			return
