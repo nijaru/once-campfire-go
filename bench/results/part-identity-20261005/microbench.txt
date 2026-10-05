@@ -1,0 +1,17 @@
+goos: linux
+goarch: arm64
+pkg: github.com/basecamp/once-campfire-go/internal/front
+BenchmarkPreparedGzip/warm-16         	16769446	        71.90 ns/op	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/warm-16         	17118788	        71.46 ns/op	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/warm-16         	16945192	        71.84 ns/op	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/prepare-16      	    9631	    122206 ns/op	3060.71 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/prepare-16      	    9645	    122253 ns/op	3059.52 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/prepare-16      	    9705	    122218 ns/op	3060.40 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/cold-16         	    1473	    801278 ns/op	 466.80 MB/s	     21289 gzip-bytes	  103925 B/op	      20 allocs/op
+BenchmarkPreparedGzip/cold-16         	    1473	    798783 ns/op	 468.26 MB/s	     21289 gzip-bytes	   95135 B/op	      20 allocs/op
+BenchmarkPreparedGzip/cold-16         	    1525	    786797 ns/op	 475.39 MB/s	     21289 gzip-bytes	   94208 B/op	      20 allocs/op
+BenchmarkPreparedGzip/compress-16     	    1722	    657524 ns/op	 568.86 MB/s	     21289 gzip-bytes	   65471 B/op	      10 allocs/op
+BenchmarkPreparedGzip/compress-16     	    1794	    658320 ns/op	 568.17 MB/s	     21289 gzip-bytes	   65469 B/op	      10 allocs/op
+BenchmarkPreparedGzip/compress-16     	    1830	    660852 ns/op	 565.99 MB/s	     21289 gzip-bytes	   65469 B/op	      10 allocs/op
+PASS
+ok  	github.com/basecamp/once-campfire-go/internal/front	14.291s

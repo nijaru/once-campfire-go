@@ -105,6 +105,9 @@ In a controlled Linux/arm64 VM comparison, gzip throughput improved 1.95× for u
 throughput did not improve. These are not native AMD or Go/Rust comparisons. See the
 [fork measurement and reproduction report](bench/results/prepared-gzip-20261005/README.md)
 for raw results, active rooms, cache misses, memory costs, compressor trials and limitations.
+A [follow-up part-identity iteration](bench/results/part-identity-20261005/README.md) improved
+room, active-room and history gzip throughput another 24%, 60% and 82% over that prepared
+build, with identity results roughly unchanged.
 
 The [upstream comparison](bench/results/optimization-next-20261003/README.md) measures the
 initial Go version, optimized upstream Go, and Rust in three rotating runs. Median
@@ -181,8 +184,8 @@ throughput is not measured in that upstream comparison. The fork harness also su
   messages and the queried room's update timestamp on every request. Responses assemble cached
   message bytes with fresh page HTML and derive validators from part lengths and hashes, so ETag
   values differ from both the original Go implementation and Rust.
-- Completed GET gzip bodies have a separate 32 MiB compression memo keyed by actual body bytes
-  and gzip mtime, not weak ETags. Requests still run authentication, authorization and page queries;
+- Completed GET gzip bodies have a separate 32 MiB compression memo keyed by ordered part
+  lengths, constructor-computed SHA-256 digests and gzip mtime, not weak ETags. Requests still run authentication, authorization and page queries;
   headers/cookies are never reused. No-store, writes, streams, bodies over 1 MiB and large compressed
   entries bypass retention. Zstd and streaming gzip retain their existing compression paths.
 - The default version label and fallback VAPID subject identify `once-campfire-go`. Explicit version,

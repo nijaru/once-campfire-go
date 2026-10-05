@@ -177,7 +177,7 @@ bench/application --rust-root reference --seed .cache/parity-seeds/default \
   --loadgen .cache/loadgen/release/loadgen \
   --candidate upstream=/path/to/upstream --candidate cursor=/path/to/cursor \
   --candidate prepared=/path/to/prepared --apps upstream cursor prepared \
-  --listener public --gzip 1 \
+  --listener public --gzip 1 --mask-legacy-room-cursor \
   --routes room_show active_room messages_page sidebar search static_css post_message \
   --concurrency 16 --reps 3 --seconds 5 --server-cpus 0-3 --loadgen-cpus 4-7 \
   --cable-clients 100 --deflate 0 1 --cable-seconds 5 --upload-reps 0 \

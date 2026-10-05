@@ -1,0 +1,43 @@
+Build ID: 0fc5d03ad00474ea341f50ffa783e8db86b9255f
+Type: cpu
+Time: 2026-10-05 12:45:31 UTC
+Duration: 12.30s, Total samples = 28.95s (235.37%)
+Showing nodes accounting for 17.95s, 62.00% of 28.95s total
+Dropped 817 nodes (cum <= 0.14s)
+Showing top 35 nodes out of 278
+      flat  flat%   sum%        cum   cum%
+     2.69s  9.29%  9.29%      3.05s 10.54%  runtime.cgocall
+     2.04s  7.05% 16.34%      2.04s  7.05%  internal/runtime/syscall/linux.Syscall6
+     1.95s  6.74% 23.07%      1.95s  6.74%  crypto/internal/fips140/sha256.blockSHA2
+     1.75s  6.04% 29.12%      1.75s  6.04%  internal/bytealg.IndexByteString
+     1.06s  3.66% 32.78%      1.40s  4.84%  runtime.gcmarknewobject
+     0.93s  3.21% 35.99%      1.43s  4.94%  runtime.tryDeferToSpanScan
+     0.84s  2.90% 38.89%      2.66s  9.19%  internal/stringslite.Index
+     0.56s  1.93% 40.83%      0.56s  1.93%  runtime.memmove
+     0.48s  1.66% 42.49%      1.25s  4.32%  runtime.scanObjectsSmall
+     0.44s  1.52% 44.01%      0.48s  1.66%  runtime.typePointers.next
+     0.37s  1.28% 45.28%      0.37s  1.28%  runtime.pageIndexOf (inline)
+     0.31s  1.07% 46.36%      0.34s  1.17%  runtime.heapArenaOf (inline)
+     0.31s  1.07% 47.43%      0.33s  1.14%  time.nextStdChunk
+     0.29s  1.00% 48.43%      1.03s  3.56%  runtime.scanObject
+     0.26s   0.9% 49.33%      0.26s   0.9%  runtime.memclrNoHeapPointers
+     0.26s   0.9% 50.22%      0.88s  3.04%  runtime.wbBufFlush1
+     0.22s  0.76% 50.98%      0.22s  0.76%  runtime.nanotime
+     0.22s  0.76% 51.74%      0.58s  2.00%  time.Time.appendFormat
+     0.21s  0.73% 52.47%      0.21s  0.73%  golang.org/x/crypto/blowfish.encryptBlock
+     0.21s  0.73% 53.20%      0.21s  0.73%  runtime.futex
+     0.21s  0.73% 53.92%      0.27s  0.93%  runtime.scanblock
+     0.20s  0.69% 54.61%      0.62s  2.14%  time.parse
+     0.19s  0.66% 55.27%      0.82s  2.83%  encoding/json/v2.makeStructArshaler.func2
+     0.19s  0.66% 55.92%      0.35s  1.21%  internal/runtime/maps.(*Iter).Next
+     0.19s  0.66% 56.58%      0.24s  0.83%  net/url.unescape
+     0.18s  0.62% 57.20%      0.18s  0.62%  context.(*valueCtx).Err
+     0.18s  0.62% 57.82%      0.18s  0.62%  runtime.memequal
+     0.17s  0.59% 58.41%      0.17s  0.59%  context.(*valueCtx).Done
+     0.17s  0.59% 59.00%      0.25s  0.86%  runtime.findObject
+     0.17s  0.59% 59.59%      3.06s 10.57%  runtime.mallocgc
+     0.16s  0.55% 60.14%      3.87s 13.37%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.15s  0.52% 60.66%      0.15s  0.52%  time.appendInt
+     0.14s  0.48% 61.14%      0.62s  2.14%  gcWriteBarrier
+     0.13s  0.45% 61.59%      0.92s  3.18%  database/sql.convertAssignRows
+     0.12s  0.41% 62.00%      0.32s  1.11%  github.com/basecamp/once-campfire-go/internal/web.viewMessages
