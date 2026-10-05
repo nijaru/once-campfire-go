@@ -8,7 +8,9 @@ import (
 	"html/template"
 	"strings"
 
+	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
+	"github.com/basecamp/once-campfire-go/internal/useragent"
 )
 
 type roomShellEntry struct {
@@ -16,13 +18,37 @@ type roomShellEntry struct {
 	bytes                                     int
 }
 
+// The same bounded input owns both the template and its cache identity. New
+// room-template dependencies must enter this type, not an unrelated page field.
+type roomShellPage struct {
+	User                            database.User
+	Room                            database.Room
+	Account                         database.Account
+	Platform                        useragent.Platform
+	Title, BodyClass, Screen        string
+	Origin, Stream, VAPIDPublicKey  string
+	Notice, Error, LoadedAt         string
+	CustomStyles, MessagesHTML      template.HTML
+	Messages                        []messageView
+	Frame, Chat, Reload, Invitation bool
+}
+
+func shellPage(p page) roomShellPage {
+	return roomShellPage{
+		User: p.User, Room: p.Room, Account: p.Account, Platform: p.Platform,
+		Title: p.Title, BodyClass: p.BodyClass, Screen: p.Screen,
+		Origin: p.Origin, Stream: p.Stream, VAPIDPublicKey: p.VAPIDPublicKey,
+		Notice: p.Notice, Error: p.Error, CustomStyles: p.CustomStyles,
+		Frame: p.Frame, Chat: p.Chat, Reload: p.Reload, Invitation: p.Invitation,
+	}
+}
+
 // Authorization and page data are read afresh. Only static surrounding bytes
 // are retained; cursor and message parts are inserted independently per request.
 func (s *Server) roomParts(p page, messages responsebody.Part) ([]responsebody.Part, error) {
 	loadedAt := p.LoadedAt
-	p.Messages, p.MessagesHTML, p.LoadedAt = nil, "", ""
-	// Preserve all page dependencies, including future template inputs.
-	raw, err := json.Marshal(p)
+	input := shellPage(p)
+	raw, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +57,10 @@ func (s *Server) roomParts(p page, messages responsebody.Part) ([]responsebody.P
 	if !ok {
 		messageMarker := "\x00campfire-" + rand.Text() + "\x00"
 		loadedMarker := "campfire-loaded-" + rand.Text()
-		p.MessagesHTML, p.LoadedAt = template.HTML(messageMarker), loadedMarker
+		input.MessagesHTML, input.LoadedAt = template.HTML(messageMarker), loadedMarker
 		b := borrowBuffer()
 		defer releaseBuffer(b)
-		if err := s.templates.ExecuteTemplate(b, "room", p); err != nil {
+		if err := s.templates.ExecuteTemplate(b, "room", input); err != nil {
 			return nil, err
 		}
 		rendered := b.String()

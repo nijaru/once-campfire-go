@@ -5,6 +5,9 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"html/template"
 	"testing"
+	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/useragent"
 
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
@@ -44,8 +47,19 @@ func TestRoomShellPreservesBytesAndRequestData(t *testing.T) {
 		"styles":                 func(p *page) { p.CustomStyles = "<style>body{color:red}</style>" },
 		"origin":                 func(p *page) { p.Origin = "https://other.test" },
 		"frame":                  func(p *page) { p.Frame = true },
-		"invitation":             func(p *page) { p.Invitation = true; p.JoinCode = "new-code" },
-		"stream":                 func(p *page) { p.Stream = "new-stream" },
+		"invitation":             func(p *page) { p.Invitation = true; p.Account.JoinCode = "new-code" },
+		"invite code":            func(p *page) { p.Invitation = true; p.Account.JoinCode = "rotated-code" },
+		"user bio and avatar":    func(p *page) { p.User.Bio = "New bio"; p.User.UpdatedAt = p.User.UpdatedAt.Add(time.Second) },
+		"direct room":            func(p *page) { p.Room.Type = "Rooms::Direct" },
+		"account logo":           func(p *page) { p.Account.HasLogo = true; p.Account.UpdatedAt = time.Unix(1700000000, 0) },
+		"vapid":                  func(p *page) { p.VAPIDPublicKey = "new-public-key" },
+		"platform": func(p *page) {
+			p.Platform = useragent.Platform{IOS: true, Safari: true, Mobile: true, Browser: "Safari", OperatingSystem: "iPhone"}
+		},
+		"desktop platform": func(p *page) {
+			p.Platform = useragent.Platform{Windows: true, Chrome: true, Desktop: true, Browser: "Chrome", OperatingSystem: "Windows"}
+		},
+		"stream": func(p *page) { p.Stream = "new-stream" },
 	}
 	for name, change := range changes {
 		t.Run(name, func(t *testing.T) { p := base; change(&p); check(p); check(base) })
