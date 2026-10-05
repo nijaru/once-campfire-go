@@ -1,0 +1,27 @@
+?   	github.com/basecamp/once-campfire-go/assets	[no test files]
+?   	github.com/basecamp/once-campfire-go/cmd/campfire	[no test files]
+ok  	github.com/basecamp/once-campfire-go/internal/cable	1.133s
+ok  	github.com/basecamp/once-campfire-go/internal/database	1.258s
+2026/10/05 09:45:43 INFO listening address=[::]:42985 tls=false
+2026/10/05 09:45:43 INFO listening address=[::]:46001 tls=true
+2026/10/05 09:45:43 INFO listening address=[::]:43585 tls=false
+--- FAIL: TestPublicCompressionStreamingAndJitter (0.02s)
+    --- FAIL: TestPublicCompressionStreamingAndJitter/zstd (0.00s)
+        public_compression_test.go:53: decode: 0 bytes exec: "zstd": executable file not found in $PATH
+FAIL
+FAIL	github.com/basecamp/once-campfire-go/internal/front	0.204s
+?   	github.com/basecamp/once-campfire-go/internal/html	[no test files]
+ok  	github.com/basecamp/once-campfire-go/internal/httpcompat	1.010s
+ok  	github.com/basecamp/once-campfire-go/internal/integrations	8.760s
+ok  	github.com/basecamp/once-campfire-go/internal/jobs	1.008s
+ok  	github.com/basecamp/once-campfire-go/internal/qrcode	1.362s
+ok  	github.com/basecamp/once-campfire-go/internal/rails	1.248s
+ok  	github.com/basecamp/once-campfire-go/internal/richtext	8.721s
+ok  	github.com/basecamp/once-campfire-go/internal/storage	1.963s
+ok  	github.com/basecamp/once-campfire-go/internal/useragent	1.117s
+ok  	github.com/basecamp/once-campfire-go/internal/web	3.025s
+--- FAIL: TestFlushAndClose (0.00s)
+    writer_test.go:35: "" exec: "zstd": executable file not found in $PATH
+FAIL
+FAIL	github.com/basecamp/once-campfire-go/internal/zstd	0.004s
+FAIL

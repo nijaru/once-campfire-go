@@ -99,11 +99,18 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-The [latest comparison](bench/results/optimization-next-20261003/README.md) measures the
-published Go version, the current Go version, and Rust in three rotating runs. Median
+This fork fixes the room refresh cursor and reuses completed authenticated GET gzip bodies.
+In a controlled Linux/arm64 VM comparison, gzip throughput improved 1.95× for unchanged rooms,
+2.81× for history, and 1.72× for search; identity throughput was roughly unchanged. Sidebar
+throughput did not improve. These are not native AMD or Go/Rust comparisons. See the
+[fork measurement and reproduction report](bench/results/prepared-gzip-20261005/README.md)
+for raw results, active rooms, cache misses, memory costs, compressor trials and limitations.
+
+The [upstream comparison](bench/results/optimization-next-20261003/README.md) measures the
+initial Go version, optimized upstream Go, and Rust in three rotating runs. Median
 requests/sec at 16 HTTP clients, with identical seed data and four application CPUs:
 
-| Workload | Previous Go | Current Go | Change | Rust |
+| Workload | Initial Go | Optimized upstream Go | Change | Rust |
 |---|---:|---:|---:|---:|
 | Room page | 10,175 | 15,218 | +49.6% | 27,535 |
 | Message history | 21,445 | 21,369 | -0.4% | 31,139 |
@@ -111,18 +118,22 @@ requests/sec at 16 HTTP clients, with identical seed data and four application C
 | Search | 14,817 | 14,841 | +0.2% | 30,807 |
 | Post message | 4,025 | 5,036 | +25.1% | 7,740 |
 
+The historical sidebar row is not an equivalent Go/Rust workload: Go returns a bare frame
+where the reference wraps a layout. See the known differences below; no full-page sidebar
+performance comparison is established by those numbers.
+
 Room-page p99 latency fell from 5.69 to 4.14 ms; message-write p99 fell from 16.03 to
-12.49 ms. Rust remains 1.81× faster on room pages and 1.54× faster on writes. All nine
+12.49 ms. In that comparison, Rust was 1.81× faster on room pages and 1.54× faster on writes. All nine
 application runs completed with zero HTTP errors, 345,913 acknowledged writes verified
 in both messages and FTS, and nine thumbnails with identical bytes. HTTP memory use was
 essentially unchanged. See the [raw report](bench/results/optimization-next-20261003/application/report.md)
 for ranges, latency, resource measurements and limitations.
 
-This focused pass did not remeasure Cable throughput. In the
+That upstream pass did not remeasure Cable throughput. In the
 [earlier full-workload comparison](bench/results/application-optimized-20261003/report.md),
 compressed broadcasts to 10,000 clients measured 21.1 complete messages/sec for Go and
 39.3 for Rust. Final workload Pss was 1,023 MiB versus 408 MiB. Those measurements include
-large WebSocket workloads and must not be compared directly with the latest HTTP-only
+large WebSocket workloads and must not be compared directly with the upstream HTTP-only
 memory figures. The earlier run had zero HTTP errors and complete Cable delivery;
 [interrupted attempts](bench/results/application-optimized-20261003/CONTENTION.md) were
 excluded and restarted. The [first optimization report](bench/results/optimization-20261003/comparison.md)
@@ -142,7 +153,9 @@ sets and four application workers, and warms each HTTP workload. It validates me
 static/avatar bytes, every successful write and FTS entry, complete Cable fan-out, and actual thumbnail
 bytes. Reports include raw samples, source/binary hashes, toolchains, load averages and limitations.
 HTTP measurements use the direct application listener and identity encoding; public TLS/compression
-throughput is not measured. `bench/health` remains available for the much narrower health-handler test.
+throughput is not measured in that upstream comparison. The fork harness also supports
+`--listener public --gzip 1`, named candidates and concurrent active-room writes.
+`bench/health` remains available for the much narrower health-handler test.
 
 ## Known differences
 
@@ -151,6 +164,10 @@ throughput is not measured. `bench/health` remains available for the much narrow
   therefore still fail in many inventory cells, even when screenshots, accessibility and workflows
   match. These failures remain visible in the validation report. Exact protocol parity for malformed
   parameters and every content-negotiation edge case is not claimed.
+- `GET /users/me/sidebar` currently returns only the sidebar frame, without the reference's
+  application or Turbo-frame layout. Both historical and fork sidebar figures therefore measure
+  the existing bare-frame handler, not a complete reference page. Unmerged upstream PR #4
+  proposes a fix; the compression work does not incorporate that rendering change.
 - WebSockets share serialized and compressed broadcast payloads through a small extension to
   coder/websocket v1.8.15 (see `third_party/websocket/README.campfire`). Outgoing queues hold 256
   frames; slow clients are disconnected. Authorization is checked afresh for each publication,
@@ -161,8 +178,13 @@ throughput is not measured. `bench/health` remains available for the much narrow
   message-fragment cache is also independently implemented. It retains versioned message lists
   and sidebar HTML; current membership and permission data are read before cache lookup.
   Room pages also cache their surrounding HTML keyed by fresh page data, inserting the current
-  messages and refresh timestamp on every request. Responses assemble cached message bytes with fresh page HTML and derive validators from part
-  lengths and hashes, so ETag values differ from both the original Go implementation and Rust.
+  messages and the queried room's update timestamp on every request. Responses assemble cached
+  message bytes with fresh page HTML and derive validators from part lengths and hashes, so ETag
+  values differ from both the original Go implementation and Rust.
+- Completed GET gzip bodies have a separate 32 MiB compression memo keyed by actual body bytes
+  and gzip mtime, not weak ETags. Requests still run authentication, authorization and page queries;
+  headers/cookies are never reused. No-store, writes, streams, bodies over 1 MiB and large compressed
+  entries bypass retention. Zstd and streaming gzip retain their existing compression paths.
 - The default version label and fallback VAPID subject identify `once-campfire-go`. Explicit version,
   VAPID keys and subject settings remain supported.
 - Native host media output can differ with installed library versions. All byte-golden media tests

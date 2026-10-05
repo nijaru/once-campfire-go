@@ -1,0 +1,27 @@
+{
+  "source_refs": {
+    "upstream": "504428addff333549f1fc88b003c7331779a3c2a",
+    "cursor": "828f9449071aa9773a07b3a3ab37d833838fe828",
+    "prepared": "0902c012d48cfd7405b9b0faae2adbc155f9d5d4"
+  },
+  "build": "CGO_ENABLED=1 go build -trimpath -buildvcs=false -tags sqlite_fts5 ./cmd/campfire",
+  "binaries": {
+    "upstream": "08f46672b5d24d805be3af1859dc352fddc6b1f0005cd6d70eddf7205f78a5b8",
+    "cursor": "fefa75627af337daf11597701bfeb4b1c4602a5f7868dc4e043e5b3846a445aa",
+    "prepared": "3855e638836cabf126dc3f937693490b2c61507766158a9656145b94419d05f8"
+  },
+  "docker_image": "sha256:2549fd1cf01173a5f6b90637e410fc080c7317cfcc905168a53f73bc7cede12a",
+  "host": "Apple M3 Max",
+  "host_os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83",
+  "benchmark_container_scope": "Docker Desktop Linux/aarch64 VM; affinity pins VM vCPUs, not physical Apple cores; Mac host load not constrained. Sequential runs; no simultaneous builds/tests in final timing runs. Not comparable to the published native AMD benchmarks.",
+  "compressor_body_sha256": "a5dfe9ad97238c016c2755aba97dc7c3924d4b8b66beec291805379254784eca",
+  "compressor_body_bytes": 374036,
+  "compressor_body_artifact": "profiles/prepared-1-room.html.gz is a full response from a different origin; the exact compressor input is compressor-room.html.gz",
+  "compressor_commands": "For rep=1..5: BENCH_REVERSE=$((rep%2)) CAMPFIRE_BENCH_BODY=/src/.cache/room.body GOMAXPROCS=1 taskset -c 0 go test -C bench/compression -run ^$ -bench . -benchmem -benchtime=1s -count=1; then CAMPFIRE_BENCH_BODY=/src/.cache/room.body GOMAXPROCS=1 taskset -c 0 go test ./internal/front -run ^$ -bench BenchmarkPreparedGzip -benchmem -benchtime=1s -count=5",
+  "docker_recipe": "FROM golang:1.27.1\nRUN apt-get update && apt-get install -y --no-install-recommends libvips-dev libzstd-dev zstd ffmpeg python3 util-linux && rm -rf /var/lib/apt/lists/*\nWORKDIR /src\n",
+  "profiles_source_ref": "0e1ac17 (before GET-only admission; identical measured GET path)",
+  "loadgen_rust_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "loadgen_build_image": "sha256:85d3116eeb31c371bc51214ee0d7f4c5655d5b6f903d448fff4d1ed8af272fd2",
+  "loadgen_build_command": "CARGO_TARGET_DIR=/output/loadgen-build cargo build --locked --release --manifest-path /source/Cargo.toml",
+  "final_network": "none (container loopback only)"
+}

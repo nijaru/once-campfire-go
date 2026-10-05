@@ -1,0 +1,71 @@
+REP=1
+go: downloading github.com/klauspost/compress v1.19.0
+goos: linux
+goarch: arm64
+pkg: campfire-compression-bench
+BenchmarkGzipMiss/klauspost/reset   	    2266	    523568 ns/op	 714.40 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/klauspost/new     	    2169	    544778 ns/op	 686.58 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+BenchmarkGzipMiss/stdlib/reset      	    1812	    657915 ns/op	 568.52 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/stdlib/new        	    1743	    684674 ns/op	 546.30 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+PASS
+ok  	campfire-compression-bench	4.761s
+REP=2
+goos: linux
+goarch: arm64
+pkg: campfire-compression-bench
+BenchmarkGzipMiss/stdlib/reset   	    1782	    662782 ns/op	 564.34 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/stdlib/new     	    1736	    680963 ns/op	 549.27 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+BenchmarkGzipMiss/klauspost/reset         	    2264	    524056 ns/op	 713.73 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/klauspost/new           	    2173	    546877 ns/op	 683.95 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+PASS
+ok  	campfire-compression-bench	4.745s
+REP=3
+goos: linux
+goarch: arm64
+pkg: campfire-compression-bench
+BenchmarkGzipMiss/klauspost/reset   	    2154	    524325 ns/op	 713.37 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/klauspost/new     	    2176	    543737 ns/op	 687.90 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+BenchmarkGzipMiss/stdlib/reset      	    1809	    657014 ns/op	 569.30 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/stdlib/new        	    1754	    678577 ns/op	 551.21 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+PASS
+ok  	campfire-compression-bench	4.698s
+REP=4
+goos: linux
+goarch: arm64
+pkg: campfire-compression-bench
+BenchmarkGzipMiss/stdlib/reset   	    1758	    665675 ns/op	 561.89 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/stdlib/new     	    1657	    754488 ns/op	 495.75 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+BenchmarkGzipMiss/klauspost/reset         	    2108	    576755 ns/op	 648.52 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/klauspost/new           	    2083	    594914 ns/op	 628.72 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+PASS
+ok  	campfire-compression-bench	4.883s
+REP=5
+goos: linux
+goarch: arm64
+pkg: campfire-compression-bench
+BenchmarkGzipMiss/klauspost/reset   	    2174	    570146 ns/op	 656.04 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/klauspost/new     	    1960	    597300 ns/op	 626.21 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+BenchmarkGzipMiss/stdlib/reset      	    1731	    720333 ns/op	 519.25 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkGzipMiss/stdlib/new        	    1696	    780045 ns/op	 479.51 MB/s	     21289 gzip-bytes	 1076000 B/op	      14 allocs/op
+PASS
+ok  	campfire-compression-bench	4.988s
+goos: linux
+goarch: arm64
+pkg: github.com/basecamp/once-campfire-go/internal/front
+BenchmarkPreparedGzip/warm         	    8725	    136343 ns/op	2743.34 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/warm         	    8721	    134800 ns/op	2774.74 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/warm         	    8892	    136995 ns/op	2730.29 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/warm         	    8728	    134306 ns/op	2784.96 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/warm         	    9088	    131310 ns/op	2848.50 MB/s	     21289 gzip-bytes	       0 B/op	       0 allocs/op
+BenchmarkPreparedGzip/cold         	    1494	    790107 ns/op	 473.40 MB/s	     21289 gzip-bytes	   88453 B/op	      20 allocs/op
+BenchmarkPreparedGzip/cold         	    1520	    787578 ns/op	 474.92 MB/s	     21289 gzip-bytes	   88453 B/op	      20 allocs/op
+BenchmarkPreparedGzip/cold         	    1521	    787532 ns/op	 474.95 MB/s	     21289 gzip-bytes	   88453 B/op	      20 allocs/op
+BenchmarkPreparedGzip/cold         	    1498	    790806 ns/op	 472.98 MB/s	     21289 gzip-bytes	   88453 B/op	      20 allocs/op
+BenchmarkPreparedGzip/cold         	    1521	    786930 ns/op	 475.31 MB/s	     21289 gzip-bytes	   88453 B/op	      20 allocs/op
+BenchmarkPreparedGzip/compress     	    1836	    653995 ns/op	 571.93 MB/s	     21289 gzip-bytes	   65396 B/op	      10 allocs/op
+BenchmarkPreparedGzip/compress     	    1833	    652594 ns/op	 573.15 MB/s	     21289 gzip-bytes	   65396 B/op	      10 allocs/op
+BenchmarkPreparedGzip/compress     	    1833	    653400 ns/op	 572.45 MB/s	     21289 gzip-bytes	   65396 B/op	      10 allocs/op
+BenchmarkPreparedGzip/compress     	    1834	    666261 ns/op	 561.40 MB/s	     21289 gzip-bytes	   65396 B/op	      10 allocs/op
+BenchmarkPreparedGzip/compress     	    1780	    688722 ns/op	 543.09 MB/s	     21289 gzip-bytes	   65396 B/op	      10 allocs/op
+PASS
+ok  	github.com/basecamp/once-campfire-go/internal/front	17.969s

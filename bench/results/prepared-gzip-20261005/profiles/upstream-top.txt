@@ -1,0 +1,24 @@
+File: campfire-upstream
+Build ID: 0953461459cd96e9cfa2782e44f8c4872da761bc
+Type: cpu
+Time: 2026-10-05 02:43:03 PDT
+Duration: 12.30s, Total samples = 44.79s (364.11%)
+Showing nodes accounting for 36.62s, 81.76% of 44.79s total
+Dropped 701 nodes (cum <= 0.22s)
+Showing top 15 nodes out of 136
+      flat  flat%   sum%        cum   cum%
+    14.73s 32.89% 32.89%     14.75s 32.93%  compress/flate.loadLE64[go.shape.int32] (inline)
+     5.96s 13.31% 46.19%     27.04s 60.37%  compress/flate.(*fastEncL6).encode
+     2.27s  5.07% 51.26%      2.27s  5.07%  hash/crc32.ieeeUpdate
+     2.21s  4.93% 56.20%      2.21s  4.93%  compress/flate.loadLE64[go.shape.int] (inline)
+     1.85s  4.13% 60.33%      1.85s  4.13%  compress/flate.(*huffmanEncoder).bitCounts
+     1.67s  3.73% 64.05%      3.88s  8.66%  compress/flate.matchLen
+     1.44s  3.22% 67.27%      1.44s  3.22%  internal/runtime/syscall/linux.Syscall6
+     1.31s  2.92% 70.19%      2.55s  5.69%  compress/flate.(*huffmanBitWriter).writeTokens
+     1.07s  2.39% 72.58%      1.07s  2.39%  runtime.memmove
+     0.97s  2.17% 74.75%      1.13s  2.52%  runtime.cgocall
+     0.78s  1.74% 76.49%      0.78s  1.74%  crypto/internal/fips140/sha256.blockSHA2
+     0.73s  1.63% 78.12%      0.73s  1.63%  compress/flate.(*tokens).AddMatchLong
+     0.67s  1.50% 79.62%      0.67s  1.50%  compress/flate.loadLE32[go.shape.int32] (inline)
+     0.63s  1.41% 81.02%      0.63s  1.41%  internal/bytealg.IndexByteString
+     0.33s  0.74% 81.76%      0.33s  0.74%  compress/flate.hashLen (inline)
