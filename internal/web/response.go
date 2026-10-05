@@ -84,12 +84,18 @@ func (w *responseBuffer) finish(r *http.Request) {
 	}
 	w.ResponseWriter.WriteHeader(w.status)
 	if r.Method != "HEAD" && w.status != 204 && w.status != 304 {
-		if len(w.parts) > 0 {
-			for _, part := range w.parts {
+		parts := w.parts
+		if len(parts) == 0 {
+			parts = [][]byte{w.body.Bytes()}
+		}
+		// Hand completed bytes to the compressor without joining recorded parts.
+		// Streaming/download writers do not use this optional contract.
+		if writer, ok := w.ResponseWriter.(interface{ WriteBody([][]byte) (int, error) }); ok {
+			writer.WriteBody(parts)
+		} else {
+			for _, part := range parts {
 				w.ResponseWriter.Write(part)
 			}
-		} else {
-			w.ResponseWriter.Write(w.body.Bytes())
 		}
 	}
 }
