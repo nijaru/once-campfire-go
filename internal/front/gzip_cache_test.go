@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 func gunzip(t *testing.T, body []byte) []byte {
@@ -38,7 +40,7 @@ func TestGzipCacheExactBytesConcurrentReuseAndBounds(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			var err error
-			results[i], err = cache.prepare(context.Background(), [][]byte{body[:99], body[99:]}, 123)
+			results[i], err = cache.prepare(context.Background(), gzipParts(body[:99], body[99:]), 123)
 			if err != nil {
 				t.Error(err)
 			}
@@ -53,16 +55,16 @@ func TestGzipCacheExactBytesConcurrentReuseAndBounds(t *testing.T) {
 			t.Fatal("concurrent requests did not share immutable gzip bytes")
 		}
 	}
-	whole, err := cache.prepare(context.Background(), [][]byte{body}, 123)
-	if err != nil || &whole[0] != &results[0][0] {
-		t.Fatal("chunk boundaries changed identity", err)
+	whole, err := cache.prepare(context.Background(), gzipParts(body), 123)
+	if err != nil || !bytes.Equal(gunzip(t, whole), body) {
+		t.Fatal("a different decomposition changed response bytes", err)
 	}
-	otherTime, err := cache.prepare(context.Background(), [][]byte{body}, 456)
+	otherTime, err := cache.prepare(context.Background(), gzipParts(body), 456)
 	if err != nil || binary.LittleEndian.Uint32(otherTime[4:8]) != 456 || bytes.Equal(otherTime, whole) {
 		t.Fatal("gzip mtime not preserved", err)
 	}
 	for i := 0; i < 200; i++ {
-		if _, err := cache.prepare(context.Background(), [][]byte{body}, uint32(i)); err != nil {
+		if _, err := cache.prepare(context.Background(), gzipParts(body), uint32(i)); err != nil {
 			t.Fatal(err)
 		}
 		if cache.size > cache.capacity {
@@ -78,7 +80,7 @@ func TestGzipCacheExactBytesConcurrentReuseAndBounds(t *testing.T) {
 		large[i] = byte(state >> 56)
 	}
 	before := cache.size
-	largeGzip, err := cache.prepare(context.Background(), [][]byte{large}, 0)
+	largeGzip, err := cache.prepare(context.Background(), gzipParts(large), 0)
 	if err != nil || !bytes.Equal(gunzip(t, largeGzip), large) || cache.size != before {
 		t.Fatal("oversized entry was retained or corrupted", err)
 	}
@@ -93,7 +95,12 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
 	request.Header.Set("Accept-Encoding", "gzip")
 	first := []byte(strings.Repeat("private first body", 100))
 	second := []byte(strings.Repeat("private other body", 100))
-	for i, body := range [][]byte{first, first, second} {
+	// With the same weak validator, every part remains an exact-byte dependency.
+	for i, data := range [][][]byte{
+		{first, first, first}, {first, first, first},
+		{second, first, first}, {first, second, first}, {first, first, second},
+	} {
+		body := bytes.Join(data, nil)
 		response := httptest.NewRecorder()
 		w := &gzipResponse{ResponseWriter: response, request: request, selected: "gzip", cache: cache}
 		w.Header().Set("ETag", `W/"same-resource-version"`)
@@ -101,7 +108,7 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
 		cookie := "session=" + string(rune('a'+i))
 		w.Header().Set("Set-Cookie", cookie)
 		w.WriteHeader(200)
-		n, err := w.WriteBody([][]byte{body})
+		n, err := w.WriteBody(gzipParts(data...))
 		if err != nil || n != len(body) || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
 			t.Fatal("completed body did not roundtrip", err)
 		}
@@ -109,7 +116,7 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
 			t.Fatal("cached response reused headers")
 		}
 	}
-	if cache.order.Len() != 2 {
+	if cache.order.Len() != 4 {
 		t.Fatal("weak ETag reused a different body's gzip")
 	}
 	for _, test := range []struct{ method, control string }{{"GET", "no-store"}, {"POST", "private"}} {
@@ -119,11 +126,11 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
 		w.Header().Set("Cache-Control", test.control)
 		w.WriteHeader(200)
 		body := []byte(strings.Repeat("do not retain", 200))
-		w.WriteBody([][]byte{body})
+		w.WriteBody(gzipParts(body))
 		w.writer.Close()
 		w.writer.Reset(nil)
 		gzipPool.Put(w.writer)
-		if cache.order.Len() != 2 || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
+		if cache.order.Len() != 4 || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
 			t.Fatal("one-off body was retained or corrupted", test)
 		}
 	}
@@ -135,7 +142,9 @@ func TestCompletedAndStreamingGzipLifecycles(t *testing.T) {
 		w.Header().Set("Content-Type", "text/html")
 		if r.URL.Path == "/completed" {
 			w.WriteHeader(200)
-			w.(interface{ WriteBody([][]byte) (int, error) }).WriteBody([][]byte{[]byte(body)})
+			w.(interface {
+				WriteBody([]responsebody.Part) (int, error)
+			}).WriteBody(gzipParts([]byte(body)))
 		} else if r.URL.Path == "/stream" {
 			io.WriteString(w, body[:10])
 			w.(http.Flusher).Flush()
@@ -172,4 +181,13 @@ func TestCompletedAndStreamingGzipLifecycles(t *testing.T) {
 			t.Fatal("HEAD sent a body", path)
 		}
 	}
+}
+
+// Only the constructor can attach a digest to completed bytes.
+func gzipParts(data ...[]byte) []responsebody.Part {
+	parts := make([]responsebody.Part, len(data))
+	for i, value := range data {
+		parts[i] = responsebody.NewPart(value)
+	}
+	return parts
 }

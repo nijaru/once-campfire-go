@@ -3,20 +3,20 @@ package web
 import (
 	"container/list"
 	"context"
-	"crypto/sha256"
-	"github.com/basecamp/once-campfire-go/internal/database"
 	"html/template"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 type fragmentEntry struct {
 	key                         string
 	html                        template.HTML
 	bytes                       int
-	digest                      [32]byte
-	payload                     []byte
+	part                        responsebody.Part
 	messageMarker, loadedMarker string
 }
 type fragmentCache struct {
@@ -51,22 +51,25 @@ func (c *fragmentCache) put(key string, html template.HTML) template.HTML {
 }
 func (c *fragmentCache) putEntry(entry fragmentEntry) fragmentEntry {
 	key, html := entry.key, entry.html
+	size := len(key) + len(html) + len(entry.messageMarker) + len(entry.loadedMarker) + 240
+	if strings.HasPrefix(key, "message-list/") {
+		size += len(html)
+	}
+	if size > c.limit/4 {
+		return entry
+	}
+	if strings.HasPrefix(key, "message-list/") {
+		entry.part = responsebody.NewPart([]byte(html))
+	}
+	entry.bytes = size
+	// Hash/copy payloads before taking the LRU lock. Concurrent misses may do
+	// duplicate preparation, but unrelated hits never wait for a full-body hash.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if e, ok := c.entries[key]; ok {
 		c.order.MoveToFront(e)
 		return e.Value.(fragmentEntry)
 	}
-	size := len(key) + len(html) + len(entry.messageMarker) + len(entry.loadedMarker) + 240
-	var payload []byte
-	if strings.HasPrefix(key, "message-list/") {
-		payload = []byte(html)
-		size += len(payload)
-	}
-	if size > c.limit/4 {
-		return entry
-	}
-	entry.bytes, entry.digest, entry.payload = size, sha256.Sum256([]byte(html)), payload
 	c.entries[key] = c.order.PushFront(entry)
 	c.bytes += size
 	if c.bytes > c.limit {

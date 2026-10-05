@@ -2,8 +2,6 @@ package web
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
 	"html/template"
 
@@ -11,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 // The marker exists only during template execution. The actual response inserts
@@ -39,7 +38,7 @@ func (s *Server) messageList(ctx context.Context, messages []database.Message) (
 	if entry, ok := s.fragments.entry(key.String()); ok {
 		return entry, nil
 	}
-	return fragmentEntry{html: html, digest: sha256.Sum256([]byte(html))}, nil
+	return fragmentEntry{html: html, part: responsebody.NewPart([]byte(html))}, nil
 }
 
 func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, fragment fragmentEntry) {
@@ -48,25 +47,14 @@ func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, f
 		http.Error(w, "Missing message insertion point", 500)
 		return
 	}
-	payload := fragment.payload
-	if payload == nil {
-		payload = []byte(fragment.html)
+	part := fragment.part
+	if part.Len() == 0 && len(fragment.html) != 0 {
+		part = responsebody.NewPart([]byte(fragment.html))
 	}
-	parts := [][]byte{[]byte(before), payload, []byte(after)}
+	parts := []responsebody.Part{responsebody.NewPart([]byte(before)), part, responsebody.NewPart([]byte(after))}
 	if w.Header().Get("ETag") == "" {
-		// Like Rust's Body::Parts, digest boundaries and cached fragment hashes.
-		hash := sha256.New()
-		for i, part := range parts {
-			var size [8]byte
-			binary.LittleEndian.PutUint64(size[:], uint64(len(part)))
-			hash.Write(size[:])
-			digest := fragment.digest
-			if i != 1 {
-				digest = sha256.Sum256(part)
-			}
-			hash.Write(digest[:])
-		}
-		w.Header().Set("ETag", fmt.Sprintf("W/\"%x\"", hash.Sum(nil)[:16]))
+		digest := responsebody.Digest(parts)
+		w.Header().Set("ETag", fmt.Sprintf("W/\"%x\"", digest[:16]))
 	}
 	if w.Header().Get("Cache-Control") == "" {
 		w.Header().Set("Cache-Control", "max-age=0, private, must-revalidate")
@@ -88,6 +76,6 @@ func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, f
 		}
 	}
 	for _, part := range parts {
-		w.Write(part)
+		part.WriteTo(w)
 	}
 }

@@ -5,9 +5,10 @@ import (
 	"compress/gzip"
 	"container/list"
 	"context"
-	"crypto/sha256"
 	"sync"
 	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 const (
@@ -36,7 +37,7 @@ type gzipFlight struct {
 
 // This is a compression memo, not an HTTP response cache. Every request still
 // runs the application (including authorization) and supplies its own headers.
-// Actual body bytes key the memo: weak/resource ETags cannot identify exact bytes.
+// Strong part digests key the memo: weak/resource ETags cannot identify exact bytes.
 // No plain bodies, cookies, request state or response headers are retained.
 type gzipCache struct {
 	mu       sync.Mutex
@@ -51,13 +52,8 @@ func newGzipCache(capacity int) *gzipCache {
 	return &gzipCache{capacity: capacity, entries: make(map[gzipKey]*list.Element), flights: make(map[gzipKey]*gzipFlight)}
 }
 
-func (c *gzipCache) prepare(ctx context.Context, parts [][]byte, mtime uint32) ([]byte, error) {
-	hash := sha256.New()
-	for _, part := range parts {
-		hash.Write(part)
-	}
-	key := gzipKey{mtime: mtime}
-	hash.Sum(key.digest[:0])
+func (c *gzipCache) prepare(ctx context.Context, parts []responsebody.Part, mtime uint32) ([]byte, error) {
+	key := gzipKey{digest: responsebody.Digest(parts), mtime: mtime}
 	c.mu.Lock()
 	if entry := c.entries[key]; entry != nil {
 		c.order.MoveToFront(entry)
@@ -115,7 +111,7 @@ func (c *gzipCache) prepare(ctx context.Context, parts [][]byte, mtime uint32) (
 	return body, err
 }
 
-func gzipBody(parts [][]byte, mtime uint32) ([]byte, error) {
+func gzipBody(parts []responsebody.Part, mtime uint32) ([]byte, error) {
 	var output bytes.Buffer
 	writer := gzipPool.Get().(*gzip.Writer)
 	writer.Reset(&output)
@@ -128,7 +124,7 @@ func gzipBody(parts [][]byte, mtime uint32) ([]byte, error) {
 		gzipPool.Put(writer)
 	}()
 	for _, part := range parts {
-		if _, err := writer.Write(part); err != nil {
+		if _, err := part.WriteTo(writer); err != nil {
 			return nil, err
 		}
 	}

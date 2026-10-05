@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 var gzipPool = sync.Pool{New: func() any { writer, _ := gzip.NewWriterLevel(nil, 6); return writer }}
@@ -174,13 +176,13 @@ func (w *gzipResponse) startGzip() {
 	}
 }
 
-// WriteBody accepts a completed non-streaming body. Hashing parts does not
-// concatenate them; a hit writes the immutable gzip member directly. Ordinary
+// WriteBody accepts completed, immutable parts with trusted digests. A hit
+// writes the gzip member directly, without hashing the full body. Ordinary
 // Write/Flush callers retain streaming compression and never enter this cache.
-func (w *gzipResponse) WriteBody(parts [][]byte) (int, error) {
+func (w *gzipResponse) WriteBody(parts []responsebody.Part) (int, error) {
 	size := 0
 	for _, part := range parts {
-		size += len(part)
+		size += part.Len()
 	}
 	if w.status == 0 {
 		w.WriteHeader(200)
@@ -207,8 +209,8 @@ func (w *gzipResponse) WriteBody(parts [][]byte) (int, error) {
 	}
 	written := 0
 	for _, part := range parts {
-		n, err := w.Write(part)
-		written += n
+		n, err := part.WriteTo(w)
+		written += int(n)
 		if err != nil {
 			return written, err
 		}

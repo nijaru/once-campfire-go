@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"testing"
+
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 func BenchmarkPreparedGzip(b *testing.B) {
@@ -11,22 +13,26 @@ func BenchmarkPreparedGzip(b *testing.B) {
 	if err != nil {
 		b.Fatal("set CAMPFIRE_BENCH_BODY to a captured full identity response:", err)
 	}
-	parts := [][]byte{body}
-	for _, phase := range []string{"warm", "cold", "compress"} {
+	parts := []responsebody.Part{responsebody.NewPart(body)}
+	for _, phase := range []string{"warm", "prepare", "cold", "compress"} {
 		b.Run(phase, func(b *testing.B) {
 			cache := newGzipCache(gzipCacheBytes)
 			encoded, err := cache.prepare(context.Background(), parts, 0)
 			if err != nil {
 				b.Fatal(err)
 			}
-			b.SetBytes(int64(len(body)))
+			if phase != "warm" {
+				b.SetBytes(int64(len(body)))
+			}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for b.Loop() {
 				if phase == "warm" {
 					_, err = cache.prepare(context.Background(), parts, 0)
+				} else if phase == "prepare" {
+					_, err = cache.prepare(context.Background(), []responsebody.Part{responsebody.NewPart(body)}, 0)
 				} else if phase == "cold" {
-					_, err = newGzipCache(gzipCacheBytes).prepare(context.Background(), parts, 0)
+					_, err = newGzipCache(gzipCacheBytes).prepare(context.Background(), []responsebody.Part{responsebody.NewPart(body)}, 0)
 				} else {
 					_, err = gzipBody(parts, 0)
 				}

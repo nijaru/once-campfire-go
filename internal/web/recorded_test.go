@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -41,6 +43,19 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 	if first.Body.String() != "before"+original.String()+"after" {
 		t.Fatal("recorded rendering changed bytes")
 	}
+	// Keep the existing wire validator even though compression now shares its
+	// full strong part identity. This is the pre-optimization construction.
+	hash := sha256.New()
+	for _, value := range []string{"before", original.String(), "after"} {
+		var size [8]byte
+		binary.LittleEndian.PutUint64(size[:], uint64(len(value)))
+		hash.Write(size[:])
+		digest := sha256.Sum256([]byte(value))
+		hash.Write(digest[:])
+	}
+	if first.Header().Get("ETag") != fmt.Sprintf("W/\"%x\"", hash.Sum(nil)[:16]) {
+		t.Fatal("part identity changed the wire validator")
+	}
 	request.Header.Set("If-None-Match", first.Header().Get("ETag"))
 	second := httptest.NewRecorder()
 	buffered = &responseBuffer{ResponseWriter: second}
@@ -52,10 +67,10 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 	list[0].UpdatedAt = list[0].UpdatedAt.Add(time.Second)
 	list[0].Body = "<p>changed</p>"
 	changed, err := app.messageList(ctx, list)
-	if err != nil || !strings.Contains(string(changed.html), "changed") || changed.digest == fragment.digest {
+	if err != nil || !strings.Contains(string(changed.html), "changed") || changed.part.Digest() == fragment.part.Digest() {
 		t.Fatal("stale message list", err)
 	}
-	if changed.digest != sha256.Sum256([]byte(changed.html)) {
+	if changed.part.Digest() != sha256.Sum256([]byte(changed.html)) {
 		t.Fatal("incorrect cached digest")
 	}
 }
