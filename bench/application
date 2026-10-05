@@ -29,6 +29,7 @@ def main():
     p.add_argument('--go-binary',type=Path,default=ROOT/'campfire')
     p.add_argument('--gzip',type=int,choices=[0,1],default=0)
     p.add_argument('--listener',choices=['application','public'],default='application')
+    p.add_argument('--mask-legacy-room-cursor',action='store_true',help='mask only the original render-time cursor defect when comparing pre-fix binaries')
     p.add_argument('--active-room-hz',type=float,default=20,help='message commits/sec during active_room reads')
     p.add_argument('--routes',nargs='+',choices=['room_show','active_room','messages_page','sidebar','search','avatar','static_css','post_message'])
     p.add_argument('--resume',action='store_true',help='resume completed runs with identical binaries and settings')
@@ -140,9 +141,9 @@ def main():
              encoded=encoded_response.read();content_encoding=encoded_response.headers.get('Content-Encoding','identity')
             decoded=gzip.decompress(encoded) if content_encoding=='gzip' else encoded
             def canonical(value):
-             # The original binary's render-time cursor changes between requests;
-             # this one known correctness defect is not a compression mismatch.
-             return re.sub(rb'(data-refresh-room-loaded-at-value=")[0-9]+',rb'\g<1>CURSOR',value) if name in ('room_show','active_room') else value
+             # Explicit opt-in only for comparisons containing the original defect.
+             # Current candidates must match complete decoded bytes without masking.
+             return re.sub(rb'(data-refresh-room-loaded-at-value=")[0-9]+',rb'\g<1>CURSOR',value) if a.mask_legacy_room_cursor and name in ('room_show','active_room') else value
             if canonical(decoded)!=canonical(body):raise RuntimeError(f'{app} {name}: encoded body differs from full identity response')
             result['bodies'][name].update(encoded_bytes=len(encoded),encoding=content_encoding)
             if name=='room_show':(out/f'{app}-{rep}-room.html.gz').write_bytes(gzip.compress(body,mtime=0))
