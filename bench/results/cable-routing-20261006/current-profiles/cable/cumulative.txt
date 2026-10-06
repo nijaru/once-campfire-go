@@ -1,0 +1,69 @@
+File: final-search-shell
+Build ID: 518ef600efdf80562d1af427c6b4e5c705bed637
+Type: cpu
+Time: 2026-10-06 10:38:56 UTC
+Duration: 25.60s, Total samples = 38.52s (150.48%)
+Showing nodes accounting for 20.60s, 53.48% of 38.52s total
+Dropped 863 nodes (cum <= 0.19s)
+Showing top 60 nodes out of 228
+      flat  flat%   sum%        cum   cum%
+     0.10s  0.26%  0.26%     25.71s 66.74%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Serve.func2
+     0.08s  0.21%  0.47%     18.08s 46.94%  github.com/coder/websocket.(*Conn).WritePrepared
+     0.24s  0.62%  1.09%     16.27s 42.24%  github.com/coder/websocket.(*Conn).writeFrame
+     0.11s  0.29%  1.38%     13.10s 34.01%  bufio.(*Writer).Flush
+     0.01s 0.026%  1.40%     12.98s 33.70%  internal/poll.(*FD).Write
+     0.02s 0.052%  1.45%     12.96s 33.64%  internal/poll.ignoringEINTRIO (inline)
+     0.02s 0.052%  1.51%     12.94s 33.59%  syscall.Syscall
+     0.01s 0.026%  1.53%     12.77s 33.15%  syscall.Write (inline)
+     0.02s 0.052%  1.58%     12.76s 33.13%  syscall.write
+    12.75s 33.10% 34.68%     12.75s 33.10%  internal/runtime/syscall/linux.Syscall6
+     0.01s 0.026% 34.71%     12.71s 33.00%  syscall.RawSyscall6
+     0.03s 0.078% 34.79%     12.66s 32.87%  net.(*conn).Write
+     0.02s 0.052% 34.84%     12.63s 32.79%  net.(*netFD).Write
+     0.02s 0.052% 34.89%      9.99s 25.93%  net/http.(*conn).serve
+     0.01s 0.026% 34.92%      7.81s 20.28%  net/http.HandlerFunc.ServeHTTP
+         0     0% 34.92%      7.81s 20.28%  net/http.serverHandler.ServeHTTP
+         0     0% 34.92%      7.80s 20.25%  github.com/basecamp/once-campfire-go/internal/front.forward.func1
+         0     0% 34.92%      6.69s 17.37%  github.com/basecamp/once-campfire-go/internal/front.PublicCompression.func1
+     0.01s 0.026% 34.94%      6.62s 17.19%  github.com/basecamp/once-campfire-go/internal/front.(*Cache).Handler.func1
+         0     0% 34.94%         6s 15.58%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+         0     0% 34.94%         6s 15.58%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+         0     0% 34.94%      5.82s 15.11%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+         0     0% 34.94%      5.82s 15.11%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+         0     0% 34.94%      5.61s 14.56%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+         0     0% 34.94%      5.33s 13.84%  github.com/basecamp/once-campfire-go/internal/web.(*Server).createMessage
+     0.06s  0.16% 35.10%      4.39s 11.40%  context.WithTimeout
+         0     0% 35.10%      3.99s 10.36%  context.WithDeadline (inline)
+     0.06s  0.16% 35.25%      3.99s 10.36%  context.WithDeadlineCause
+     0.08s  0.21% 35.46%      3.90s 10.12%  runtime.systemstack
+     2.21s  5.74% 41.20%      3.82s  9.92%  runtime.selectgo
+     0.53s  1.38% 42.58%      3.46s  8.98%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).publish
+     0.14s  0.36% 42.94%      3.40s  8.83%  runtime.mallocgc
+     0.02s 0.052% 42.99%      2.16s  5.61%  runtime.newobject
+     0.02s 0.052% 43.04%      2.11s  5.48%  github.com/coder/websocket.(*mu).lock
+         0     0% 43.04%      1.96s  5.09%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageCreated
+         0     0% 43.04%      1.78s  4.62%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).PublishStream (inline)
+         0     0% 43.04%      1.68s  4.36%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Publish (inline)
+     0.01s 0.026% 43.07%      1.51s  3.92%  runtime.gcAssistAlloc
+     0.03s 0.078% 43.15%      1.48s  3.84%  github.com/coder/websocket.(*msgWriter).reset
+     0.03s 0.078% 43.22%      1.44s  3.74%  github.com/coder/websocket.(*Conn).setupWriteTimeout
+         0     0% 43.22%      1.44s  3.74%  runtime.deductAssistCredit
+         0     0% 43.22%      1.44s  3.74%  runtime.gcAssistAlloc.func2
+         0     0% 43.22%      1.44s  3.74%  runtime.gcAssistAlloc1
+         0     0% 43.22%      1.41s  3.66%  runtime.gcDrainN
+     0.01s 0.026% 43.25%      1.24s  3.22%  context.AfterFunc
+         0     0% 43.25%      1.22s  3.17%  runtime.gcBgMarkWorker
+     0.08s  0.21% 43.46%      1.20s  3.12%  context.(*cancelCtx).propagateCancel
+         0     0% 43.46%      1.19s  3.09%  runtime.gcBgMarkWorker.func2
+         0     0% 43.46%      1.19s  3.09%  runtime.gcDrain
+     1.16s  3.01% 46.47%      1.18s  3.06%  runtime.cgocall
+     0.95s  2.47% 48.94%      1.17s  3.04%  internal/runtime/maps.(*Iter).Next
+     0.07s  0.18% 49.12%      1.12s  2.91%  runtime.mallocgcSmallScanNoHeader
+         0     0% 49.12%      1.06s  2.75%  runtime.gcDrainMarkWorkerDedicated (inline)
+     0.01s 0.026% 49.14%      1.04s  2.70%  runtime.scanSpan
+     0.01s 0.026% 49.17%         1s  2.60%  net/http.(*response).finishRequest
+     0.96s  2.49% 51.66%      0.96s  2.49%  runtime.nanotime (inline)
+     0.70s  1.82% 53.48%      0.95s  2.47%  runtime.tryDeferToSpanScan
+         0     0% 53.48%      0.90s  2.34%  database/sql.withLock
+         0     0% 53.48%      0.88s  2.28%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Transaction
+         0     0% 53.48%      0.87s  2.26%  github.com/basecamp/once-campfire-go/internal/web.(*Server).saveNewMessage

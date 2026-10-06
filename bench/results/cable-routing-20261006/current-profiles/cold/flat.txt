@@ -1,0 +1,64 @@
+File: final-search-shell
+Build ID: 518ef600efdf80562d1af427c6b4e5c705bed637
+Type: cpu
+Time: 2026-10-06 10:38:34 UTC
+Duration: 22.31s, Total samples = 57.78s (259.03%)
+Showing nodes accounting for 37.22s, 64.42% of 57.78s total
+Dropped 978 nodes (cum <= 0.29s)
+Showing top 55 nodes out of 271
+      flat  flat%   sum%        cum   cum%
+     4.69s  8.12%  8.12%      5.82s 10.07%  runtime.gcmarknewobject
+     2.19s  3.79% 11.91%      6.19s 10.71%  regexp.(*Regexp).tryBacktrack
+     2.13s  3.69% 15.59%      3.25s  5.62%  runtime.tryDeferToSpanScan
+     2.10s  3.63% 19.23%      2.25s  3.89%  runtime.cgocall
+     1.49s  2.58% 21.81%      2.58s  4.47%  regexp/syntax.(*Inst).MatchRunePos
+     1.48s  2.56% 24.37%     15.49s 26.81%  reflect.Value.call
+     1.24s  2.15% 26.51%      1.24s  2.15%  runtime.pageIndexOf (inline)
+     1.20s  2.08% 28.59%      1.20s  2.08%  crypto/internal/fips140/sha256.blockSHA2
+     1.14s  1.97% 30.56%      1.14s  1.97%  runtime.memmove
+     1.04s  1.80% 32.36%      1.08s  1.87%  unicode.SimpleFold
+     1.03s  1.78% 34.15%      1.03s  1.78%  runtime.memclrNoHeapPointers
+     0.93s  1.61% 35.76%      1.70s  2.94%  strings.makeGenericReplacer
+     0.83s  1.44% 37.19%      4.13s  7.15%  reflect.(*structType).FieldByNameFunc
+     0.77s  1.33% 38.53%      0.78s  1.35%  regexp.(*bitState).shouldVisit (inline)
+     0.73s  1.26% 39.79%      2.35s  4.07%  runtime.scanObject
+     0.73s  1.26% 41.05%      2.09s  3.62%  runtime.scanObjectsSmall
+     0.69s  1.19% 42.25%      0.86s  1.49%  runtime.heapArenaOf (inline)
+     0.68s  1.18% 43.42%     18.86s 32.64%  text/template.(*state).evalCall
+     0.60s  1.04% 44.46%      5.48s  9.48%  runtime.mallocgcSmallScanSlowPath
+     0.57s  0.99% 45.45%      0.62s  1.07%  runtime.typePointers.next
+     0.56s  0.97% 46.42%      1.13s  1.96%  reflect.funcLayout
+     0.56s  0.97% 47.39%     10.39s 17.98%  runtime.mallocgc
+     0.56s  0.97% 48.36%      2.28s  3.95%  runtime.wbBufFlush1
+     0.47s  0.81% 49.17%      0.48s  0.83%  internal/abi.(*RegArgs).IntRegArgAddr (inline)
+     0.44s  0.76% 49.93%      1.09s  1.89%  html/template.htmlReplacer
+     0.42s  0.73% 50.66%      0.80s  1.38%  internal/abi.Name.Name
+     0.41s  0.71% 51.37%      0.47s  0.81%  runtime.findObject
+     0.40s  0.69% 52.06%      0.40s  0.69%  reflect.(*rtype).Kind (partial-inline)
+     0.39s  0.67% 52.73%      0.62s  1.07%  runtime.scanblock
+     0.37s  0.64% 53.37%      0.39s  0.67%  unicode/utf8.DecodeRuneInString (inline)
+     0.36s  0.62% 54.00%      5.02s  8.69%  reflect.(*structType).FieldByName
+     0.35s  0.61% 54.60%      0.35s  0.61%  runtime.futex
+     0.33s  0.57% 55.17%      2.21s  3.82%  gcWriteBarrier
+     0.32s  0.55% 55.73%      0.89s  1.54%  callRet
+     0.32s  0.55% 56.28%      0.32s  0.55%  internal/runtime/syscall/linux.Syscall6
+     0.31s  0.54% 56.82%      0.64s  1.11%  html/template.processURLOnto
+     0.31s  0.54% 57.36%      0.31s  0.54%  runtime.spanOf (inline)
+     0.30s  0.52% 57.87%      0.30s  0.52%  internal/abi.Name.ReadVarint (inline)
+     0.30s  0.52% 58.39%      0.32s  0.55%  runtime.greyobject
+     0.30s  0.52% 58.91%      2.80s  4.85%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.30s  0.52% 59.43%      1.95s  3.37%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.28s  0.48% 59.92%      0.47s  0.81%  regexp.(*inputString).step
+     0.25s  0.43% 60.35%      0.57s  0.99%  runtime.reflectcallmove
+     0.24s  0.42% 60.76%      5.78s 10.00%  text/template.(*state).evalField
+     0.22s  0.38% 61.15%      0.30s  0.52%  reflect.(*structType).FieldByName.func1
+     0.21s  0.36% 61.51%      2.48s  4.29%  runtime.growslice
+     0.21s  0.36% 61.87%      0.31s  0.54%  runtime.spanSetScans
+     0.21s  0.36% 62.24%     28.97s 50.14%  text/template.(*state).walk
+     0.20s  0.35% 62.58%     25.39s 43.94%  text/template.(*state).evalCommand
+     0.18s  0.31% 62.89%      0.35s  0.61%  reflect.(*rtype).Implements
+     0.18s  0.31% 63.21%      0.68s  1.18%  runtime.(*sweepLocked).sweep
+     0.18s  0.31% 63.52%      1.91s  3.31%  runtime.mallocgcSmallScanNoHeader
+     0.18s  0.31% 63.83%      0.54s  0.93%  runtime.mapaccess2_faststr
+     0.18s  0.31% 64.14%      0.77s  1.33%  text/template.findFunction
+     0.16s  0.28% 64.42%      0.99s  1.71%  reflect.Value.assignTo

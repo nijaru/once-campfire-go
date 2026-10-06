@@ -1,0 +1,64 @@
+File: final-search-shell
+Build ID: 518ef600efdf80562d1af427c6b4e5c705bed637
+Type: cpu
+Time: 2026-10-06 10:38:56 UTC
+Duration: 25.60s, Total samples = 38.52s (150.48%)
+Showing nodes accounting for 28.66s, 74.40% of 38.52s total
+Dropped 863 nodes (cum <= 0.19s)
+Showing top 55 nodes out of 228
+      flat  flat%   sum%        cum   cum%
+    12.75s 33.10% 33.10%     12.75s 33.10%  internal/runtime/syscall/linux.Syscall6
+     2.21s  5.74% 38.84%      3.82s  9.92%  runtime.selectgo
+     1.16s  3.01% 41.85%      1.18s  3.06%  runtime.cgocall
+     0.96s  2.49% 44.34%      0.96s  2.49%  runtime.nanotime (inline)
+     0.95s  2.47% 46.81%      1.17s  3.04%  internal/runtime/maps.(*Iter).Next
+     0.70s  1.82% 48.62%      0.70s  1.82%  runtime.memmove
+     0.70s  1.82% 50.44%      0.95s  2.47%  runtime.tryDeferToSpanScan
+     0.69s  1.79% 52.23%      0.69s  1.79%  context.(*valueCtx).Deadline
+     0.53s  1.38% 53.61%      3.46s  8.98%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).publish
+     0.51s  1.32% 54.93%      0.51s  1.32%  runtime.memclrNoHeapPointers
+     0.41s  1.06% 56.00%      0.66s  1.71%  runtime.unlock2
+     0.36s  0.93% 56.93%      0.49s  1.27%  time.now
+     0.35s  0.91% 57.84%      0.35s  0.91%  context.(*cancelCtx).Deadline
+     0.35s  0.91% 58.75%      0.39s  1.01%  runtime.lock2
+     0.34s  0.88% 59.63%      0.87s  2.26%  runtime.scanObjectsSmall
+     0.33s  0.86% 60.49%      0.33s  0.86%  runtime.memequal
+     0.25s  0.65% 61.14%      0.25s  0.65%  runtime.procPin (inline)
+     0.24s  0.62% 61.76%     16.27s 42.24%  github.com/coder/websocket.(*Conn).writeFrame
+     0.24s  0.62% 62.38%      0.44s  1.14%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.24s  0.62% 63.01%      0.70s  1.82%  runtime.scanObject
+     0.22s  0.57% 63.58%      0.22s  0.57%  runtime.releasem (inline)
+     0.21s  0.55% 64.12%      0.21s  0.55%  golang.org/x/crypto/blowfish.encryptBlock
+     0.21s  0.55% 64.67%      0.34s  0.88%  runtime.pcvalue
+     0.20s  0.52% 65.19%      0.20s  0.52%  runtime.acquirem (inline)
+     0.20s  0.52% 65.71%      0.37s  0.96%  runtime.chanrecv
+     0.20s  0.52% 66.23%      0.31s   0.8%  runtime.sellock
+     0.18s  0.47% 66.69%      0.33s  0.86%  runtime.releaseSudog
+     0.17s  0.44% 67.13%      0.33s  0.86%  runtime.selunlock
+     0.17s  0.44% 67.58%      0.20s  0.52%  runtime.typePointers.next
+     0.17s  0.44% 68.02%      0.43s  1.12%  runtime.wbBufFlush1
+     0.14s  0.36% 68.38%      0.84s  2.18%  context.(*cancelCtx).Done
+     0.14s  0.36% 68.74%      3.40s  8.83%  runtime.mallocgc
+     0.14s  0.36% 69.11%      0.85s  2.21%  runtime.mapIterNext
+     0.14s  0.36% 69.47%      0.62s  1.61%  runtime.mapaccess2_faststr
+     0.13s  0.34% 69.81%      0.22s  0.57%  runtime.casgstatus
+     0.13s  0.34% 70.15%      0.20s  0.52%  runtime.gcmarknewobject
+     0.13s  0.34% 70.48%      0.43s  1.12%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.12s  0.31% 70.79%      0.23s   0.6%  runtime.scanblock
+     0.11s  0.29% 71.08%     13.10s 34.01%  bufio.(*Writer).Flush
+     0.11s  0.29% 71.37%      0.23s   0.6%  internal/runtime/maps.(*Iter).Init
+     0.11s  0.29% 71.65%      0.65s  1.69%  sync/atomic.(*Value).Store
+     0.10s  0.26% 71.91%     25.71s 66.74%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Serve.func2
+     0.09s  0.23% 72.14%      0.20s  0.52%  context.parentCancelCtx
+     0.08s  0.21% 72.35%      0.64s  1.66%  bufio.(*Writer).Write
+     0.08s  0.21% 72.56%      1.20s  3.12%  context.(*cancelCtx).propagateCancel
+     0.08s  0.21% 72.77%      0.36s  0.93%  gcWriteBarrier
+     0.08s  0.21% 72.98%     18.08s 46.94%  github.com/coder/websocket.(*Conn).WritePrepared
+     0.08s  0.21% 73.18%      0.45s  1.17%  runtime.selectnbrecv
+     0.08s  0.21% 73.39%      3.90s 10.12%  runtime.systemstack
+     0.07s  0.18% 73.57%      0.28s  0.73%  runtime.(*timer).unlock (inline)
+     0.07s  0.18% 73.75%      1.12s  2.91%  runtime.mallocgcSmallScanNoHeader
+     0.07s  0.18% 73.94%      0.71s  1.84%  runtime.mapassign
+     0.06s  0.16% 74.09%      3.99s 10.36%  context.WithDeadlineCause
+     0.06s  0.16% 74.25%      4.39s 11.40%  context.WithTimeout
+     0.06s  0.16% 74.40%      0.62s  1.61%  github.com/basecamp/once-campfire-go/internal/cable.(*client).sendFrame (inline)

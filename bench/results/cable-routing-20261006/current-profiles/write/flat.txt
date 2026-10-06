@@ -1,0 +1,64 @@
+File: final-search-shell
+Build ID: 518ef600efdf80562d1af427c6b4e5c705bed637
+Type: cpu
+Time: 2026-10-06 10:38:11 UTC
+Duration: 22.28s, Total samples = 33.96s (152.43%)
+Showing nodes accounting for 22.90s, 67.43% of 33.96s total
+Dropped 1022 nodes (cum <= 0.17s)
+Showing top 55 nodes out of 285
+      flat  flat%   sum%        cum   cum%
+    15.08s 44.41% 44.41%     15.23s 44.85%  runtime.cgocall
+     1.55s  4.56% 48.97%      1.55s  4.56%  internal/runtime/syscall/linux.Syscall6
+     0.49s  1.44% 50.41%      0.49s  1.44%  runtime.memmove
+     0.46s  1.35% 51.77%      0.46s  1.35%  compress/flate.loadLE64[go.shape.int32] (inline)
+     0.42s  1.24% 53.00%      1.14s  3.36%  compress/flate.(*fastEncL6).encode
+     0.35s  1.03% 54.03%      0.35s  1.03%  compress/flate.(*huffmanEncoder).bitCounts
+     0.33s  0.97% 55.01%      0.95s  2.80%  regexp.(*Regexp).tryBacktrack
+     0.30s  0.88% 55.89%      0.49s  1.44%  runtime.tryDeferToSpanScan
+     0.26s  0.77% 56.65%      1.90s  5.59%  runtime.mallocgc
+     0.25s  0.74% 57.39%      0.25s  0.74%  runtime.memclrNoHeapPointers
+     0.24s  0.71% 58.10%      0.38s  1.12%  regexp/syntax.(*Inst).MatchRunePos
+     0.23s  0.68% 58.78%      0.23s  0.68%  crypto/internal/fips140/sha256.blockSHA2
+     0.21s  0.62% 59.39%      0.21s  0.62%  compress/flate.(*huffmanBitWriter).writeTokens
+     0.20s  0.59% 59.98%      0.20s  0.59%  golang.org/x/crypto/blowfish.encryptBlock
+     0.20s  0.59% 60.57%      2.06s  6.07%  reflect.Value.call
+     0.20s  0.59% 61.16%      0.20s  0.59%  runtime.nanotime (inline)
+     0.20s  0.59% 61.75%      0.29s  0.85%  strings.makeGenericReplacer
+     0.13s  0.38% 62.13%      0.17s   0.5%  time.now
+     0.12s  0.35% 62.49%      0.34s  1.00%  runtime.scanObjectsSmall
+     0.11s  0.32% 62.81%      0.51s  1.50%  reflect.(*structType).FieldByNameFunc
+     0.10s  0.29% 63.10%      0.30s  0.88%  runtime.scanObject
+     0.09s  0.27% 63.37%      0.67s  1.97%  reflect.(*structType).FieldByName
+     0.09s  0.27% 63.63%      0.22s  0.65%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.08s  0.24% 63.87%      0.56s  1.65%  runtime.mallocgcSmallScanNoHeader
+     0.08s  0.24% 64.10%      2.65s  7.80%  text/template.(*state).evalCall
+     0.08s  0.24% 64.34%      0.93s  2.74%  text/template.(*state).evalField
+     0.06s  0.18% 64.52%      0.22s  0.65%  runtime.(*sweepLocked).sweep
+     0.06s  0.18% 64.69%      4.26s 12.54%  text/template.(*state).walk
+     0.06s  0.18% 64.87%      2.14s  6.30%  text/template.safeCall
+     0.05s  0.15% 65.02%      0.17s   0.5%  callRet
+     0.05s  0.15% 65.16%      0.18s  0.53%  database/sql.convertAssignRows
+     0.05s  0.15% 65.31%      0.27s   0.8%  runtime.mallocgcSmallNoscan
+     0.05s  0.15% 65.46%      0.37s  1.09%  strings.(*Replacer).build
+     0.04s  0.12% 65.58%      0.25s  0.74%  fmt.Fprint
+     0.04s  0.12% 65.69%      0.41s  1.21%  regexp/syntax.(*Inst).MatchRune (inline)
+     0.04s  0.12% 65.81%      0.18s  0.53%  runtime.mapaccess1_faststr
+     0.04s  0.12% 65.93%      0.19s  0.56%  runtime.mapaccess2_faststr
+     0.04s  0.12% 66.05%      3.55s 10.45%  text/template.(*state).evalCommand
+     0.04s  0.12% 66.17%      3.59s 10.57%  text/template.(*state).evalPipeline
+     0.03s 0.088% 66.25%      0.33s  0.97%  bytes.(*Buffer).Write
+     0.03s 0.088% 66.34%      0.17s   0.5%  bytes.growSlice
+     0.03s 0.088% 66.43%      0.17s   0.5%  context.(*cancelCtx).propagateCancel
+     0.03s 0.088% 66.52%      0.18s  0.53%  database/sql.driverArgsConnLocked
+     0.03s 0.088% 66.61%     12.43s 36.60%  database/sql.withLock
+     0.03s 0.088% 66.70%      0.72s  2.12%  reflect.(*rtype).FieldByName
+     0.03s 0.088% 66.78%      0.39s  1.15%  runtime.(*mcentral).cacheSpan
+     0.03s 0.088% 66.87%      0.19s  0.56%  runtime.(*mheap).initSpan
+     0.03s 0.088% 66.96%      0.48s  1.41%  runtime.makeslice
+     0.03s 0.088% 67.05%      1.75s  5.15%  runtime.systemstack
+     0.03s 0.088% 67.14%      0.21s  0.62%  runtime.wbBufFlush1
+     0.02s 0.059% 67.20%      0.72s  2.12%  database/sql.(*DB).retry
+     0.02s 0.059% 67.26%      0.20s  0.59%  database/sql.(*Rows).scanLocked
+     0.02s 0.059% 67.31%      0.34s  1.00%  github.com/basecamp/once-campfire-go/internal/html.ParseFragmentWithOptions
+     0.02s 0.059% 67.37%      0.32s  0.94%  github.com/basecamp/once-campfire-go/internal/rails.jsonString
+     0.02s 0.059% 67.43%      2.78s  8.19%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next

@@ -1,0 +1,64 @@
+File: final-search-shell
+Build ID: 518ef600efdf80562d1af427c6b4e5c705bed637
+Type: cpu
+Time: 2026-10-06 10:37:45 UTC
+Duration: 22.27s, Total samples = 57.85s (259.80%)
+Showing nodes accounting for 36.89s, 63.77% of 57.85s total
+Dropped 968 nodes (cum <= 0.29s)
+Showing top 55 nodes out of 264
+      flat  flat%   sum%        cum   cum%
+    17.60s 30.42% 30.42%     18.10s 31.29%  runtime.cgocall
+     3.89s  6.72% 37.15%      3.89s  6.72%  internal/runtime/syscall/linux.Syscall6
+     1.12s  1.94% 39.08%      1.63s  2.82%  runtime.tryDeferToSpanScan
+     0.72s  1.24% 40.33%      1.05s  1.82%  runtime.gcmarknewobject
+     0.66s  1.14% 41.47%      0.80s  1.38%  net/url.unescape
+     0.66s  1.14% 42.61%      0.66s  1.14%  runtime.nanotime (inline)
+     0.53s  0.92% 43.53%      0.53s  0.92%  runtime.memclrNoHeapPointers
+     0.52s   0.9% 44.43%      0.67s  1.16%  time.now
+     0.48s  0.83% 45.25%      0.51s  0.88%  runtime.typePointers.next
+     0.43s  0.74% 46.00%      0.43s  0.74%  runtime.memequal
+     0.42s  0.73% 46.72%      0.43s  0.74%  runtime.pageIndexOf (inline)
+     0.40s  0.69% 47.42%      0.40s  0.69%  runtime.memmove
+     0.40s  0.69% 48.11%      1.13s  1.95%  time.parse
+     0.38s  0.66% 48.76%      1.24s  2.14%  runtime.wbBufFlush1
+     0.37s  0.64% 49.40%      0.38s  0.66%  context.(*valueCtx).Done
+     0.35s  0.61% 50.01%      1.27s  2.20%  runtime.scanObject
+     0.34s  0.59% 50.60%      0.52s   0.9%  internal/runtime/maps.(*Iter).Next
+     0.33s  0.57% 51.17%      0.38s  0.66%  runtime.heapArenaOf (inline)
+     0.32s  0.55% 51.72%      4.15s  7.17%  runtime.mallocgc
+     0.31s  0.54% 52.26%      0.31s  0.54%  crypto/internal/fips140/sha256.blockSHA2
+     0.31s  0.54% 52.79%      0.66s  1.14%  net/textproto.CanonicalMIMEHeaderKey
+     0.31s  0.54% 53.33%      0.96s  1.66%  runtime.scanObjectsSmall
+     0.29s   0.5% 53.83%      0.40s  0.69%  runtime.findObject
+     0.28s  0.48% 54.31%     18.11s 31.31%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.28s  0.48% 54.80%      0.29s   0.5%  time.nextStdChunk
+     0.27s  0.47% 55.26%      0.37s  0.64%  net/url.validEncoded (inline)
+     0.26s  0.45% 55.71%      0.44s  0.76%  runtime.mallocgcTinySC2
+     0.25s  0.43% 56.15%      1.35s  2.33%  encoding/json/v2.makeStructArshaler.func2
+     0.25s  0.43% 56.58%      0.50s  0.86%  runtime.selectgo
+     0.24s  0.41% 56.99%      1.53s  2.64%  database/sql.convertAssignRows
+     0.24s  0.41% 57.41%      0.89s  1.54%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.23s   0.4% 57.80%      0.33s  0.57%  context.(*cancelCtx).Done
+     0.23s   0.4% 58.20%      1.16s  2.01%  regexp.(*Regexp).find
+     0.21s  0.36% 58.57%      1.09s  1.88%  gcWriteBarrier
+     0.21s  0.36% 58.93%      1.28s  2.21%  runtime.mallocgcSmallScanNoHeader
+     0.20s  0.35% 59.27%     18.40s 31.81%  database/sql.(*Rows).nextLocked
+     0.20s  0.35% 59.62%      0.29s   0.5%  runtime.scanblock
+     0.18s  0.31% 59.93%      0.44s  0.76%  strings.ToLower
+     0.17s  0.29% 60.22%      0.38s  0.66%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.16s  0.28% 60.50%      1.22s  2.11%  github.com/basecamp/once-campfire-go/internal/web.recognize
+     0.16s  0.28% 60.78%      0.31s  0.54%  runtime.(*sweepLocked).sweep
+     0.15s  0.26% 61.04%     16.35s 28.26%  github.com/basecamp/once-campfire-go/internal/database.(*DB).SearchReferences
+     0.15s  0.26% 61.30%      0.53s  0.92%  regexp.(*Regexp).doOnePass
+     0.15s  0.26% 61.56%      0.48s  0.83%  runtime.mapaccess2_faststr
+     0.14s  0.24% 61.80%      0.38s  0.66%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.13s  0.22% 62.02%     38.68s 66.86%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+     0.12s  0.21% 62.23%      0.54s  0.93%  context.(*cancelCtx).propagateCancel
+     0.12s  0.21% 62.44%      1.65s  2.85%  database/sql.(*Rows).scanLocked
+     0.12s  0.21% 62.64%      0.35s  0.61%  internal/sync.(*Mutex).Lock (inline)
+     0.12s  0.21% 62.85%      1.25s  2.16%  runtime.mallocgcSmallScanSlowPath
+     0.11s  0.19% 63.04%      0.33s  0.57%  context.parentCancelCtx
+     0.11s  0.19% 63.23%     18.70s 32.32%  database/sql.(*Rows).Next.func1
+     0.11s  0.19% 63.42%      0.64s  1.11%  runtime.bulkBarrierPreWrite
+     0.10s  0.17% 63.60%      0.99s  1.71%  github.com/basecamp/once-campfire-go/internal/database.timestamp.Scan
+     0.10s  0.17% 63.77%      2.80s  4.84%  runtime.gcDrain

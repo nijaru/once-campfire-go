@@ -99,7 +99,14 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-The latest [search-layout/database trials](bench/results/layout-database-20261006/README.md)
+The [Cable routing trials](bench/results/cable-routing-20261006/README.md) replace all-client
+subscription scans with dense, indexed recipient lists while retaining fresh authorization.
+At 10,000 clients, longer OrbStack trials improve uncompressed complete fan-out throughput 39%
+and compressed throughput 3%. Paced delivery improves, but saturated p99 worsens; the report
+records that trade-off, high-client workload-scoped memory, fresh profiles and validation.
+No native or current cross-language Cable comparison is available.
+
+The [search-layout/database trials](bench/results/layout-database-20261006/README.md)
 retain immutable search layouts around freshly selected results. In the final six-route OrbStack
 VM comparison at 16 clients, gzip search measures 26,561 Go versus 26,734 Rust requests/sec;
 active search 16,591 versus 14,083. Rust still leads room (28,307 versus 22,040), writes

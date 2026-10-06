@@ -1,0 +1,67 @@
+[
+  {
+    "app": "current",
+    "rep": 1,
+    "http": [
+      {
+        "avg_bytes": 1920,
+        "conc": 16,
+        "errors": 0,
+        "gzip": true,
+        "latency": {
+          "max_ms": 85.631,
+          "mean_ms": 7.18,
+          "n": 44578,
+          "p50_ms": 5.287,
+          "p90_ms": 15.495,
+          "p99_ms": 28.703
+        },
+        "ok": 44578,
+        "path": "POST /rooms/201306877/messages",
+        "rps": 2228.3,
+        "secs": 20.01,
+        "statuses": {
+          "200": 44578
+        },
+        "route": "post_message",
+        "cpu_us_per_request": 690.2507963569473
+      }
+    ],
+    "cable": [],
+    "load_start": "1.76 0.42 0.23 1/356 2841\n",
+    "startup_ms": 32.88,
+    "idle_memory_kib": {
+      "Rss": 41132,
+      "Pss": 39314,
+      "Private_Dirty": 12552
+    },
+    "scrape": {
+      "bytes": 374024,
+      "csrf": null,
+      "css": "/assets/_reset-9c3efd7b.css",
+      "js": "/assets/application-a54c74a7.js",
+      "status": 200,
+      "streams": [
+        "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+        "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+        "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+      ]
+    },
+    "write_validation": {
+      "expected": 48753,
+      "persisted": 48753,
+      "indexed": 48753
+    },
+    "http_memory_kib": {
+      "Rss": 151372,
+      "Pss": 149538,
+      "Private_Dirty": 121624
+    },
+    "final_memory_kib": {
+      "Rss": 151372,
+      "Pss": 149538,
+      "Private_Dirty": 121624
+    },
+    "load_end": "3.00 0.82 0.37 1/371 2874\n"
+  }
+]

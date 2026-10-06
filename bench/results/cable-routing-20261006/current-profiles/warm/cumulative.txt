@@ -1,0 +1,69 @@
+File: final-search-shell
+Build ID: 518ef600efdf80562d1af427c6b4e5c705bed637
+Type: cpu
+Time: 2026-10-06 10:37:45 UTC
+Duration: 22.27s, Total samples = 57.85s (259.80%)
+Showing nodes accounting for 23.83s, 41.19% of 57.85s total
+Dropped 968 nodes (cum <= 0.29s)
+Showing top 60 nodes out of 264
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%     51.95s 89.80%  net/http.(*conn).serve
+     0.02s 0.035% 0.035%     48.86s 84.46%  net/http.serverHandler.ServeHTTP
+     0.04s 0.069%   0.1%     48.84s 84.43%  net/http.HandlerFunc.ServeHTTP
+         0     0%   0.1%     48.83s 84.41%  github.com/basecamp/once-campfire-go/internal/front.forward.func1
+     0.01s 0.017%  0.12%     46.98s 81.21%  github.com/basecamp/once-campfire-go/internal/front.PublicCompression.func1
+     0.03s 0.052%  0.17%     46.83s 80.95%  github.com/basecamp/once-campfire-go/internal/front.(*Cache).Handler.func1
+         0     0%  0.17%     46.67s 80.67%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+     0.04s 0.069%  0.24%     46.54s 80.45%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+         0     0%  0.24%     39.49s 68.26%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+     0.13s  0.22%  0.47%     38.68s 66.86%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+     0.03s 0.052%  0.52%     37.05s 64.04%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+     0.09s  0.16%  0.67%     28.95s 50.04%  github.com/basecamp/once-campfire-go/internal/web.(*Server).search
+     0.09s  0.16%  0.83%     19.71s 34.07%  database/sql.(*Rows).Next
+     0.11s  0.19%  1.02%     18.70s 32.32%  database/sql.(*Rows).Next.func1
+     0.20s  0.35%  1.37%     18.40s 31.81%  database/sql.(*Rows).nextLocked
+     0.28s  0.48%  1.85%     18.11s 31.31%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+    17.60s 30.42% 32.27%     18.10s 31.29%  runtime.cgocall
+     0.15s  0.26% 32.53%     16.35s 28.26%  github.com/basecamp/once-campfire-go/internal/database.(*DB).SearchReferences
+     0.01s 0.017% 32.55%     15.07s 26.05%  github.com/mattn/go-sqlite3.(*SQLiteRows).stepCancellableLocked
+         0     0% 32.55%     14.96s 25.86%  github.com/mattn/go-sqlite3.(*SQLiteRows).stepCancellableLocked.func1 (inline)
+         0     0% 32.55%     14.93s 25.81%  github.com/mattn/go-sqlite3._Cfunc__sqlite3_step_internal
+     0.07s  0.12% 32.67%      9.49s 16.40%  github.com/basecamp/once-campfire-go/internal/web.(*Server).render
+     0.01s 0.017% 32.69%      7.26s 12.55%  database/sql.(*Row).Scan
+     0.01s 0.017% 32.71%      5.94s 10.27%  runtime.systemstack
+         0     0% 32.71%      5.10s  8.82%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP.func1
+         0     0% 32.71%      5.10s  8.82%  github.com/basecamp/once-campfire-go/internal/web.(*responseBuffer).finish
+     0.04s 0.069% 32.77%      4.17s  7.21%  database/sql.(*Stmt).QueryContext
+     0.32s  0.55% 33.33%      4.15s  7.17%  runtime.mallocgc
+     0.06s   0.1% 33.43%      4.01s  6.93%  database/sql.(*DB).retry
+     0.06s   0.1% 33.54%      3.95s  6.83%  database/sql.(*Stmt).QueryContext.func1
+     3.89s  6.72% 40.26%      3.89s  6.72%  internal/runtime/syscall/linux.Syscall6
+     0.09s  0.16% 40.41%      3.88s  6.71%  database/sql.(*Rows).close
+     0.01s 0.017% 40.43%      3.88s  6.71%  internal/poll.ignoringEINTRIO (inline)
+     0.01s 0.017% 40.45%      3.84s  6.64%  syscall.Syscall
+     0.02s 0.035% 40.48%      3.75s  6.48%  syscall.RawSyscall6
+     0.06s   0.1% 40.59%      3.71s  6.41%  database/sql.(*Rows).Close
+     0.02s 0.035% 40.62%      3.60s  6.22%  github.com/basecamp/once-campfire-go/internal/front.(*gzipResponse).WriteBody
+         0     0% 40.62%      3.50s  6.05%  github.com/basecamp/once-campfire-go/internal/web.(*Server).lastRoom
+     0.01s 0.017% 40.64%      3.49s  6.03%  github.com/basecamp/once-campfire-go/internal/database.(*DB).OriginalRoom
+     0.03s 0.052% 40.69%      3.48s  6.02%  github.com/basecamp/once-campfire-go/internal/front.(*publicResponse).Write
+         0     0% 40.69%      3.48s  6.02%  github.com/basecamp/once-campfire-go/internal/front.(*recordResponse).Write
+     0.01s 0.017% 40.71%      3.48s  6.02%  internal/poll.(*FD).Write
+     0.02s 0.035% 40.74%      3.45s  5.96%  net/http.(*response).Write
+     0.02s 0.035% 40.78%      3.43s  5.93%  net/http.(*response).write
+         0     0% 40.78%      3.43s  5.93%  syscall.Write (inline)
+     0.01s 0.017% 40.80%      3.43s  5.93%  syscall.write
+     0.01s 0.017% 40.81%      3.39s  5.86%  bufio.(*Writer).Write
+         0     0% 40.81%      3.38s  5.84%  net/http.(*chunkWriter).Write
+     0.03s 0.052% 40.86%      3.17s  5.48%  github.com/basecamp/once-campfire-go/internal/database.(*readPool).QueryRowContext
+     0.02s 0.035% 40.90%      3.07s  5.31%  database/sql.(*Stmt).QueryRowContext
+         0     0% 40.90%      2.92s  5.05%  runtime.gcBgMarkWorker
+     0.02s 0.035% 40.93%      2.86s  4.94%  github.com/basecamp/once-campfire-go/internal/database.(*DB).RecentSearches
+         0     0% 40.93%      2.80s  4.84%  runtime.gcBgMarkWorker.func2
+     0.10s  0.17% 41.11%      2.80s  4.84%  runtime.gcDrain
+         0     0% 41.11%      2.80s  4.84%  runtime.gcDrainMarkWorkerDedicated (inline)
+     0.02s 0.035% 41.14%      2.78s  4.81%  net.(*conn).Write
+         0     0% 41.14%      2.78s  4.81%  net/http.checkConnErrorWriter.Write
+     0.01s 0.017% 41.16%      2.76s  4.77%  github.com/basecamp/once-campfire-go/internal/database.(*DB).SessionUser
+         0     0% 41.16%      2.76s  4.77%  net.(*netFD).Write
+     0.02s 0.035% 41.19%      2.41s  4.17%  bufio.(*Writer).Flush
