@@ -179,10 +179,15 @@ func process(body string, ctx Context, fields outputFields) (Result, error) {
 	}
 
 	if fields&displayOutput != 0 {
-		filtered := clone(root)
 		if result.Errors["plain"] != nil {
 			result.Errors["filtered"] = result.Errors["plain"]
 		} else {
+			// Plain/body rendering already owns its copies. Only recipient
+			// extraction still needs the original attachment tree afterward.
+			filtered := root
+			if fields&mentionsOutput != 0 {
+				filtered = clone(root)
+			}
 			removeSoloEmbed(filtered, ctx, result.Plain)
 			filterTags(filtered)
 			sanitizeDOM(filtered, "filter")
