@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"html/template"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -48,6 +49,53 @@ func TestMessageControllersRenderFreshRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	check("record after")
+}
+
+func TestMessageItemsBatchMissesKeepOrderAndBytes(t *testing.T) {
+	app, _, _, user := testApp(t)
+	ctx := context.Background()
+	rooms, _ := app.DB.Rooms(ctx, user.ID)
+	var records []database.Message
+	for i := 0; i < 4; i++ {
+		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, fmt.Sprint("batch-", i), fmt.Sprintf("<p>batch &amp; %d</p>", i), fmt.Sprintf("batch %d", i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		records = append(records, m)
+	}
+	app.fragments = newFragmentCache(0)
+	var want []template.HTML
+	for _, record := range records {
+		views, err := app.messageViews(ctx, []database.Message{record})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want = append(want, views[0].Fragment)
+	}
+	for _, references := range []bool{false, true} {
+		input := append([]database.Message(nil), records...)
+		if references {
+			for i, m := range input {
+				input[i] = database.Message{ID: m.ID, RoomID: m.RoomID, UpdatedAt: m.UpdatedAt}
+			}
+		}
+		for _, limit := range []int{0, 32 << 20} {
+			app.fragments = newFragmentCache(limit)
+			// Nonadjacent hits must not shift the positions of batched misses.
+			if _, err := app.messageViews(ctx, []database.Message{records[0], records[2]}); err != nil {
+				t.Fatal(err)
+			}
+			got, err := app.messageItems(ctx, input)
+			if err != nil || len(got) != len(want) {
+				t.Fatal("batch size/error differs", err)
+			}
+			for i := range want {
+				if got[i].Fragment != want[i] {
+					t.Fatalf("references=%v, limit=%d: message %d bytes/order differ", references, limit, i)
+				}
+			}
+		}
+	}
 }
 
 func TestMessageListOwnershipAndAdmission(t *testing.T) {

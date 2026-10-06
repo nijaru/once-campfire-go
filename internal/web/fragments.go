@@ -141,12 +141,10 @@ func (s *Server) messageItems(ctx context.Context, messages []database.Message) 
 				continue
 			}
 		}
-
-		rendered, err := s.messageViews(ctx, []database.Message{m})
-		if err != nil {
-			return nil, err
-		}
-		views[i] = rendered[0]
+		views[i].Message = m
+	}
+	if err := s.hydrateMessageViews(ctx, views); err != nil {
+		return nil, err
 	}
 	return views, nil
 }

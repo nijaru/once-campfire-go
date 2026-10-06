@@ -59,20 +59,31 @@ func (s *Server) findMessage(r *http.Request, u database.User, administer bool) 
 }
 func (s *Server) messageViews(ctx context.Context, messages []database.Message) ([]messageView, error) {
 	views := viewMessages(messages)
+	if err := s.hydrateMessageViews(ctx, views); err != nil {
+		return nil, err
+	}
+	return views, nil
+}
+
+// Hydrate only uncached views in place, sharing room/creator reads across misses.
+func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) error {
 	roomNames := map[int64]string{}
 	creators := map[int64]database.User{}
 	for i := range views {
+		if views[i].Fragment != "" {
+			continue
+		}
 		name, ok := roomNames[views[i].RoomID]
 		if !ok {
 			room, err := s.DB.FindRoom(ctx, views[i].RoomID)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			name = room.Name
 			if room.Type == "Rooms::Direct" {
 				view, err := s.displayRoom(ctx, room, database.User{})
 				if err != nil {
-					return nil, err
+					return err
 				}
 				name = view.Name
 			}
@@ -87,7 +98,7 @@ func (s *Server) messageViews(ctx context.Context, messages []database.Message) 
 				continue
 			}
 			if err != nil {
-				return nil, err
+				return err
 			}
 			creators[creator.ID] = creator
 		}
@@ -103,7 +114,7 @@ func (s *Server) messageViews(ctx context.Context, messages []database.Message) 
 		}
 		boosts, err := s.DB.Boosts(ctx, views[i].ID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		views[i].Boosts = boosts
 		blob, err := s.Storage.Attached(ctx, "Message", views[i].ID, "attachment")
@@ -119,13 +130,13 @@ func (s *Server) messageViews(ctx context.Context, messages []database.Message) 
 				}
 				views[i].PreviewURL, err = s.Storage.RepresentationURL(blob, variation)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 
 			views[i].HTML = template.HTML(attachmentHTML(blob, views[i].BlobURL, views[i].DownloadURL, views[i].PreviewURL))
 		} else if !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			return err
 		}
 		key := messageCacheKey(views[i].Message)
 		if html, ok := s.fragments.get(key); ok {
@@ -133,12 +144,12 @@ func (s *Server) messageViews(ctx context.Context, messages []database.Message) 
 		} else {
 			body, err := s.markup("message-uncached", views[i])
 			if err != nil {
-				return nil, err
+				return err
 			}
 			views[i].Fragment = s.fragments.put(key, template.HTML(body))
 		}
 	}
-	return views, nil
+	return nil
 }
 func (s *Server) markup(name string, data any) (string, error) {
 	var b bytes.Buffer
