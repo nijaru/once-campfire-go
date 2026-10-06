@@ -214,7 +214,16 @@ def main():
           result['http_memory_kib']=memory(proc.pid)
           for n in a.cable_clients:
            for compression in a.deflate:
+            with sqlite3.connect(db) as check:
+             cable_before=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]
+             cable_indexed_before=check.execute('SELECT count(*) FROM message_search_index WHERE body MATCH ?',('fanout',)).fetchone()[0]
             sample=load('cable',cookie=cookie,room=room,csrf=scrape['csrf'] or '',streams=','.join(scrape['streams']),clients=n,tput_secs=a.cable_seconds,posters=4,deflate=compression)
+            with sqlite3.connect(db) as check:
+             cable_saved=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]-cable_before
+             cable_indexed=check.execute('SELECT count(*) FROM message_search_index WHERE body MATCH ?',('fanout',)).fetchone()[0]-cable_indexed_before
+            cable_expected=sample['throughput']['posted']+sample['latency']['messages']
+            if cable_saved!=cable_expected or cable_indexed!=cable_expected:raise RuntimeError(f'Cable message/index mismatch: expected {cable_expected}, saved {cable_saved}, indexed {cable_indexed}')
+            sample['write_validation']={'expected':cable_expected,'persisted':cable_saved,'indexed':cable_indexed}
             sample['deflate']=bool(compression);result['cable'].append(sample)
             (out/f'{app}-{rep}-partial.json').write_text(json.dumps(result,indent=2)+'\n')
             if sample['ready']!=n or sample['failed'] or sample['throughput']['complete']!=sample['throughput']['posted'] or sample['latency']['complete']!=sample['latency']['messages']:raise RuntimeError(f'incomplete Cable delivery: {sample}')
