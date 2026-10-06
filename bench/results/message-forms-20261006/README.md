@@ -55,4 +55,4 @@ python3 bench/application --rust-root reference \
   --out /tmp/message-forms
 ```
 
-These opt-in routes do not change the harness's default workload population. Short samples, one seed/admin user and virtualization constrain generalization. Native Fedora performance remains unavailable; no fresh Ruby/Elixir comparison was made. Do not transfer VM ratios to native/published AMD measurements or multiply gains from earlier phases.
+These opt-in routes do not change the harness's default workload population. Short samples, one seed/admin user and virtualization constrain generalization. Native Fedora performance was unavailable during these trials; a later [native follow-up](../native-final-20261006/README.md) is now recorded. No fresh Ruby/Elixir comparison was made. Do not transfer VM ratios to native/published AMD measurements or multiply gains from earlier phases.

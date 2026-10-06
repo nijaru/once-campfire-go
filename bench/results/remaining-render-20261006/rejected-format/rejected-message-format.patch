@@ -1,0 +1,63 @@
+diff --git 1/.cache/linux/source-form-views/internal/web/messages.go 2/.cache/linux/source-message-format/internal/web/messages.go
+index f63842d..263d546 100644
+--- 1/.cache/linux/source-form-views/internal/web/messages.go
++++ 2/.cache/linux/source-message-format/internal/web/messages.go
+@@ -113 +113,2 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
+-	creators := map[int64]database.User{}
++	type creatorPresentation struct{ title, avatar string }
++	creators := map[int64]creatorPresentation{}
+@@ -136,2 +137 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
+-			var err error
+-			creator, err = s.DB.User(ctx, views[i].CreatorID)
++			user, err := s.DB.User(ctx, views[i].CreatorID)
+@@ -145 +145,2 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
+-			creators[creator.ID] = creator
++			creator = creatorPresentation{title: user.Title(), avatar: avatarPath(s.Secrets, user.ID, user.UpdatedAt)}
++			creators[user.ID] = creator
+@@ -147,2 +148,2 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
+-		views[i].CreatorTitle = creator.Title()
+-		views[i].CreatorUpdatedAt = creator.UpdatedAt
++		views[i].CreatorTitle = creator.title
++		views[i].CreatorAvatarURL = creator.avatar
+diff --git 1/.cache/linux/source-form-views/internal/web/server.go 2/.cache/linux/source-message-format/internal/web/server.go
+index c4c3335..d41cb0e 100644
+--- 1/.cache/linux/source-form-views/internal/web/server.go
++++ 2/.cache/linux/source-message-format/internal/web/server.go
+@@ -128 +128 @@ type messageView struct {
+-	CreatorUpdatedAt time.Time
++	CreatorAvatarURL string
+diff --git 1/.cache/linux/source-form-views/internal/web/templates.go 2/.cache/linux/source-message-format/internal/web/templates.go
+index 20a4f05..762ad47 100644
+--- 1/.cache/linux/source-form-views/internal/web/templates.go
++++ 2/.cache/linux/source-message-format/internal/web/templates.go
+@@ -24,0 +25,9 @@ var reactions = []reaction{{"👍", "Thumbs up"}, {"👏", "Clapping"}, {"👋",
++func avatarPath(secrets *rails.Secrets, id int64, updated ...time.Time) string {
++	token := secrets.SignedID("User", id, "avatar", time.Time{})
++	path := fmt.Sprintf("/users/%s/avatar", token)
++	if len(updated) > 0 && !updated[0].IsZero() {
++		path += "?v=" + updated[0].UTC().Format("20060102150405")
++	}
++	return path
++}
++
+@@ -70,6 +79 @@ func parseTemplates(secrets *rails.Secrets) (*template.Template, error) {
+-			token := secrets.SignedID("User", id, "avatar", time.Time{})
+-			path := fmt.Sprintf("/users/%s/avatar", token)
+-			if len(updated) > 0 && !updated[0].IsZero() {
+-				path += "?v=" + updated[0].UTC().Format("20060102150405")
+-			}
+-			return path
++			return avatarPath(secrets, id, updated...)
+diff --git 1/.cache/linux/source-form-views/internal/web/templates/messages.html 2/.cache/linux/source-message-format/internal/web/templates/messages.html
+index 4cedf8d..1fd84ea 100644
+--- 1/.cache/linux/source-form-views/internal/web/templates/messages.html
++++ 2/.cache/linux/source-message-format/internal/web/templates/messages.html
+@@ -3,4 +3,4 @@
+-{{define "message-uncached"}}<div id="message_{{.ClientID}}" class="message {{if .AllEmoji}}message--emoji{{end}}" data-controller="reply" data-user-id="{{.CreatorID}}" data-message-id="{{.ID}}" data-message-timestamp="{{epoch .CreatedAt}}" data-message-updated-at="{{epoch .UpdatedAt}}" data-sort-value="{{epoch .CreatedAt}}" data-messages-target="message" data-search-results-target="message" data-refresh-room-target="message" data-reply-composer-outlet="#composer">
+-<h2 class="message__day-separator"><time datetime="{{iso .CreatedAt}}" data-local-time-target="date"></time></h2>
+-<figure class="avatar message__avatar"><a title="{{.CreatorTitle}}" class="btn avatar" data-turbo-frame="_top" href="/users/{{.CreatorID}}"><img aria-hidden="true" src="{{avatar .CreatorID .CreatorUpdatedAt}}" width="48" height="48"></a></figure>
+-<turbo-frame id="edit_message_{{.ClientID}}"><div class="message__body"><div class="message__body-content"><div class="message__meta"><h3 class="message__heading"><span class="message__author" title="{{.CreatorTitle}}"><strong data-reply-target="author">{{.Creator}}</strong></span><a target="_top" class="message__permalink" href="/rooms/{{.RoomID}}/@{{.ID}}"><time class="message__timestamp" datetime="{{iso .CreatedAt}}" data-local-time-target="time"></time></a><span class="message__room"> <a target="_top" data-reply-target="link" href="/rooms/{{.RoomID}}/@{{.ID}}">{{.RoomName}}</a></span></h3>
++{{define "message-uncached"}}{{$createdEpoch := epoch .CreatedAt}}{{$createdISO := iso .CreatedAt}}<div id="message_{{.ClientID}}" class="message {{if .AllEmoji}}message--emoji{{end}}" data-controller="reply" data-user-id="{{.CreatorID}}" data-message-id="{{.ID}}" data-message-timestamp="{{$createdEpoch}}" data-message-updated-at="{{epoch .UpdatedAt}}" data-sort-value="{{$createdEpoch}}" data-messages-target="message" data-search-results-target="message" data-refresh-room-target="message" data-reply-composer-outlet="#composer">
++<h2 class="message__day-separator"><time datetime="{{$createdISO}}" data-local-time-target="date"></time></h2>
++<figure class="avatar message__avatar"><a title="{{.CreatorTitle}}" class="btn avatar" data-turbo-frame="_top" href="/users/{{.CreatorID}}"><img aria-hidden="true" src="{{.CreatorAvatarURL}}" width="48" height="48"></a></figure>
++<turbo-frame id="edit_message_{{.ClientID}}"><div class="message__body"><div class="message__body-content"><div class="message__meta"><h3 class="message__heading"><span class="message__author" title="{{.CreatorTitle}}"><strong data-reply-target="author">{{.Creator}}</strong></span><a target="_top" class="message__permalink" href="/rooms/{{.RoomID}}/@{{.ID}}"><time class="message__timestamp" datetime="{{$createdISO}}" data-local-time-target="time"></time></a><span class="message__room"> <a target="_top" data-reply-target="link" href="/rooms/{{.RoomID}}/@{{.ID}}">{{.RoomName}}</a></span></h3>

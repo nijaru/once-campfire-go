@@ -1,0 +1,185 @@
+{
+  "app": "base",
+  "rep": 1,
+  "http": [
+    {
+      "avg_bytes": 374024,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 17.311,
+        "mean_ms": 0.99,
+        "n": 80821,
+        "p50_ms": 0.631,
+        "p90_ms": 1.983,
+        "p99_ms": 6.063
+      },
+      "ok": 80821,
+      "path": "/rooms/486777696",
+      "rps": 16151.3,
+      "secs": 5.0,
+      "statuses": {
+        "200": 80821
+      },
+      "route": "room_show",
+      "cpu_us_per_request": 130.28792021875503
+    },
+    {
+      "avg_bytes": 135497,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 17.647,
+        "mean_ms": 0.74,
+        "n": 108423,
+        "p50_ms": 0.547,
+        "p90_ms": 1.262,
+        "p99_ms": 4.371
+      },
+      "ok": 108423,
+      "path": "/searches?q=coffee",
+      "rps": 21680.3,
+      "secs": 5.0,
+      "statuses": {
+        "200": 108423
+      },
+      "route": "search",
+      "cpu_us_per_request": 122.66769965782169
+    },
+    {
+      "avg_bytes": 8375,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 57.535,
+        "mean_ms": 6.66,
+        "n": 12022,
+        "p50_ms": 4.907,
+        "p90_ms": 14.439,
+        "p99_ms": 27.279
+      },
+      "ok": 12022,
+      "path": "POST /rooms/201306877/messages",
+      "rps": 2400.6,
+      "secs": 5.01,
+      "statuses": {
+        "200": 12022
+      },
+      "route": "post_message",
+      "cpu_us_per_request": 590.583929462652
+    }
+  ],
+  "cable": [],
+  "load_start": "3.56 2.75 3.05 1/360 427\n",
+  "startup_ms": 31.58,
+  "idle_memory_kib": {
+    "Rss": 40288,
+    "Pss": 38473,
+    "Private_Dirty": 11984
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "room_show": {
+      "bytes": 374036,
+      "sha256": "e81aa9c7ddbf0582ecff6699f131ac2a4daeb71a7853b3810869ce4961883bf8",
+      "encoded_bytes": 374036,
+      "encoding": "identity",
+      "origin_normalized_sha256": "af9710538752552a43c3f9bd3db58f985bbb688166b67bb84071e34e4b550e6b",
+      "contract": [
+        "136976342",
+        "217777555",
+        "303968118",
+        "366357198",
+        "421488677",
+        "684468941",
+        "746403085",
+        "749124092",
+        "925779126",
+        "933434481",
+        "933434601",
+        "933434602",
+        "933434603",
+        "933434604",
+        "933434605",
+        "933434606",
+        "933434607",
+        "933434608",
+        "933434609",
+        "933434610",
+        "933434611",
+        "933434612",
+        "933434613",
+        "933434614",
+        "933434615",
+        "933434616",
+        "933434617",
+        "933434618",
+        "933434619",
+        "933434620",
+        "933434621",
+        "933434622",
+        "933434623",
+        "933434624",
+        "933434625",
+        "933434626",
+        "933434627",
+        "933434628",
+        "933434629",
+        "933434630"
+      ]
+    },
+    "search": {
+      "bytes": 135497,
+      "sha256": "72c1d8660cd42b6bfc05afa8dae5ba90629e97e7dcc1314859732d2d4802030e",
+      "encoded_bytes": 135497,
+      "encoding": "identity",
+      "result_count": 13,
+      "origin_normalized_sha256": "e59ed3b5313f4835de5b1f0d09647f1a4639b267f4d373c75bf165680eeba48d",
+      "contract": [
+        "933434483",
+        "933434510",
+        "933434520",
+        "933434530",
+        "933434540",
+        "933434550",
+        "933434560",
+        "933434570",
+        "933434580",
+        "933434590",
+        "933434600",
+        "933434610",
+        "933434620"
+      ]
+    }
+  },
+  "write_validation": {
+    "expected": 16646,
+    "persisted": 16646,
+    "indexed": 16646
+  },
+  "http_memory_kib": {
+    "Rss": 128028,
+    "Pss": 126961,
+    "Private_Dirty": 109684
+  },
+  "final_memory_kib": {
+    "Rss": 128028,
+    "Pss": 126961,
+    "Private_Dirty": 109684
+  },
+  "load_end": "4.32 2.97 3.12 1/372 479\n"
+}

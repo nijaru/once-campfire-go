@@ -1,0 +1,16 @@
+package richtext
+
+import "testing"
+
+var externalURLProbe string
+
+func BenchmarkRemainingExternalURL(b *testing.B) {
+	const value = "https://outside.example/path?query=value"
+	if got, err := externalURL(value, "campfire.example"); err != nil || got != value {
+		b.Fatalf("invalid externalURL result: %q, %v", got, err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		externalURLProbe, _ = externalURL(value, "campfire.example")
+	}
+}

@@ -1,0 +1,20 @@
+package rails
+
+import (
+	"encoding/base64"
+	"testing"
+)
+
+var gidProbe string
+
+func BenchmarkRemainingLegacyGID(b *testing.B) {
+	message := base64.StdEncoding.EncodeToString([]byte("gid://campfire/User/17"))
+	sgid := base64.StdEncoding.EncodeToString([]byte(`{"_rails":{"message":"` + message + `"}}`))
+	if got, err := UnverifiedUserGID(sgid); err != nil || got != "gid://campfire/User/17" {
+		b.Fatalf("invalid legacy GID result: %q, %v", got, err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		gidProbe, _ = UnverifiedUserGID(sgid)
+	}
+}

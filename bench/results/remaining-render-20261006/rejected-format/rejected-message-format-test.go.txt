@@ -1,0 +1,125 @@
+package web
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"html/template"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/basecamp/once-campfire-go/assets"
+	"github.com/basecamp/once-campfire-go/internal/database"
+)
+
+func TestMessageFormattingKeepsLegacyBytes(t *testing.T) {
+	app, _, _, _ := testApp(t)
+	var prepared []template.HTML
+	for _, r := range reactions {
+		body, err := app.markup("reaction-body", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prepared = append(prepared, template.HTML(body))
+	}
+	legacy := template.New("legacy").Funcs(template.FuncMap{
+		"epoch":     func(t time.Time) string { return fmt.Sprintf("%d", t.UnixMilli()) },
+		"iso":       func(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") },
+		"asset":     assets.Path,
+		"allEmoji":  allEmoji,
+		"reactions": func() []template.HTML { return prepared },
+		"avatar": func(id int64, updated time.Time) string {
+			path := fmt.Sprintf("/users/%s/avatar", app.Secrets.SignedID("User", id, "avatar", time.Time{}))
+			if !updated.IsZero() {
+				path += "?v=" + updated.UTC().Format("20060102150405")
+			}
+			return path
+		},
+	})
+	for _, name := range []string{"message-actions", "presentation", "boosts", "boost"} {
+		if _, err := legacy.AddParseTree(name, app.templates.Lookup(name).Tree.Copy()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The previous outer message template is the byte/escaping reference.
+	// The unchanged actions, presentation and boosts retain their own tests.
+	legacy = template.Must(legacy.Parse(`{{define "legacy-message"}}<div id="message_{{.ClientID}}" class="message {{if .AllEmoji}}message--emoji{{end}}" data-controller="reply" data-user-id="{{.CreatorID}}" data-message-id="{{.ID}}" data-message-timestamp="{{epoch .CreatedAt}}" data-message-updated-at="{{epoch .UpdatedAt}}" data-sort-value="{{epoch .CreatedAt}}" data-messages-target="message" data-search-results-target="message" data-refresh-room-target="message" data-reply-composer-outlet="#composer">
+<h2 class="message__day-separator"><time datetime="{{iso .CreatedAt}}" data-local-time-target="date"></time></h2>
+<figure class="avatar message__avatar"><a title="{{.CreatorTitle}}" class="btn avatar" data-turbo-frame="_top" href="/users/{{.CreatorID}}"><img aria-hidden="true" src="{{avatar .CreatorID .CreatorUpdatedAt}}" width="48" height="48"></a></figure>
+<turbo-frame id="edit_message_{{.ClientID}}"><div class="message__body"><div class="message__body-content"><div class="message__meta"><h3 class="message__heading"><span class="message__author" title="{{.CreatorTitle}}"><strong data-reply-target="author">{{.Creator}}</strong></span><a target="_top" class="message__permalink" href="/rooms/{{.RoomID}}/@{{.ID}}"><time class="message__timestamp" datetime="{{iso .CreatedAt}}" data-local-time-target="time"></time></a><span class="message__room"> <a target="_top" data-reply-target="link" href="/rooms/{{.RoomID}}/@{{.ID}}">{{.RoomName}}</a></span></h3>
+{{template "message-actions" .}}</div>
+{{template "presentation" .}}
+{{template "boosts" .}}
+</div></div></turbo-frame></div>{{end}}`))
+	for _, created := range []time.Time{time.Time{}, time.Date(2026, 10, 6, 23, 42, 1, 123456789, time.FixedZone("offset", -7*3600)), time.Date(9999, 12, 31, 0, 0, 0, 999999999, time.UTC)} {
+		v := messageView{Message: database.Message{ID: 42, CreatorID: 17, RoomID: 8, ClientID: `quoted" & <client>`, Creator: `author <&>`, CreatedAt: created, UpdatedAt: created}, CreatorTitle: `title "<&>`, RoomName: `room <&>`, HTML: `<p>body &amp; markup</p>`}
+		// Compute the previous helper's result independently of avatarPath.
+		expectedAvatar := fmt.Sprintf("/users/%s/avatar", app.Secrets.SignedID("User", v.CreatorID, "avatar", time.Time{}))
+		if !created.IsZero() {
+			expectedAvatar += "?v=" + created.UTC().Format("20060102150405")
+		}
+		v.CreatorAvatarURL = avatarPath(app.Secrets, v.CreatorID, created)
+		if v.CreatorAvatarURL != expectedAvatar {
+			t.Fatal("avatar helper changed the legacy URL")
+		}
+		var actual, expected bytes.Buffer
+		if err := app.templates.ExecuteTemplate(&actual, "message-uncached", v); err != nil {
+			t.Fatal(err)
+		}
+		if err := legacy.ExecuteTemplate(&expected, "legacy-message", struct {
+			messageView
+			CreatorUpdatedAt time.Time
+		}{v, created}); err != nil {
+			t.Fatal(err)
+		}
+		if actual.String() != expected.String() {
+			t.Fatalf("message bytes changed for %s", created)
+		}
+	}
+}
+
+func TestMessageCreatorPresentationIsBatchLocal(t *testing.T) {
+	app, _, _, user := testApp(t)
+	ctx := context.Background()
+	rooms, _ := app.DB.Rooms(ctx, user.ID)
+	app.fragments = newFragmentCache(0)
+	var records []database.Message
+	for i := range 2 {
+		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "", fmt.Sprintf("<p>%d</p>", i), "body")
+		if err != nil {
+			t.Fatal(err)
+		}
+		records = append(records, m)
+	}
+	var first []messageView
+	var firstAvatar, firstTitle string
+	for _, version := range []string{"2026-10-06 01:02:03", "2026-10-06 04:05:06", "2026-10-06 01:02:03"} {
+		if _, err := app.DB.Write.ExecContext(ctx, "UPDATE users SET name=?,bio=?,updated_at=? WHERE id=?", `name "<&>`, version, version, user.ID); err != nil {
+			t.Fatal(err)
+		}
+		views, err := app.messageViews(ctx, records)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fresh, err := app.DB.User(ctx, user.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := fmt.Sprintf("/users/%s/avatar?v=%s", app.Secrets.SignedID("User", user.ID, "avatar", time.Time{}), fresh.UpdatedAt.UTC().Format("20060102150405"))
+		for _, view := range views {
+			if view.CreatorTitle != fresh.Title() || view.CreatorAvatarURL != expected || !strings.Contains(string(view.Fragment), expected) {
+				t.Fatal("creator presentation was stale or differed within batch")
+			}
+		}
+		if first == nil {
+			first = views
+			firstAvatar, firstTitle = expected, fresh.Title()
+		}
+		for _, captured := range first {
+			if captured.CreatorAvatarURL != firstAvatar || captured.CreatorTitle != firstTitle {
+				t.Fatal("later hydration mutated captured views")
+			}
+		}
+	}
+}

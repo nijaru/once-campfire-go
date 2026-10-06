@@ -99,6 +99,18 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
+The [native Intel follow-up](bench/results/native-final-20261006/README.md) uses distinct physical
+P-cores, gzip, 16 clients and repeated 30-second samples. Go's five warm read workloads have
+9–44% higher throughput than pinned Rust, but worse p99 and higher end-of-suite memory;
+posts are 34% slower. Focused edit/boost views improve native throughput 21–60% over the
+preceding Go build. All 72 samples have zero errors; 921,603 writes are verified in messages/FTS.
+These screen-specific results are not universal parity or the published AMD comparison.
+
+The [remaining render trials](bench/results/remaining-render-20261006/README.md) reject timestamp/
+avatar preparation after inconsistent application results. Only two constant-regex hoists remain,
+with lower scalar cost but no claimed HTTP speedup. The evaluated candidates reached diminishing
+returns without a new dependency or broader template/database redesign.
+
 The [message-form trials](bench/results/message-forms-20261006/README.md) remove unused
 full-message work from edit and boost pages. Matched OrbStack gzip throughput improves 25–71%
 on those four routes, with exact Go form-byte checks. Rust remains faster; identity tails are
@@ -136,8 +148,8 @@ The preceding [matched Go/Rust VM comparison](bench/results/rust-go-boundary-202
 covers room/history/search/writes with both encodings and 1/16/64 clients. Go has higher warm
 active-room/history throughput; Rust leads room/search/writes and generally latency and memory.
 It records a corrected search-count regression, rejected SQLite crossing trial, response-size
-differences and substantial VM limitations. Native confirmation and fresh Ruby/Elixir measurements
-are not available; published AMD ratios are not transferable.
+differences and substantial VM limitations. The native follow-up above has a narrower gzip/16-client
+scope; fresh Ruby/Elixir measurements remain unavailable. Published AMD ratios are not transferable.
 
 This fork fixes the room refresh cursor and removes repeated compression, hashing and
 rendering preparation while keeping authorization, queries, headers and cookies fresh.
