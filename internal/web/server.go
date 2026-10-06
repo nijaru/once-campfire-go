@@ -112,6 +112,7 @@ type page struct {
 	Messages                     []messageView
 	Setup                        bool
 	Query                        string
+	SearchResultCount            int
 }
 type messageView struct {
 	AllEmoji                         bool
@@ -861,7 +862,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "search", 200, page{Title: "Search", Query: q, User: u, Rooms: rooms, messageRecords: messages, RecentSearches: recent})
+	s.render(w, r, "search", 200, page{Title: "Search", Query: q, SearchResultCount: len(messages), User: u, Rooms: rooms, messageRecords: messages, RecentSearches: recent})
 }
 
 func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.User) {

@@ -149,6 +149,10 @@ def main():
             if name=='room_show':(out/f'{app}-{rep}-room.html.gz').write_bytes(gzip.compress(body,mtime=0))
             semantic = sorted(set(re.findall(rb'data-message-id="([0-9]+)"',body))) if name in ('room_show','active_room','messages_page','search') else sorted(set(re.findall(rb'data-room-id="([0-9]+)"',body))) if name=='sidebar' else hashlib.sha256(body).hexdigest()
             if not semantic:raise RuntimeError(f'empty workload contract: {name}')
+            if name=='search':
+             counter=re.search(rb'(?s)class="searches__query[^"\n]*".*?<span class="flex-item-no-shrink">([0-9]+)</span>',body)
+             if counter is None or int(counter[1])!=len(semantic):raise RuntimeError(f'{app} search result count differs from rendered message IDs')
+             result['bodies'][name]['result_count']=int(counter[1])
             if name in contracts and contracts[name]!=semantic:raise RuntimeError(f'{app} {name} differs from the first application response contract')
             contracts[name]=semantic
             result['bodies'][name]['contract']= [v.decode() for v in semantic] if isinstance(semantic,list) else semantic
