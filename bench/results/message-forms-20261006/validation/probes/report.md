@@ -1,0 +1,65 @@
+# Campfire application benchmark
+
+Release binaries; public HTTP/1.1 listener; gzip encoding; identical seed and CPU affinity. Media use installed native libraries. Host background load recorded.
+
+1 alternating repetitions; 0.1-second HTTP samples after 2-second warmups. Four application workers on CPUs 0-3; load generator on CPUs 4-7. HTTP uses gzip encoding. Every run starts with a separate copy of the same seed.
+
+HTTP response contracts compare message IDs, sidebar room IDs, avatar bytes and CSS bytes. Write checks require every successful request to persist and enter the FTS index. Cable checks require every client to subscribe and every message to arrive at every client. Upload checks fetch the actual representation and compare its bytes across applications.
+
+## HTTP
+
+Rates show median (minimum–maximum); latency is the median of each run’s percentile.
+
+| Workload | Clients | App | Requests/s (range) | p50 ms | p90 ms | p99 ms | CPU µs/request |
+|---|---:|---|---:|---:|---:|---:|---:|
+| boosts_index | 1 | base | 2,809 (2,809–2,809) | 0.271 | 0.413 | 2.671 | 354.6 |
+| boosts_index | 1 | rust | 5,324 (5,324–5,324) | 0.179 | 0.218 | 0.317 | 168.9 |
+| message_edit | 1 | base | 3,970 (3,970–3,970) | 0.193 | 0.280 | 1.885 | 201.0 |
+| message_edit | 1 | rust | 5,625 (5,625–5,625) | 0.170 | 0.209 | 0.287 | 159.9 |
+| message_edit_attachment | 1 | base | 3,155 (3,155–3,155) | 0.171 | 0.297 | 3.447 | 221.5 |
+| message_edit_attachment | 1 | rust | 6,594 (6,594–6,594) | 0.145 | 0.179 | 0.236 | 121.2 |
+| new_boost | 1 | base | 3,790 (3,790–3,790) | 0.195 | 0.282 | 2.309 | 210.5 |
+| new_boost | 1 | rust | 3,886 (3,886–3,886) | 0.247 | 0.328 | 0.453 | 205.7 |
+
+## Action Cable
+
+Throughput counts posted messages delivered to **all** clients; one such message produces one frame per client. Latency includes delivery, rather than just accepting a post. The reference load generator reports p90 rather than p95.
+
+| Clients | Deflate | App | Messages/s (range) | Frames/s | Per-client p99 ms | All-clients p99 ms | Wire MB/s |
+|---:|---|---|---:|---:|---:|---:|---:|
+
+## Media and resources
+
+| App | Upload + thumbnail median ms | Thumbnail bytes | Startup median ms | Idle Pss MiB | After HTTP Pss MiB | Final Pss MiB | Binary MiB |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| base | not validated | — | 63.7 | 37.7 | 48.1 | 48.1 | 36.3 |
+| rust | not validated | — | 39.8 | 41.2 | 45.9 | 45.9 | 35.2 |
+
+Startup includes application initialization, measured to a successful health request at 25 ms polling intervals. Final memory follows the complete workload sequence and includes allocator high-water effects; it is not a per-client memory measurement. Each media sample creates a new blob and fetches its generated thumbnail.
+
+## Reproduction and limits
+
+- [Raw samples](raw.json) include statuses, errors, latency distributions, delivery counters, byte hashes and memory snapshots. [Metadata](metadata.json) records source/binary/seed hashes, CPU details, affinity and load averages.
+- These are local workstation measurements, sequential within the harness. Background host activity is recorded, not eliminated. They are not a language-wide performance claim.
+- This comparison uses the public HTTP listener and gzip encoding. It does not measure TLS/ACME or zstd throughput. Active-room CPU includes the concurrent mutation writer.
+- Sidebar room-ID checks do not validate application/Turbo-frame layout completeness; verify that scope separately before any cross-port sidebar comparison.
+- Screen-level HTML and network comparisons remain stricter than the functional response contracts used here. Benchmark validation is not a declaration of complete byte-for-byte UI parity.
+
+## Validation totals
+
+2 completed application runs; 0 acknowledged HTTP posts and 0 active-room posts verified in messages and FTS; 0 validated thumbnail samples. HTTP errors: 0. Cable throughput was not measured.
+
+Initial full response sizes from the first repetition, before workload timing. Message/room ID and byte contracts are recorded in raw.json. Benchmark contracts do not establish browser or strict HTML parity.
+
+| Response | App | Plain bytes | Encoded bytes | Encoding |
+|---|---|---:|---:|---|
+| boosts_index | base | 29,566 | 5144 | gzip |
+| message_edit | base | 23,461 | 4759 | gzip |
+| message_edit_attachment | base | 22,755 | 4477 | gzip |
+| new_boost | base | 21,938 | 4450 | gzip |
+| boosts_index | rust | 30,246 | 5203 | gzip |
+| message_edit | rust | 23,657 | 4781 | gzip |
+| message_edit_attachment | rust | 22,899 | 4481 | gzip |
+| new_boost | rust | 22,242 | 4494 | gzip |
+
+Application logging is retained. Settings, native libraries, source/binary hashes and toolchains are recorded in metadata.json. Container media byte goldens require their separately pinned toolchain.

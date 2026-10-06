@@ -99,6 +99,11 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
+The [message-form trials](bench/results/message-forms-20261006/README.md) remove unused
+full-message work from edit and boost pages. Matched OrbStack gzip throughput improves 25–71%
+on those four routes, with exact Go form-byte checks. Rust remains faster; identity tails are
+mixed. These complete-document tests do not measure Turbo-Frame clicks or general read/write gains.
+
 The [rich-text/render trials](bench/results/render-work-20261006/README.md) remove redundant
 tree/link work, prepare fixed reaction contents and reuse fixed escaping/signing primitives.
 Each isolated cold-render phase lowers CPU and read-route p99. The final matched six-route

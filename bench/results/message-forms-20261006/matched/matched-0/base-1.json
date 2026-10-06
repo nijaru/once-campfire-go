@@ -1,0 +1,206 @@
+{
+  "app": "base",
+  "rep": 1,
+  "http": [
+    {
+      "avg_bytes": 29566,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 34.783,
+        "mean_ms": 1.54,
+        "n": 51791,
+        "p50_ms": 1.049,
+        "p90_ms": 2.939,
+        "p99_ms": 8.791
+      },
+      "ok": 51791,
+      "path": "/messages/933434507/boosts",
+      "rps": 10353.9,
+      "secs": 5.0,
+      "statuses": {
+        "200": 51791
+      },
+      "route": "boosts_index",
+      "cpu_us_per_request": 297.54204398447604
+    },
+    {
+      "avg_bytes": 23461,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 23.743,
+        "mean_ms": 1.2,
+        "n": 66348,
+        "p50_ms": 0.811,
+        "p90_ms": 2.167,
+        "p99_ms": 7.635
+      },
+      "ok": 66348,
+      "path": "/rooms/486777696/messages/933434569/edit",
+      "rps": 13266.1,
+      "secs": 5.0,
+      "statuses": {
+        "200": 66348
+      },
+      "route": "message_edit",
+      "cpu_us_per_request": 219.75040694519808
+    },
+    {
+      "avg_bytes": 22755,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 29.423,
+        "mean_ms": 1.52,
+        "n": 52555,
+        "p50_ms": 0.986,
+        "p90_ms": 3.101,
+        "p99_ms": 9.215
+      },
+      "ok": 52555,
+      "path": "/rooms/654632876/messages/933434501/edit",
+      "rps": 10499.1,
+      "secs": 5.01,
+      "statuses": {
+        "200": 52555
+      },
+      "route": "message_edit_attachment",
+      "cpu_us_per_request": 242.03215678812668
+    },
+    {
+      "avg_bytes": 21938,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 22.143,
+        "mean_ms": 1.96,
+        "n": 40848,
+        "p50_ms": 1.45,
+        "p90_ms": 3.953,
+        "p99_ms": 8.631
+      },
+      "ok": 40848,
+      "path": "/messages/933434507/boosts/new",
+      "rps": 8167.4,
+      "secs": 5.0,
+      "statuses": {
+        "200": 40848
+      },
+      "route": "new_boost",
+      "cpu_us_per_request": 319.72189580885237
+    }
+  ],
+  "cable": [],
+  "load_start": "0.43 0.45 0.27 1/357 27\n",
+  "startup_ms": 60.6,
+  "idle_memory_kib": {
+    "Rss": 40612,
+    "Pss": 38795,
+    "Private_Dirty": 12244
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "boosts_index": {
+      "bytes": 29566,
+      "sha256": "7651942b15acc58c2f3afd83f31cb5f83d6a3e5163d80c35c86f32a1a0e80d1b",
+      "encoded_bytes": 29566,
+      "encoding": "identity",
+      "origin_normalized_sha256": "7651942b15acc58c2f3afd83f31cb5f83d6a3e5163d80c35c86f32a1a0e80d1b",
+      "contract": [
+        "4f384e0a-1ad0-57d7-8c1b-b1ee6797e852",
+        [
+          "329428236",
+          "127326141",
+          "\ud83d\udc4d"
+        ],
+        [
+          "329428237",
+          "773523953",
+          "\ud83c\udf89"
+        ],
+        [
+          "329428238",
+          "149087659",
+          "Finally!"
+        ],
+        [
+          "329428239",
+          "712064548",
+          "\u2764\ufe0f"
+        ],
+        [
+          "329428240",
+          "773523954",
+          "\ud83d\ude02"
+        ],
+        [
+          "329428241",
+          "127326141",
+          "+1"
+        ]
+      ]
+    },
+    "message_edit": {
+      "bytes": 23461,
+      "sha256": "9d7520f77e9e0c622cace5361ab0ecbab06cfad2e7d1b6e11847bd10e0b1ef74",
+      "encoded_bytes": 23461,
+      "encoding": "identity",
+      "origin_normalized_sha256": "9d7520f77e9e0c622cace5361ab0ecbab06cfad2e7d1b6e11847bd10e0b1ef74",
+      "contract": [
+        "2cf0f93f-0c8c-5e14-8ff4-01236a46635c",
+        "/rooms/486777696/messages/933434569",
+        "<p>060. Did anyone see the game last night?</p>"
+      ]
+    },
+    "message_edit_attachment": {
+      "bytes": 22755,
+      "sha256": "e3c8e526e476ffc314546f57c23b984a8a2f5c7cf0f97dac3b7cf78dd7c330fa",
+      "encoded_bytes": 22755,
+      "encoding": "identity",
+      "origin_normalized_sha256": "e3c8e526e476ffc314546f57c23b984a8a2f5c7cf0f97dac3b7cf78dd7c330fa",
+      "contract": [
+        "982d988a-c1b4-58e3-ab5e-120a5c9b7d52",
+        "/rooms/654632876/messages/933434501",
+        "launch-notes.txt"
+      ]
+    },
+    "new_boost": {
+      "bytes": 21938,
+      "sha256": "33b5345b7076fe14ac68cf57bfe6a278ea1c3d203d895831a99ead9717c8b81c",
+      "encoded_bytes": 21938,
+      "encoding": "identity",
+      "origin_normalized_sha256": "33b5345b7076fe14ac68cf57bfe6a278ea1c3d203d895831a99ead9717c8b81c",
+      "contract": [
+        "4f384e0a-1ad0-57d7-8c1b-b1ee6797e852",
+        "933434507"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 54696,
+    "Pss": 53079,
+    "Private_Dirty": 25764
+  },
+  "final_memory_kib": {
+    "Rss": 54696,
+    "Pss": 53079,
+    "Private_Dirty": 25764
+  },
+  "load_end": "2.04 0.84 0.41 1/370 89\n"
+}
