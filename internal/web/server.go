@@ -414,14 +414,17 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 			return
 		}
 	}
-	if recorded != nil {
-		p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
-	}
 	if name == "search" {
 		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
 	}
-	if name == "room" && recorded != nil {
-		parts, err := s.roomParts(p, *recorded)
+	if (name == "room" || (name == "search" && s.fragments.limit > 0)) && recorded != nil {
+		var parts []responsebody.Part
+		var err error
+		if name == "room" {
+			parts, err = s.roomParts(p, *recorded)
+		} else {
+			parts, err = s.searchParts(p, *recorded)
+		}
 		if err != nil {
 			s.fail(w, err)
 			return
@@ -429,6 +432,9 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		writeParts(w, status, parts)
 		return
+	}
+	if recorded != nil {
+		p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
 	}
 	sidebarKey := ""
 	if name == "sidebar" {

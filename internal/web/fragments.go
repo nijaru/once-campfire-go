@@ -17,7 +17,7 @@ type fragmentEntry struct {
 	html  template.HTML
 	bytes int
 	part  responsebody.Part
-	shell *roomShellEntry
+	shell *templateShell
 }
 type fragmentCache struct {
 	mu           sync.Mutex
@@ -53,8 +53,8 @@ func (c *fragmentCache) putEntry(entry fragmentEntry) fragmentEntry {
 	key := entry.key
 	size := len(key) + len(entry.html) + entry.part.Len() + 240
 	if entry.shell != nil {
-		// Three Part headers/digests plus the shell allocation and size field.
-		size += entry.shell.bytes + 192
+		// Charge owned payload once, plus the slice and Part headers/digests.
+		size += entry.shell.bytes + 32 + 56*len(entry.shell.parts)
 	}
 	if size > c.limit/4 {
 		return entry
