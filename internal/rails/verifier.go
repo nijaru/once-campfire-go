@@ -294,10 +294,14 @@ func marshalString(data []byte) (string, bool) {
 	}
 	return string(data[:length]), true
 }
+
+var modelAcronymBoundary = regexp.MustCompile(`([A-Z]+)([A-Z][a-z])`)
+var modelWordBoundary = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+
 func modelPurpose(model, purpose string) string {
 	model = strings.ReplaceAll(model, "::", "/")
-	model = regexp.MustCompile(`([A-Z]+)([A-Z][a-z])`).ReplaceAllString(model, "${1}_${2}")
-	model = regexp.MustCompile(`([a-z0-9])([A-Z])`).ReplaceAllString(model, "${1}_${2}")
+	model = modelAcronymBoundary.ReplaceAllString(model, "${1}_${2}")
+	model = modelWordBoundary.ReplaceAllString(model, "${1}_${2}")
 	model = strings.ToLower(strings.ReplaceAll(model, "-", "_"))
 	if strings.TrimSpace(purpose) != "" {
 		model += "/" + purpose

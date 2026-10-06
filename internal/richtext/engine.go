@@ -592,8 +592,10 @@ func embedHTML(n *xhtml.Node, ctx Context) (string, error) {
 	return result + "    </div>\n  </actiontext-opengraph-embed>\n</figure>", nil
 }
 
+var erbEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;")
+
 func erbEscape(s string) string {
-	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;").Replace(s)
+	return erbEscaper.Replace(s)
 }
 func galleries(root *xhtml.Node, render bool) {
 	walk(root, func(n *xhtml.Node) {
