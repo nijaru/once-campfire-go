@@ -377,6 +377,8 @@ func (s *Secrets) VerifySGID(message, purpose string, now time.Time) (string, er
 }
 
 // UnverifiedUserGID is the deliberately User-only exception in rails_ext/action_text_attachables.rb.
+var unverifiedGID = regexp.MustCompile(`gid://campfire/[^/]+/\d+`)
+
 func UnverifiedUserGID(sgid string) (string, error) {
 	if strings.Trim(sgid, "-") == "" {
 		return "", nil
@@ -403,7 +405,7 @@ func UnverifiedUserGID(sgid string) (string, error) {
 		if err != nil {
 			return "", ErrInvalid
 		}
-		gid = regexp.MustCompile(`gid://campfire/[^/]+/\d+`).FindString(string(decoded))
+		gid = unverifiedGID.FindString(string(decoded))
 	}
 	if !strings.HasPrefix(gid, "gid://") {
 		decoded, err := decode64(gid)

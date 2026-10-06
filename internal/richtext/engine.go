@@ -494,6 +494,9 @@ func attachment(n *xhtml.Node, ctx Context, asPlain bool, depth int) (string, st
 func MentionHTML(user Mention) string {
 	return fmt.Sprintf("<span class=\"mention\" sgid=\"%s\"><a title=\"%s\" class=\"btn avatar\" data-turbo-frame=\"_top\" href=\"%s\"><img aria-hidden=\"true\" src=\"%s\" width=\"48\" height=\"48\" /></a> %s</span>\n", erbEscape(user.SGID), erbEscape(user.Title), erbEscape(user.Path), erbEscape(user.Avatar), erbEscape(user.Name))
 }
+
+var hostLabelLetter = regexp.MustCompile(`[a-zA-Z]`)
+
 func externalURL(value, host string) (string, error) {
 	if strings.TrimSpace(value) == "" {
 		return "", nil
@@ -520,7 +523,7 @@ func externalURL(value, host string) (string, error) {
 		return "", errors.New("missing host label")
 	}
 	label := name[strings.LastIndex(name, ".")+1:]
-	if !regexp.MustCompile(`[a-zA-Z]`).MatchString(label) || strings.HasPrefix(strings.ToLower(label), "0x") || strings.EqualFold(name, strings.TrimSuffix(host, ".")) {
+	if !hostLabelLetter.MatchString(label) || strings.HasPrefix(strings.ToLower(label), "0x") || strings.EqualFold(name, strings.TrimSuffix(host, ".")) {
 		return "", nil
 	}
 	return value, nil
