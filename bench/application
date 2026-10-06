@@ -164,7 +164,9 @@ def main():
            if not path:
             with sqlite3.connect(db) as check:before_writes=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(write_room,)).fetchone()[0]
            if name in ('active_room','active_search'):
-            with sqlite3.connect(db) as check:active_before=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]
+            with sqlite3.connect(db) as check:
+             active_before=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]
+             active_indexed_before=check.execute('SELECT count(*) FROM message_search_index WHERE body MATCH ?',('bench active',)).fetchone()[0]
             def mutate():
              try:
               while not stop.is_set():
@@ -190,7 +192,7 @@ def main():
            if name in ('active_room','active_search'):
             with sqlite3.connect(db) as check:
              active_saved=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]-active_before
-             active_indexed=check.execute('SELECT count(*) FROM message_search_index WHERE body MATCH ?',('bench active',)).fetchone()[0]
+             active_indexed=check.execute('SELECT count(*) FROM message_search_index WHERE body MATCH ?',('bench active',)).fetchone()[0]-active_indexed_before
             if active_errors or active_saved!=len(active_posts) or active_indexed!=len(active_posts):raise RuntimeError(f'active-room write validation failed: {active_errors}, {active_saved}, {active_indexed}, {len(active_posts)}')
             req=urllib.request.Request(base+path,headers={'Cookie':cookie,'Accept-Encoding':'gzip' if a.gzip else 'identity'})
             with urllib.request.urlopen(req) as response:
