@@ -99,6 +99,14 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
+The [rich-text/render trials](bench/results/render-work-20261006/README.md) remove redundant
+tree/link work, prepare fixed reaction contents and reuse fixed escaping/signing primitives.
+Each isolated cold-render phase lowers CPU and read-route p99. The final matched six-route
+OrbStack comparison improves posts about 5–6%; warm reads remain broadly unchanged or mixed.
+Rust still leads room/writes and generally tails/memory. All 658 rich-text cases pass;
+270 HTTP samples have zero errors and 746,570 acknowledged writes persisted and matched FTS.
+These are VM results, not native or universal parity; no new library was justified.
+
 The [Cable routing trials](bench/results/cable-routing-20261006/README.md) replace all-client
 subscription scans with dense, indexed recipient lists while retaining fresh authorization.
 At 10,000 clients, longer OrbStack trials improve uncompressed complete fan-out throughput 39%

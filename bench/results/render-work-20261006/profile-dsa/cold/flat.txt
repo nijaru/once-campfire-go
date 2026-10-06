@@ -1,0 +1,109 @@
+File: final-reaction-dsa
+Build ID: 1c027de159e94d09bad092d00ff290839d096275
+Type: cpu
+Time: 2026-10-06 12:14:09 UTC
+Duration: 22.32s, Total samples = 48.05s (215.29%)
+Showing nodes accounting for 31.42s, 65.39% of 48.05s total
+Dropped 1000 nodes (cum <= 0.24s)
+Showing top 100 nodes out of 274
+      flat  flat%   sum%        cum   cum%
+     2.48s  5.16%  5.16%      2.69s  5.60%  runtime.cgocall
+     2.25s  4.68%  9.84%      2.79s  5.81%  runtime.tryDeferToSpanScan
+     1.40s  2.91% 12.76%      1.40s  2.91%  crypto/internal/fips140/sha256.blockSHA2
+     1.33s  2.77% 15.53%      1.33s  2.77%  runtime.memmove
+     1.31s  2.73% 18.25%      1.31s  2.73%  runtime.memclrNoHeapPointers
+     1.26s  2.62% 20.87%     12.16s 25.31%  reflect.Value.call
+     1.19s  2.48% 23.35%      1.82s  3.79%  strings.makeGenericReplacer
+     0.93s  1.94% 25.29%      1.89s  3.93%  runtime.scanObjectsSmall
+     0.89s  1.85% 27.14%      3.90s  8.12%  reflect.(*structType).FieldByNameFunc
+     0.78s  1.62% 28.76%      2.54s  5.29%  runtime.mallocgcSmallScanSlowPath
+     0.71s  1.48% 30.24%      6.89s 14.34%  runtime.mallocgc
+     0.60s  1.25% 31.49%      1.02s  2.12%  reflect.funcLayout
+     0.60s  1.25% 32.74%      2.31s  4.81%  runtime.wbBufFlush1
+     0.59s  1.23% 33.96%     15.17s 31.57%  text/template.(*state).evalCall
+     0.55s  1.14% 35.11%      1.79s  3.73%  runtime.scanObject
+     0.55s  1.14% 36.25%      0.65s  1.35%  runtime.typePointers.next
+     0.52s  1.08% 37.34%      0.82s  1.71%  html/template.htmlReplacer
+     0.49s  1.02% 38.36%      0.75s  1.56%  html/template.processURLOnto
+     0.46s  0.96% 39.31%      0.82s  1.71%  internal/abi.Name.Name
+     0.43s  0.89% 40.21%      0.43s  0.89%  internal/runtime/syscall/linux.Syscall6
+     0.42s  0.87% 41.08%      0.42s  0.87%  internal/abi.(*RegArgs).IntRegArgAddr (inline)
+     0.42s  0.87% 41.96%      0.48s     1%  runtime.findObject
+     0.39s  0.81% 42.77%      0.63s  1.31%  runtime.scanblock
+     0.38s  0.79% 43.56%      2.32s  4.83%  gcWriteBarrier
+     0.37s  0.77% 44.33%      0.37s  0.77%  runtime.releasem (inline)
+     0.33s  0.69% 45.02%      4.64s  9.66%  reflect.(*structType).FieldByName
+     0.32s  0.67% 45.68%      0.62s  1.29%  runtime.gcmarknewobject
+     0.30s  0.62% 46.31%      5.46s 11.36%  text/template.(*state).evalField
+     0.29s   0.6% 46.91%      0.80s  1.66%  runtime.(*sweepLocked).sweep
+     0.29s   0.6% 47.51%      0.97s  2.02%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.29s   0.6% 48.12%      0.29s   0.6%  runtime.nanotime
+     0.28s  0.58% 48.70%      0.28s  0.58%  internal/abi.Name.ReadVarint (inline)
+     0.28s  0.58% 49.28%     21.29s 44.31%  text/template.(*state).evalCommand
+     0.27s  0.56% 49.84%      0.27s  0.56%  runtime.futex
+     0.26s  0.54% 50.39%      0.30s  0.62%  reflect.(*structType).FieldByName.func1
+     0.26s  0.54% 50.93%      0.32s  0.67%  runtime.(*mspan).writeHeapBitsSmall
+     0.26s  0.54% 51.47%      0.65s  1.35%  runtime.mallocgcTinySC2
+     0.25s  0.52% 51.99%      0.81s  1.69%  callRet
+     0.25s  0.52% 52.51%      1.42s  2.96%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.24s   0.5% 53.01%      1.55s  3.23%  runtime.mallocgcSmallScanNoHeader
+     0.22s  0.46% 53.47%      0.32s  0.67%  reflect.implements
+     0.19s   0.4% 53.86%      0.53s  1.10%  runtime.mapaccess2_faststr
+     0.19s   0.4% 54.26%      0.56s  1.17%  runtime.reflectcallmove
+     0.18s  0.37% 54.63%      2.21s  4.60%  runtime.growslice
+     0.17s  0.35% 54.98%      0.28s  0.58%  runtime.unlock2
+     0.17s  0.35% 55.34%     21.54s 44.83%  text/template.(*state).evalPipeline
+     0.16s  0.33% 55.67%      0.51s  1.06%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.15s  0.31% 55.98%      1.58s  3.29%  html/template.urlNormalizer
+     0.15s  0.31% 56.30%      0.49s  1.02%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.15s  0.31% 56.61%     16.07s 33.44%  text/template.(*state).evalFunction
+     0.14s  0.29% 56.90%      0.89s  1.85%  runtime.mallocgcSmallNoscan
+     0.14s  0.29% 57.19%     25.19s 52.42%  text/template.(*state).walk
+     0.14s  0.29% 57.48%      0.26s  0.54%  text/template.isMissing
+     0.13s  0.27% 57.75%      0.33s  0.69%  fmt.(*fmt).padString
+     0.12s  0.25% 58.00%      0.62s  1.29%  reflect.Value.assignTo
+     0.12s  0.25% 58.25%      0.68s  1.42%  reflect.intToReg
+     0.12s  0.25% 58.50%      0.27s  0.56%  runtime.heapArenaOf (inline)
+     0.12s  0.25% 58.75%      1.40s  2.91%  runtime.makeslice
+     0.12s  0.25% 59.00%      0.30s  0.62%  runtime.pcvalue
+     0.11s  0.23% 59.23%      0.69s  1.44%  html/template.stringify
+     0.11s  0.23% 59.46%      0.29s   0.6%  reflect.(*rtype).AssignableTo
+     0.11s  0.23% 59.69%      0.30s  0.62%  runtime.lock2
+     0.11s  0.23% 59.92%      0.50s  1.04%  text/template.(*state).at (inline)
+     0.10s  0.21% 60.12%      0.77s  1.60%  fmt.(*pp).printArg
+     0.10s  0.21% 60.33%      0.29s   0.6%  reflect.(*rtype).Implements
+     0.10s  0.21% 60.54%      0.57s  1.19%  runtime.bulkBarrierPreWrite
+     0.09s  0.19% 60.73%      1.51s  3.14%  bytes.(*Buffer).Write
+     0.09s  0.19% 60.92%      0.46s  0.96%  fmt.(*pp).fmtString
+     0.09s  0.19% 61.10%      0.89s  1.85%  runtime.mapassign_fast64ptr
+     0.09s  0.19% 61.29%      2.26s  4.70%  runtime.scanSpan
+     0.09s  0.19% 61.48%      2.15s  4.47%  strings.(*Replacer).build
+     0.09s  0.19% 61.66%      0.45s  0.94%  strings.(*trieNode).add
+     0.09s  0.19% 61.85%      0.41s  0.85%  text/template.(*state).validateType
+     0.08s  0.17% 62.02%      1.43s  2.98%  fmt.Fprint
+     0.08s  0.17% 62.19%      0.29s   0.6%  github.com/basecamp/once-campfire-go/internal/html.(*Tokenizer).Next
+     0.08s  0.17% 62.35%      0.30s  0.62%  reflect.valueInterface
+     0.08s  0.17% 62.52%      4.39s  9.14%  runtime.gcDrain
+     0.08s  0.17% 62.68%      0.41s  0.85%  runtime.mallocgcSmallScanNoHeaderSC4
+     0.08s  0.17% 62.85%      0.58s  1.21%  runtime.mapaccess1_faststr
+     0.08s  0.17% 63.02%      0.39s  0.81%  text/template.printableValue
+     0.07s  0.15% 63.16%      0.76s  1.58%  fmt.(*pp).doPrint
+     0.07s  0.15% 63.31%      0.26s  0.54%  fmt.(*pp).free
+     0.07s  0.15% 63.45%      3.13s  6.51%  github.com/basecamp/once-campfire-go/internal/richtext.serializeTo
+     0.07s  0.15% 63.60%      0.39s  0.81%  runtime.deductSweepCredit
+     0.07s  0.15% 63.75%      0.67s  1.39%  text/template.findFunction
+     0.07s  0.15% 63.89%     12.32s 25.64%  text/template.safeCall
+     0.06s  0.12% 64.02%      0.41s  0.85%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+     0.06s  0.12% 64.14%     12.22s 25.43%  reflect.Value.Call
+     0.06s  0.12% 64.27%      0.92s  1.91%  runtime.(*mcentral).cacheSpan
+     0.06s  0.12% 64.39%      0.53s  1.10%  runtime.deductAssistCredit
+     0.06s  0.12% 64.52%      5.53s 11.51%  text/template.(*state).evalFieldChain
+     0.06s  0.12% 64.64%      1.94s  4.04%  text/template.(*state).printValue
+     0.05s   0.1% 64.75%      0.31s  0.65%  database/sql.(*DB).conn
+     0.05s   0.1% 64.85%     33.90s 70.55%  github.com/basecamp/once-campfire-go/internal/web.(*Server).hydrateMessageViews
+     0.05s   0.1% 64.95%      1.21s  2.52%  runtime.(*mcache).refill
+     0.05s   0.1% 65.06%      1.59s  3.31%  runtime.newobject
+     0.04s 0.083% 65.14%      0.36s  0.75%  database/sql.(*Rows).initContextClose
+     0.04s 0.083% 65.22%      0.37s  0.77%  fmt.(*fmt).fmtS
+     0.04s 0.083% 65.31%      2.59s  5.39%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.04s 0.083% 65.39%      0.96s  2.00%  html/template.attrEscaper
