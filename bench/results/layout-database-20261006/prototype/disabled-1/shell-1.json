@@ -1,0 +1,84 @@
+{
+  "app": "shell",
+  "rep": 1,
+  "http": [
+    {
+      "avg_bytes": 9462,
+      "conc": 16,
+      "errors": 0,
+      "gzip": true,
+      "latency": {
+        "max_ms": 97.215,
+        "mean_ms": 18.99,
+        "n": 4224,
+        "p50_ms": 15.303,
+        "p90_ms": 36.063,
+        "p99_ms": 62.271
+      },
+      "ok": 4224,
+      "path": "/searches?q=coffee",
+      "rps": 841.3,
+      "secs": 5.02,
+      "statuses": {
+        "200": 4224
+      },
+      "route": "search",
+      "cpu_us_per_request": 2923.76893939394
+    }
+  ],
+  "cable": [],
+  "load_start": "4.64 3.54 1.82 1/356 1075\n",
+  "startup_ms": 28.37,
+  "idle_memory_kib": {
+    "Rss": 40408,
+    "Pss": 38601,
+    "Private_Dirty": 11796
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "search": {
+      "bytes": 135497,
+      "sha256": "55301f760761f663f44a4c93e044a0567fa395be0dd47c10ee784a58df4932ef",
+      "encoded_bytes": 9462,
+      "encoding": "gzip",
+      "result_count": 13,
+      "contract": [
+        "933434483",
+        "933434510",
+        "933434520",
+        "933434530",
+        "933434540",
+        "933434550",
+        "933434560",
+        "933434570",
+        "933434580",
+        "933434590",
+        "933434600",
+        "933434610",
+        "933434620"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 64028,
+    "Pss": 62221,
+    "Private_Dirty": 34280
+  },
+  "final_memory_kib": {
+    "Rss": 64028,
+    "Pss": 62221,
+    "Private_Dirty": 34280
+  },
+  "load_end": "4.43 3.52 1.82 1/368 1107\n"
+}

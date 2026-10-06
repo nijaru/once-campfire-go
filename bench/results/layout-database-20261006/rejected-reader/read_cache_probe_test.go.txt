@@ -1,0 +1,65 @@
+package database
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"testing"
+)
+
+func TestReadCacheProbeChurnReprepareAndCancel(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	if _, err := d.Write.Exec("CREATE TABLE cache_probe(value BLOB); INSERT INTO cache_probe VALUES (x'010203')"); err != nil {
+		t.Fatal(err)
+	}
+	var retained []byte
+	for round := 0; round < 2; round++ {
+		for i := 0; i < 96; i++ {
+			var b []byte
+			if err := d.Read.QueryRowContext(ctx, fmt.Sprintf("SELECT value FROM cache_probe /* %d */", i)).Scan(&b); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(b, []byte{1, 2, 3}) {
+				t.Fatal(b)
+			}
+			if retained == nil {
+				retained = b
+			}
+		}
+	}
+	var one []byte
+	if err := d.Read.QueryRowContext(ctx, "SELECT * FROM cache_probe").Scan(&one); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec("ALTER TABLE cache_probe ADD COLUMN extra TEXT DEFAULT 'fresh'; UPDATE cache_probe SET value=x'040506'"); err != nil {
+		t.Fatal(err)
+	}
+	var extra string
+	if err := d.Read.QueryRowContext(ctx, "SELECT * FROM cache_probe").Scan(&one, &extra); err != nil || extra != "fresh" || !bytes.Equal(one, []byte{4, 5, 6}) {
+		t.Fatal(err, one, extra)
+	}
+	if !bytes.Equal(retained, []byte{1, 2, 3}) {
+		t.Fatal("borrowed result lifetime changed")
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	rows, err := d.Read.QueryContext(canceled, "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<10000000) SELECT x FROM n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rows.Next() {
+		t.Fatal(rows.Err())
+	}
+	cancel()
+	for rows.Next() {
+	}
+	if !errors.Is(rows.Err(), context.Canceled) {
+		t.Fatal(rows.Err())
+	}
+	rows.Close()
+	var count int
+	if err := d.Read.QueryRowContext(ctx, "SELECT count(*) FROM cache_probe").Scan(&count); err != nil || count != 1 {
+		t.Fatal(count, err)
+	}
+}

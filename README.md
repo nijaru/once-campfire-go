@@ -99,12 +99,18 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-The latest [search/hydration trials](bench/results/search-hydration-20261006/README.md)
+The latest [search-layout/database trials](bench/results/layout-database-20261006/README.md)
+retain immutable search layouts around freshly selected results. In the final six-route OrbStack
+VM comparison at 16 clients, gzip search measures 26,561 Go versus 26,734 Rust requests/sec;
+active search 16,591 versus 14,083. Rust still leads room (28,307 versus 22,040), writes
+(3,183 versus 2,271), usually tails, and process memory. These warm-cache VM results do not
+establish native or general parity. Reader-cache replacement was rejected; covering-index
+write amplification and insufficient checkpoint evidence did not justify database changes.
+
+The preceding [search/hydration trials](bench/results/search-hydration-20261006/README.md)
 reuse immutable message lists after fresh matching-reference queries and share metadata reads
-across fragment misses. The final VM comparison measures 12,395 Go versus 24,593 Rust gzip
-search requests/sec at 16 clients. Active search reaches 9,808 versus 10,111, but Rust has
-lower tail latency. Fragment-disabled CPU falls about 7–15%; its p99 and gzip process memory
-do not consistently improve. The report retains raw trials, rejected allocation shapes and checks.
+across fragment misses. Fragment-disabled CPU falls about 7–15%; its p99 and gzip process
+memory do not consistently improve. Both reports retain raw trials, rejected candidates and checks.
 
 The preceding [matched Go/Rust VM comparison](bench/results/rust-go-boundary-20261006/README.md)
 covers room/history/search/writes with both encodings and 1/16/64 clients. Go has higher warm
