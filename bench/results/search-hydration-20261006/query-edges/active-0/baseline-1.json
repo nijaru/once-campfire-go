@@ -1,0 +1,92 @@
+{
+  "app": "baseline",
+  "rep": 1,
+  "http": [
+    {
+      "avg_bytes": 761435,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 18.687,
+        "mean_ms": 2.22,
+        "n": 35989,
+        "p50_ms": 1.735,
+        "p90_ms": 4.371,
+        "p99_ms": 8.367
+      },
+      "ok": 35989,
+      "path": "/searches?q=coffee",
+      "rps": 7193.4,
+      "secs": 5.0,
+      "statuses": {
+        "200": 35989
+      },
+      "route": "active_search",
+      "cpu_us_per_request": 375.1146183556087
+    }
+  ],
+  "cable": [],
+  "load_start": "3.00 1.48 1.07 1/360 335\n",
+  "startup_ms": 40.88,
+  "idle_memory_kib": {
+    "Rss": 40412,
+    "Pss": 38595,
+    "Private_Dirty": 11980
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "active_search": {
+      "bytes": 135497,
+      "sha256": "a2fa3713f65509cc4875e66620ede251b196ade184555fb81412498e08c4642b",
+      "encoded_bytes": 135497,
+      "encoding": "identity",
+      "result_count": 13,
+      "contract": [
+        "933434483",
+        "933434510",
+        "933434520",
+        "933434530",
+        "933434540",
+        "933434550",
+        "933434560",
+        "933434570",
+        "933434580",
+        "933434590",
+        "933434600",
+        "933434610",
+        "933434620"
+      ]
+    }
+  },
+  "active_search_validation": {
+    "posts": 134,
+    "persisted": 134,
+    "indexed": 134,
+    "target_hz": 20,
+    "final_plain_bytes": 878758,
+    "final_result_count": 100
+  },
+  "http_memory_kib": {
+    "Rss": 123392,
+    "Pss": 121559,
+    "Private_Dirty": 93536
+  },
+  "final_memory_kib": {
+    "Rss": 123392,
+    "Pss": 121559,
+    "Private_Dirty": 93536
+  },
+  "load_end": "3.17 1.56 1.10 1/373 369\n"
+}

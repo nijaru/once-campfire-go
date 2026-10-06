@@ -99,12 +99,19 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-The [matched Go/Rust VM comparison](bench/results/rust-go-boundary-20261006/README.md)
-uses the current fork and pinned Rust with both encodings and 1/16/64 clients. Go has
-higher warm active-room/history throughput; Rust leads room/search/writes and generally
-latency and memory. It also records a corrected search-count regression, rejected SQLite
-crossing trial, response-size differences and substantial VM limitations. Native confirmation
-and fresh Ruby/Elixir measurements are not available; published AMD ratios are not transferable.
+The latest [search/hydration trials](bench/results/search-hydration-20261006/README.md)
+reuse immutable message lists after fresh matching-reference queries and share metadata reads
+across fragment misses. The final VM comparison measures 12,395 Go versus 24,593 Rust gzip
+search requests/sec at 16 clients. Active search reaches 9,808 versus 10,111, but Rust has
+lower tail latency. Fragment-disabled CPU falls about 7–15%; its p99 and gzip process memory
+do not consistently improve. The report retains raw trials, rejected allocation shapes and checks.
+
+The preceding [matched Go/Rust VM comparison](bench/results/rust-go-boundary-20261006/README.md)
+covers room/history/search/writes with both encodings and 1/16/64 clients. Go has higher warm
+active-room/history throughput; Rust leads room/search/writes and generally latency and memory.
+It records a corrected search-count regression, rejected SQLite crossing trial, response-size
+differences and substantial VM limitations. Native confirmation and fresh Ruby/Elixir measurements
+are not available; published AMD ratios are not transferable.
 
 This fork fixes the room refresh cursor and removes repeated compression, hashing and
 rendering preparation while keeping authorization, queries, headers and cookies fresh.
@@ -175,7 +182,8 @@ static/avatar bytes, every successful write and FTS entry, complete Cable fan-ou
 bytes. Reports include raw samples, source/binary hashes, toolchains, load averages and limitations.
 HTTP measurements use the direct application listener and identity encoding; public TLS/compression
 throughput is not measured in that upstream comparison. The fork harness also supports
-`--listener public --gzip 1`, named candidates and concurrent active-room writes.
+`--listener public --gzip 1`, named candidates, concurrent active-room/search writes,
+and `--fragment-cache-mb 0` for fragment-disabled rendering.
 `bench/health` remains available for the much narrower health-handler test.
 
 ## Known differences

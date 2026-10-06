@@ -1,0 +1,34 @@
+--- a/internal/web/fragments.go
++++ b/internal/web/fragments.go
+@@ -129,6 +129,8 @@
+ 			hydrated[message.ID] = message
+ 		}
+ 	}
++	var records []database.Message
++	var positions []int
+ 	for i, m := range messages {
+ 		if views[i].Fragment != "" {
+ 			continue
+@@ -141,12 +143,19 @@
+ 				continue
+ 			}
+ 		}
+-
+-		rendered, err := s.messageViews(ctx, []database.Message{m})
++		records = append(records, m)
++		positions = append(positions, i)
++	}
++	if len(records) > 0 {
++		// Preserve messageViews' request-local room/creator deduplication rather
++		// than rebuilding those maps and repeating their reads for each miss.
++		rendered, err := s.messageViews(ctx, records)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		views[i] = rendered[0]
++		for i, position := range positions {
++			views[position] = rendered[i]
++		}
+ 	}
+ 	return views, nil
+ }
