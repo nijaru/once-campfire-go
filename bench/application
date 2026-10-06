@@ -30,8 +30,9 @@ def main():
     p.add_argument('--gzip',type=int,choices=[0,1],default=0)
     p.add_argument('--listener',choices=['application','public'],default='application')
     p.add_argument('--mask-legacy-room-cursor',action='store_true',help='mask only the original render-time cursor defect when comparing pre-fix binaries')
-    p.add_argument('--active-room-hz',type=float,default=20,help='message commits/sec during active_room reads')
-    p.add_argument('--routes',nargs='+',choices=['room_show','active_room','messages_page','sidebar','search','avatar','static_css','post_message'])
+    p.add_argument('--active-room-hz',type=float,default=20,help='message commits/sec during active_room/active_search reads')
+    p.add_argument('--fragment-cache-mb',type=int,help='override application fragment retention; 0 exercises uncached rendering')
+    p.add_argument('--routes',nargs='+',choices=['room_show','active_room','messages_page','sidebar','search','active_search','avatar','static_css','post_message'])
     p.add_argument('--resume',action='store_true',help='resume completed runs with identical binaries and settings')
     p.add_argument('--seconds',type=float,default=5)
     p.add_argument('--concurrency',type=int,nargs='+',default=[1,16,64])
@@ -56,11 +57,13 @@ def main():
     binaries={app:binaries[app] for app in a.apps}
     lg=(a.loadgen or rust/'target/bench/release/loadgen').resolve()
     if a.active_room_hz <= 0:p.error('--active-room-hz must be positive')
+    if a.fragment_cache_mb is not None and a.fragment_cache_mb < 0:p.error('--fragment-cache-mb must be nonnegative')
     env={k:v for k,v in os.environ.items() if not k.startswith(('CAMPFIRE_','THRUSTER_')) and k!='TLS_DOMAIN'}
     for line in (rust/'parity/.env.reference').read_text().splitlines():
         if line and not line.startswith('#') and '=' in line:
             k,v=line.split('=',1); env[k]=v
     env.update(TMPDIR=str(ROOT/'.cache/tmp'),DISABLE_SSL='true',TARGET_BIND='127.0.0.1',GOMAXPROCS='4',TOKIO_WORKER_THREADS='4',RAILS_MAX_THREADS='4')
+    if a.fragment_cache_mb is not None:env['CAMPFIRE_FRAGMENT_CACHE_MB']=str(a.fragment_cache_mb)
     metadata={'time':datetime.datetime.now(datetime.timezone.utc).isoformat(),'host':platform.platform(),'cpu':text('lscpu'),
         'rust_commit':text('git','-C',str(rust),'rev-parse','HEAD'),'settings':{k:str(v) if isinstance(v,Path) else v for k,v in vars(a).items()},
         'binaries':{k:{'sha256':digest(v),'bytes':v.stat().st_size} for k,v in binaries.items()},'seed_sha256':digest(seed/'db/production.sqlite3'),
@@ -124,9 +127,9 @@ def main():
           scrape=load('scrape',cookie=cookie,room=room)
           if scrape['status']!=200 or len(scrape['streams'])!=3:raise RuntimeError(f'incomplete room: {scrape}')
           result['scrape']=scrape
-          routes=[('room_show',f'/rooms/{room}'),('active_room',f'/rooms/{room}'),('messages_page',f'/rooms/{room}/messages?before={labels["messages.busy_060"]}'),('sidebar','/users/me/sidebar'),('search','/searches?q=coffee'),('avatar',f'/users/{labels["avatar_tokens.jason"]}/avatar'),('static_css',scrape['css']),('post_message',None)]
+          routes=[('room_show',f'/rooms/{room}'),('active_room',f'/rooms/{room}'),('messages_page',f'/rooms/{room}/messages?before={labels["messages.busy_060"]}'),('sidebar','/users/me/sidebar'),('search','/searches?q=coffee'),('active_search','/searches?q=coffee'),('avatar',f'/users/{labels["avatar_tokens.jason"]}/avatar'),('static_css',scrape['css']),('post_message',None)]
           if a.routes:routes=[(name,path) for name,path in routes if name in a.routes]
-          else:routes=[(name,path) for name,path in routes if name!='active_room']
+          else:routes=[(name,path) for name,path in routes if name not in ('active_room','active_search')]
           for name,path in routes:
            opts=dict(cookie=cookie,gzip=a.gzip)
            opts.update(dict(path=path) if path else dict(post_room=write_room,csrf=scrape['csrf'] or ''))
@@ -147,9 +150,9 @@ def main():
             if canonical(decoded)!=canonical(body):raise RuntimeError(f'{app} {name}: encoded body differs from full identity response')
             result['bodies'][name].update(encoded_bytes=len(encoded),encoding=content_encoding)
             if name=='room_show':(out/f'{app}-{rep}-room.html.gz').write_bytes(gzip.compress(body,mtime=0))
-            semantic = sorted(set(re.findall(rb'data-message-id="([0-9]+)"',body))) if name in ('room_show','active_room','messages_page','search') else sorted(set(re.findall(rb'data-room-id="([0-9]+)"',body))) if name=='sidebar' else hashlib.sha256(body).hexdigest()
+            semantic = sorted(set(re.findall(rb'data-message-id="([0-9]+)"',body))) if name in ('room_show','active_room','messages_page','search','active_search') else sorted(set(re.findall(rb'data-room-id="([0-9]+)"',body))) if name=='sidebar' else hashlib.sha256(body).hexdigest()
             if not semantic:raise RuntimeError(f'empty workload contract: {name}')
-            if name=='search':
+            if name in ('search','active_search'):
              counter=re.search(rb'(?s)class="searches__query[^"\n]*".*?<span class="flex-item-no-shrink">([0-9]+)</span>',body)
              if counter is None or int(counter[1])!=len(semantic):raise RuntimeError(f'{app} search result count differs from rendered message IDs')
              result['bodies'][name]['result_count']=int(counter[1])
@@ -160,13 +163,13 @@ def main():
            before_writes=None
            if not path:
             with sqlite3.connect(db) as check:before_writes=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(write_room,)).fetchone()[0]
-           if name=='active_room':
+           if name in ('active_room','active_search'):
             with sqlite3.connect(db) as check:active_before=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]
             def mutate():
              try:
               while not stop.is_set():
                started=time.monotonic()
-               payload=f'message%5Bbody%5D=bench+active+{len(active_posts)}'.encode()
+               payload=f'message%5Bbody%5D=bench+active+{"coffee+" if name=="active_search" else ""}{len(active_posts)}'.encode()
                request=urllib.request.Request(base+f'/rooms/{room}/messages',data=payload,headers={'Cookie':cookie,'Content-Type':'application/x-www-form-urlencoded','Accept':'text/vnd.turbo-stream.html','Origin':base,'X-CSRF-Token':scrape['csrf'] or ''})
                with urllib.request.urlopen(request,timeout=10) as response:
                 posted=response.read();assert response.status==200 and b'action="append"' in posted
@@ -184,7 +187,7 @@ def main():
            finally:
             stop.set()
             if writer:writer.join()
-           if name=='active_room':
+           if name in ('active_room','active_search'):
             with sqlite3.connect(db) as check:
              active_saved=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(room,)).fetchone()[0]-active_before
              active_indexed=check.execute('SELECT count(*) FROM message_search_index WHERE body MATCH ?',('bench active',)).fetchone()[0]
@@ -194,7 +197,12 @@ def main():
              changed=response.read()
              if response.headers.get('Content-Encoding')=='gzip':changed=gzip.decompress(changed)
             if b'bench active' not in changed:raise RuntimeError('active room response is stale')
-            result['active_validation']={'posts':len(active_posts),'persisted':active_saved,'indexed':active_indexed,'target_hz':a.active_room_hz,'final_plain_bytes':len(changed)}
+            result['active_search_validation' if name=='active_search' else 'active_validation']={'posts':len(active_posts),'persisted':active_saved,'indexed':active_indexed,'target_hz':a.active_room_hz,'final_plain_bytes':len(changed)}
+            if name=='active_search':
+             counter=re.search(rb'(?s)class="searches__query[^"\n]*".*?<span class="flex-item-no-shrink">([0-9]+)</span>',changed)
+             count=len(set(re.findall(rb'data-message-id="([0-9]+)"',changed)))
+             if counter is None or int(counter[1])!=count:raise RuntimeError(f'{app} changed search count differs from rendered message IDs')
+             result['active_search_validation']['final_result_count']=count
            if before_writes is not None:
             with sqlite3.connect(db) as check:
              persisted=check.execute('SELECT count(*) FROM messages WHERE room_id=?',(write_room,)).fetchone()[0]-before_writes

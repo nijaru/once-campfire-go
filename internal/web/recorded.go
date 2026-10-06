@@ -37,6 +37,25 @@ func (s *Server) messageList(ctx context.Context, messages []database.Message) (
 	return entry.part, nil
 }
 
+// Retain the actual Part on a hit: eviction between lookup and rendering cannot
+// turn a references-only search into an unscoped, newer-body hydration.
+func (s *Server) searchMessageList(ctx context.Context, user int64, query string, refs []database.Message) (responsebody.Part, int, error) {
+	if len(refs) == 0 {
+		return responsebody.Part{}, 0, nil
+	}
+	if entry, ok := s.fragments.entry(messageListCacheKey(refs)); ok {
+		return entry.part, len(refs), nil
+	}
+	// Matching membership and body must come from one statement on a miss.
+	// An edit/delete after the reference query can change the result set.
+	messages, err := s.DB.Search(ctx, user, query)
+	if err != nil {
+		return responsebody.Part{}, 0, err
+	}
+	part, err := s.messageList(ctx, messages)
+	return part, len(messages), err
+}
+
 func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, part responsebody.Part) {
 	before, after, found := strings.Cut(rendered, marker)
 	if !found {

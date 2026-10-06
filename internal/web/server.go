@@ -63,8 +63,9 @@ type botView struct {
 	Rooms []database.Room
 }
 type page struct {
-	// Controller input. render builds views only for templates that need them.
+	// Controller input: records or an already prepared immutable message list.
 	messageRecords []database.Message
+	messageBody    *responsebody.Part
 
 	MessagesHTML                 template.HTML
 	Version                      string
@@ -393,13 +394,13 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	}
 	raw := p.messageRecords
 	p.messageRecords = nil
-	var recorded *responsebody.Part
+	recorded := p.messageBody
+	p.messageBody = nil
 	if len(raw) > 0 {
 		if name == "room" || name == "messages" || name == "search" {
 			var entry responsebody.Part
 			entry, err = s.messageList(r.Context(), raw)
 			recorded = &entry
-			p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
 		} else {
 			p.Messages, err = s.messageViews(r.Context(), raw)
 			if err == nil && name == "edit-message" {
@@ -412,6 +413,9 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 			s.fail(w, err)
 			return
 		}
+	}
+	if recorded != nil {
+		p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
 	}
 	if name == "search" {
 		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
@@ -852,17 +856,27 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	messages, err := s.DB.Search(r.Context(), u.ID, q)
+	p := page{Title: "Search", Query: q, User: u, RecentSearches: recent}
+	if s.fragments.limit <= 0 {
+		// With no retention, a reference lookup cannot avoid the full query.
+		p.messageRecords, err = s.DB.Search(r.Context(), u.ID, q)
+		p.SearchResultCount = len(p.messageRecords)
+	} else {
+		var refs []database.Message
+		refs, err = s.DB.SearchReferences(r.Context(), u.ID, q)
+		if err == nil {
+			var part responsebody.Part
+			part, p.SearchResultCount, err = s.searchMessageList(r.Context(), u.ID, q, refs)
+			if p.SearchResultCount > 0 {
+				p.messageBody = &part
+			}
+		}
+	}
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	rooms, err := s.DB.Rooms(r.Context(), u.ID)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.render(w, r, "search", 200, page{Title: "Search", Query: q, SearchResultCount: len(messages), User: u, Rooms: rooms, messageRecords: messages, RecentSearches: recent})
+	s.render(w, r, "search", 200, p)
 }
 
 func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.User) {
