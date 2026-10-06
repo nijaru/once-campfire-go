@@ -35,7 +35,7 @@ def main():
     p.add_argument('--active-room-hz',type=float,default=20,help='message commits/sec during active_room/active_search reads')
     p.add_argument('--fragment-cache-mb',type=int,help='override application fragment retention; 0 exercises uncached rendering')
     p.add_argument('--routes',nargs='+',choices=['room_show','active_room','messages_page','sidebar','search','active_search','avatar','static_css','post_message',*sorted(FORM_ROUTES)])
-    p.add_argument('--same-html-apps',nargs='+',default=[],help='require exact decoded form bytes across these applications after normalizing only each known listener origin')
+    p.add_argument('--same-html-apps',nargs='+',default=[],help='require exact decoded response bytes across these applications after normalizing only each known listener origin')
     p.add_argument('--resume',action='store_true',help='resume completed runs with identical binaries and settings')
     p.add_argument('--seconds',type=float,default=5)
     p.add_argument('--concurrency',type=int,nargs='+',default=[1,16,64])
@@ -76,7 +76,7 @@ def main():
         'go_sources_sha256':{str(f.relative_to(ROOT)):digest(f) for folder in ('cmd','internal','assets','third_party') for f in sorted((ROOT/folder).rglob('*')) if f.is_file()},
         'go_commit':text('git','rev-parse','HEAD'),
         'scope':f'Release binaries; {a.listener} HTTP/1.1 listener; {"gzip" if a.gzip else "identity"} encoding; identical seed and CPU affinity. Media use installed native libraries. Host background load recorded.'}
-    results=[]; contracts={}; form_hashes={}; thumbnail_hash=None
+    results=[]; contracts={}; body_hashes={}; thumbnail_hash=None
     form_messages={}; form_boosts=[]
     if FORM_ROUTES.intersection(a.routes or []):
         with sqlite3.connect(f'file:{seed}/db/production.sqlite3?mode=ro',uri=True) as check:
@@ -97,7 +97,7 @@ def main():
         for result in results:
             for name,body in result.get('bodies',{}).items():
                 value=body['contract'];contracts[name]=value if name in FORM_ROUTES else [v.encode() for v in value] if isinstance(value,list) else value
-                if result['app'] in a.same_html_apps and 'origin_normalized_sha256' in body:form_hashes[name]=body['origin_normalized_sha256']
+                if result['app'] in a.same_html_apps and 'origin_normalized_sha256' in body:body_hashes[name]=body['origin_normalized_sha256']
             if 'upload' in result:thumbnail_hash=result['upload']['runs'][0]['thumb_sha256']
     (out/'metadata.json').write_text(json.dumps(metadata,indent=2)+'\n')
     work=ROOT/'bench/.work'; work.mkdir(exist_ok=True)
@@ -176,11 +176,11 @@ def main():
             if name in FORM_ROUTES:
              semantic=form_contract(name,body,form_messages[name],form_boosts)
              (out/f'{app}-{rep}-{name}.html.gz').write_bytes(gzip.compress(body,mtime=0))
-             normalized_hash=hashlib.sha256(body.replace(base.encode(),b'http://benchmark.invalid')).hexdigest()
-             result['bodies'][name]['origin_normalized_sha256']=normalized_hash
-             if app in a.same_html_apps:
-              if name in form_hashes and form_hashes[name]!=normalized_hash:raise RuntimeError(f'{app} {name}: full decoded form differs after listener-origin normalization')
-              form_hashes[name]=normalized_hash
+            normalized_hash=hashlib.sha256(body.replace(base.encode(),b'http://benchmark.invalid')).hexdigest()
+            result['bodies'][name]['origin_normalized_sha256']=normalized_hash
+            if app in a.same_html_apps:
+             if name in body_hashes and body_hashes[name]!=normalized_hash:raise RuntimeError(f'{app} {name}: full decoded response differs after listener-origin normalization')
+             body_hashes[name]=normalized_hash
             if name in contracts and contracts[name]!=semantic:raise RuntimeError(f'{app} {name} differs from the first application response contract')
             contracts[name]=semantic
             result['bodies'][name]['contract']=semantic if name in FORM_ROUTES else [v.decode() for v in semantic] if isinstance(semantic,list) else semantic
