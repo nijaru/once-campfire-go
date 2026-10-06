@@ -1,0 +1,359 @@
+diff --git c/sqlite3.go w/sqlite3.go
+index c519de7..c144f55 100644
+--- c/sqlite3.go
++++ w/sqlite3.go
+@@ -220,6 +220,20 @@ _sqlite3_prepare_v2_internal(sqlite3 *db, const char *zSql, int nBytes, sqlite3_
+ }
+ #endif
+ 
++// The caller supplies the row buffer's column count, not the statement's
++// post-step count: sqlite3_step may re-prepare a statement after schema changes.
++// Text/blob pointers are borrowed until the next step/reset/finalize and must
++// be copied by Go before then.
++static int
++_sqlite3_step_values(sqlite3_stmt *stmt, int ncol, sqlite3_go_col *cols)
++{
++  int rv = _sqlite3_step_internal(stmt);
++  if (rv == SQLITE_ROW) {
++    _sqlite3_column_values(stmt, ncol, cols);
++  }
++  return rv;
++}
++
+ // Steps a statement once and reports the post-step column count and the
+ // cumulative re-prepare count, in a single CGO crossing. Used for the
+ // eager first step of cached statements: only after the first step is an
+@@ -2673,12 +2687,17 @@ func (rc *SQLiteRows) Next(dest []driver.Value) error {
+ 
+ 	if rv := rc.pendingStep; rv >= 0 {
+ 		rc.pendingStep = -1
++		// The cached first row was stepped before colvals was allocated,
++		// using the post-reprepare column count. Do not step it again.
++		if rv == C.SQLITE_ROW && len(dest) > 0 {
++			C._sqlite3_column_values(rc.s.s, C.int(len(dest)), rc.colvals)
++		}
+ 		return rc.readStepResultLocked(dest, rv)
+ 	}
+ 
+ 	if rc.stopCancellation == nil {
+ 		if rc.ctx.Done() == nil {
+-			rv := C._sqlite3_step_internal(rc.s.s)
++			rv := C._sqlite3_step_values(rc.s.s, C.int(len(dest)), rc.colvals)
+ 			return rc.readStepResultLocked(dest, rv)
+ 		}
+ 		conn := rc.s.c
+@@ -2689,7 +2708,7 @@ func (rc *SQLiteRows) Next(dest []driver.Value) error {
+ 	if err := rc.ctx.Err(); err != nil {
+ 		return err
+ 	}
+-	rv := rc.stepCancellableLocked()
++	rv := rc.stepCancellableLocked(C.int(len(dest)))
+ 	err := rc.readStepResultLocked(dest, rv)
+ 	if ctxErr := rc.ctx.Err(); ctxErr != nil {
+ 		return ctxErr
+@@ -2746,12 +2765,14 @@ func (rc *SQLiteRows) eagerFirstStepLocked() (C.int, error) {
+ 	return rv, nil
+ }
+ 
+-func (rc *SQLiteRows) stepCancellableLocked() C.int {
++func (rc *SQLiteRows) stepCancellableLocked(ncol C.int) C.int {
+ 	rc.startStepping()
+ 	defer rc.finishStepping()
+-	return C._sqlite3_step_internal(rc.s.s)
++	return C._sqlite3_step_values(rc.s.s, ncol, rc.colvals)
+ }
+ 
++// readStepResultLocked copies the populated C buffer while the statement lock
++// still protects its borrowed text/blob pointers from step/reset/finalize.
+ func (rc *SQLiteRows) readStepResultLocked(dest []driver.Value, rv C.int) error {
+ 	if rv == C.SQLITE_DONE {
+ 		return io.EOF
+@@ -2768,7 +2789,6 @@ func (rc *SQLiteRows) readStepResultLocked(dest []driver.Value, rv C.int) error
+ 	if len(dest) == 0 {
+ 		return nil
+ 	}
+-	C._sqlite3_column_values(rc.s.s, C.int(len(dest)), rc.colvals)
+ 	colvals := (*[(math.MaxInt32 - 1) / unsafe.Sizeof(C.sqlite3_go_col{})]C.sqlite3_go_col)(unsafe.Pointer(rc.colvals))[:len(dest):len(dest)]
+ 
+ 	decltype := rc.decltype
+diff --git 1/sqlite3_rows_test.go 2/sqlite3_rows_test.go
+new file mode 100644
+index 0000000..7ab07f2
+--- /dev/null
++++ 2/sqlite3_rows_test.go
+@@ -0,0 +1,275 @@
++//go:build cgo
++// +build cgo
++
++package sqlite3
++
++import (
++	"context"
++	"database/sql/driver"
++	"errors"
++	"io"
++	"reflect"
++	"testing"
++	"time"
++)
++
++// Exercise both the fused step and the cached, already-stepped first row.
++// Retaining each row catches borrowed text/blob pointers escaping into Go;
++// changing storage classes catches stale entries in the reused C buffer.
++func TestRowsMixedValuesRemainFresh(t *testing.T) {
++	for _, cache := range []bool{false, true} {
++		for _, cancellable := range []bool{false, true} {
++			name := "uncached"
++			if cache {
++				name = "cached"
++			}
++			if cancellable {
++				name += "/cancellable"
++			}
++			t.Run(name, func(t *testing.T) {
++				dsn := ":memory:"
++				if cache {
++					dsn += "?_stmt_cache_size=4"
++				}
++				raw, err := (&SQLiteDriver{}).Open(dsn)
++				if err != nil {
++					t.Fatal(err)
++				}
++				conn := raw.(*SQLiteConn)
++				defer conn.Close()
++				ctx := context.Background()
++				if cancellable {
++					var cancel context.CancelFunc
++					ctx, cancel = context.WithCancel(ctx)
++					defer cancel()
++				}
++				rows, err := conn.QueryContext(ctx, `
++					SELECT NULL, 42, 1.25, X'0001FF', X'', 'a' || char(0) || 'b'
++					UNION ALL SELECT 'new', -7, 2.5, X'0200', X'03', ''
++					UNION ALL SELECT NULL, NULL, NULL, NULL, NULL, NULL`, nil)
++				if err != nil {
++					t.Fatal(err)
++				}
++				defer rows.Close()
++				want := [][]driver.Value{
++					{nil, int64(42), 1.25, []byte{0, 1, 255}, []byte{}, "a\x00b"},
++					{"new", int64(-7), 2.5, []byte{2, 0}, []byte{3}, ""},
++					{nil, nil, nil, nil, nil, nil},
++				}
++				got := make([][]driver.Value, len(want))
++				for i := range got {
++					got[i] = make([]driver.Value, len(rows.Columns()))
++					if err := rows.Next(got[i]); err != nil {
++						t.Fatalf("row %d: %v", i, err)
++					}
++				}
++				if err := rows.Next(make([]driver.Value, len(rows.Columns()))); err != io.EOF {
++					t.Fatalf("Next after last row = %v, want EOF", err)
++				}
++				if err := rows.Close(); err != nil {
++					t.Fatal(err)
++				}
++				if !reflect.DeepEqual(got, want) {
++					t.Fatalf("retained rows = %#v, want %#v", got, want)
++				}
++			})
++		}
++	}
++}
++
++func TestRowsCachedCompletionAndReuse(t *testing.T) {
++	open := func(t *testing.T) *SQLiteConn {
++		t.Helper()
++		raw, err := (&SQLiteDriver{}).Open(":memory:?_stmt_cache_size=4")
++		if err != nil {
++			t.Fatal(err)
++		}
++		conn := raw.(*SQLiteConn)
++		t.Cleanup(func() { conn.Close() })
++		return conn
++	}
++	checkReuse := func(t *testing.T, conn *SQLiteConn) {
++		t.Helper()
++		rows, err := conn.Query("SELECT 42", nil)
++		if err != nil {
++			t.Fatal(err)
++		}
++		defer rows.Close()
++		values := make([]driver.Value, 1)
++		if err := rows.Next(values); err != nil || values[0] != int64(42) {
++			t.Fatalf("connection not reusable: %v / %v", values, err)
++		}
++	}
++	t.Run("cancel after pending row", func(t *testing.T) {
++		conn := open(t)
++		entered, release := make(chan struct{}, 1), make(chan struct{}, 1)
++		defer close(release)
++		if err := conn.RegisterFunc("pause", func() int64 {
++			entered <- struct{}{}
++			<-release
++			return 2
++		}, false); err != nil {
++			t.Fatal(err)
++		}
++		ctx, cancel := context.WithCancel(context.Background())
++		defer cancel()
++		rows, err := conn.QueryContext(ctx, "SELECT 1 UNION ALL SELECT pause()", nil)
++		if err != nil {
++			t.Fatal(err)
++		}
++		values := make([]driver.Value, 1)
++		if err := rows.Next(values); err != nil || values[0] != int64(1) {
++			t.Fatalf("pending row: %v / %v", values, err)
++		}
++		done := make(chan error, 1)
++		go func() { done <- rows.Next(values) }()
++		select {
++		case <-entered:
++		case <-time.After(5 * time.Second):
++			t.Fatal("second row never started")
++		}
++		cancel()
++		// Leave deferred close to cover error paths too.
++		release <- struct{}{}
++		select {
++		case err := <-done:
++			if !errors.Is(err, context.Canceled) {
++				t.Fatalf("canceled fused step: %v", err)
++			}
++		case <-time.After(5 * time.Second):
++			t.Fatal("canceled step did not finish")
++		}
++		if err := rows.Close(); err != nil {
++			t.Fatal(err)
++		}
++		checkReuse(t, conn)
++	})
++	t.Run("error after row", func(t *testing.T) {
++		conn := open(t)
++		if err := conn.RegisterFunc("fail_second", func(v int64) (int64, error) {
++			if v == 2 {
++				return 0, errors.New("second row failure")
++			}
++			return v, nil
++		}, false); err != nil {
++			t.Fatal(err)
++		}
++		rows, err := conn.Query("SELECT fail_second(1) UNION ALL SELECT fail_second(2)", nil)
++		if err != nil {
++			t.Fatal(err)
++		}
++		values := make([]driver.Value, 1)
++		if err := rows.Next(values); err != nil || values[0] != int64(1) {
++			t.Fatalf("first row: %v / %v", values, err)
++		}
++		if err := rows.Next(values); err == nil || err == io.EOF {
++			t.Fatalf("lost second-row error: %v", err)
++		}
++		rows.Close()
++		checkReuse(t, conn)
++	})
++	t.Run("zero columns and no Next", func(t *testing.T) {
++		conn := open(t)
++		if _, err := conn.Exec("CREATE TABLE t (n INTEGER)", nil); err != nil {
++			t.Fatal(err)
++		}
++		rows, err := conn.Query("INSERT INTO t VALUES (1)", nil)
++		if err != nil {
++			t.Fatal(err)
++		}
++		if err := rows.Next(nil); err != io.EOF {
++			t.Fatalf("zero-column Next: %v", err)
++		}
++		rows.Close()
++		rows, err = conn.Query("INSERT INTO t VALUES (2)", nil)
++		if err != nil {
++			t.Fatal(err)
++		}
++		rows.Close() // Cached modifying queries execute even without Next.
++		rows, err = conn.Query("SELECT sum(n) FROM t", nil)
++		if err != nil {
++			t.Fatal(err)
++		}
++		defer rows.Close()
++		values := make([]driver.Value, 1)
++		if err := rows.Next(values); err != nil || values[0] != int64(3) {
++			t.Fatalf("modifying-query execution changed: %v / %v", values, err)
++		}
++	})
++}
++
++// Existing schema-change tests read only the eager first row. Force reprepare
++// on a checked-out cached statement, then also read an ordinary fused row with
++// the new column count. Cover both growth and shrinkage of the row buffer.
++func TestRowsCachedReprepareBuffer(t *testing.T) {
++	for _, grow := range []bool{true, false} {
++		oldSchema, newSchema := "a TEXT", "a TEXT, b BLOB, c INTEGER"
++		name := "grow"
++		if !grow {
++			oldSchema, newSchema = newSchema, oldSchema
++			name = "shrink"
++		}
++		t.Run(name, func(t *testing.T) {
++			raw, err := (&SQLiteDriver{}).Open(":memory:?_stmt_cache_size=4")
++			if err != nil {
++				t.Fatal(err)
++			}
++			conn := raw.(*SQLiteConn)
++			defer conn.Close()
++			exec := func(query string) {
++				t.Helper()
++				if _, err := conn.Exec(query, nil); err != nil {
++					t.Fatal(err)
++				}
++			}
++			exec("CREATE TABLE t (" + oldSchema + ")")
++			const query = "SELECT * FROM t ORDER BY rowid"
++			rows, err := conn.Query(query, nil)
++			if err != nil {
++				t.Fatal(err)
++			}
++			rows.Columns()
++			rows.(*SQLiteRows).DeclTypes()
++			if err := rows.Close(); err != nil {
++				t.Fatal(err)
++			}
++
++			stmt, err := conn.prepareWithCache(context.Background(), query)
++			if err != nil {
++				t.Fatal(err)
++			}
++			defer stmt.Close()
++			exec("DROP TABLE t")
++			exec("CREATE TABLE t (" + newSchema + ")")
++			want := [][]driver.Value{{"first"}, {"second"}}
++			cols := []string{"a"}
++			if grow {
++				exec("INSERT INTO t VALUES ('first', X'', 1), ('second', X'00FF', 2)")
++				want = [][]driver.Value{{"first", []byte{}, int64(1)}, {"second", []byte{0, 255}, int64(2)}}
++				cols = []string{"a", "b", "c"}
++			} else {
++				exec("INSERT INTO t VALUES ('first'), ('second')")
++			}
++			rows, err = stmt.Query(nil)
++			if err != nil {
++				t.Fatal(err)
++			}
++			defer rows.Close()
++			if got := rows.Columns(); !reflect.DeepEqual(got, cols) {
++				t.Fatalf("columns = %v, want %v", got, cols)
++			}
++			for i, expected := range want {
++				values := make([]driver.Value, len(cols))
++				if err := rows.Next(values); err != nil {
++					t.Fatalf("row %d: %v", i, err)
++				}
++				if !reflect.DeepEqual(values, expected) {
++					t.Fatalf("row %d = %#v, want %#v", i, values, expected)
++				}
++			}
++			if err := rows.Next(make([]driver.Value, len(cols))); err != io.EOF {
++				t.Fatalf("Next after last row = %v, want EOF", err)
++			}
++		})
++	}
++}

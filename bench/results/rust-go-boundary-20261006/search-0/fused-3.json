@@ -1,0 +1,130 @@
+{
+  "app": "fused",
+  "rep": 3,
+  "http": [
+    {
+      "avg_bytes": 135497,
+      "conc": 1,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 9.567,
+        "mean_ms": 0.31,
+        "n": 16232,
+        "p50_ms": 0.214,
+        "p90_ms": 0.272,
+        "p99_ms": 3.395
+      },
+      "ok": 16232,
+      "path": "/searches?q=coffee",
+      "rps": 3246.3,
+      "secs": 5.0,
+      "statuses": {
+        "200": 16232
+      },
+      "route": "search",
+      "cpu_us_per_request": 238.41793987185807
+    },
+    {
+      "avg_bytes": 135497,
+      "conc": 16,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 27.631,
+        "mean_ms": 1.53,
+        "n": 52333,
+        "p50_ms": 0.972,
+        "p90_ms": 3.101,
+        "p99_ms": 9.239
+      },
+      "ok": 52333,
+      "path": "/searches?q=coffee",
+      "rps": 10462.9,
+      "secs": 5.0,
+      "statuses": {
+        "200": 52333
+      },
+      "route": "search",
+      "cpu_us_per_request": 231.0205797489156
+    },
+    {
+      "avg_bytes": 135497,
+      "conc": 64,
+      "errors": 0,
+      "gzip": false,
+      "latency": {
+        "max_ms": 31.503,
+        "mean_ms": 6.7,
+        "n": 47765,
+        "p50_ms": 5.799,
+        "p90_ms": 11.463,
+        "p99_ms": 17.919
+      },
+      "ok": 47765,
+      "path": "/searches?q=coffee",
+      "rps": 9545.3,
+      "secs": 5.0,
+      "statuses": {
+        "200": 47765
+      },
+      "route": "search",
+      "cpu_us_per_request": 239.2965560556893
+    }
+  ],
+  "cable": [],
+  "load_start": "4.51 1.72 1.56 1/359 281\n",
+  "startup_ms": 64.08,
+  "idle_memory_kib": {
+    "Rss": 40080,
+    "Pss": 39148,
+    "Private_Dirty": 11692
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "search": {
+      "bytes": 135497,
+      "sha256": "eb7506162f9e6db22027676c2d6a829da40e67e6cfee310f364f7e765663e5d6",
+      "encoded_bytes": 135497,
+      "encoding": "identity",
+      "result_count": 13,
+      "contract": [
+        "933434483",
+        "933434510",
+        "933434520",
+        "933434530",
+        "933434540",
+        "933434550",
+        "933434560",
+        "933434570",
+        "933434580",
+        "933434590",
+        "933434600",
+        "933434610",
+        "933434620"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 61400,
+    "Pss": 60468,
+    "Private_Dirty": 31556
+  },
+  "final_memory_kib": {
+    "Rss": 61400,
+    "Pss": 60468,
+    "Private_Dirty": 31556
+  },
+  "load_end": "4.40 1.83 1.60 2/371 323\n"
+}

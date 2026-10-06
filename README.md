@@ -99,6 +99,13 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
+The [matched Go/Rust VM comparison](bench/results/rust-go-boundary-20261006/README.md)
+uses the current fork and pinned Rust with both encodings and 1/16/64 clients. Go has
+higher warm active-room/history throughput; Rust leads room/search/writes and generally
+latency and memory. It also records a corrected search-count regression, rejected SQLite
+crossing trial, response-size differences and substantial VM limitations. Native confirmation
+and fresh Ruby/Elixir measurements are not available; published AMD ratios are not transferable.
+
 This fork fixes the room refresh cursor and removes repeated compression, hashing and
 rendering preparation while keeping authorization, queries, headers and cookies fresh.
 The [request-work comparison](bench/results/request-work-20261005/README.md) measured

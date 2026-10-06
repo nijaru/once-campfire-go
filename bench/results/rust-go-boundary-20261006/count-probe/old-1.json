@@ -1,0 +1,83 @@
+{
+  "app": "old",
+  "rep": 1,
+  "http": [
+    {
+      "avg_bytes": 9463,
+      "conc": 16,
+      "errors": 0,
+      "gzip": true,
+      "latency": {
+        "max_ms": 33.823,
+        "mean_ms": 3.22,
+        "n": 24802,
+        "p50_ms": 1.858,
+        "p90_ms": 7.815,
+        "p99_ms": 15.975
+      },
+      "ok": 24802,
+      "path": "/searches?q=coffee",
+      "rps": 4958.5,
+      "secs": 5.0,
+      "statuses": {
+        "200": 24802
+      },
+      "route": "search",
+      "cpu_us_per_request": 431.8200145149585
+    }
+  ],
+  "cable": [],
+  "load_start": "0.00 0.21 0.91 1/353 15\n",
+  "startup_ms": 61.59,
+  "idle_memory_kib": {
+    "Rss": 40628,
+    "Pss": 39040,
+    "Private_Dirty": 12096
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "search": {
+      "bytes": 135496,
+      "sha256": "5765ba31adcb9ed8d53307345e3c95c3e591f813784fb8e67c5a5e921848a09d",
+      "encoded_bytes": 9463,
+      "encoding": "gzip",
+      "contract": [
+        "933434483",
+        "933434510",
+        "933434520",
+        "933434530",
+        "933434540",
+        "933434550",
+        "933434560",
+        "933434570",
+        "933434580",
+        "933434590",
+        "933434600",
+        "933434610",
+        "933434620"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 60752,
+    "Pss": 59164,
+    "Private_Dirty": 30956
+  },
+  "final_memory_kib": {
+    "Rss": 60752,
+    "Pss": 59164,
+    "Private_Dirty": 30956
+  },
+  "load_end": "0.85 0.39 0.96 1/367 47\n"
+}
