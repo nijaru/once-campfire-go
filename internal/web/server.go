@@ -24,7 +24,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/jobs"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
-	"github.com/basecamp/once-campfire-go/internal/richtext"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 	"github.com/basecamp/once-campfire-go/internal/useragent"
 	"golang.org/x/crypto/bcrypt"
@@ -402,12 +401,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 			entry, err = s.messageList(r.Context(), raw)
 			recorded = &entry
 		} else {
-			p.Messages, err = s.messageViews(r.Context(), raw)
-			if err == nil && name == "edit-message" {
-				for i := range p.Messages {
-					p.Messages[i].Editable, _ = richtext.Editable(p.Messages[i].Body, s.richContext(r.Context()))
-				}
-			}
+			p.Messages, err = s.messagePageViews(r.Context(), name, raw)
 		}
 		if err != nil {
 			s.fail(w, err)
