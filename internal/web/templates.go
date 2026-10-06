@@ -23,7 +23,8 @@ type reaction struct{ Character, Title string }
 var reactions = []reaction{{"👍", "Thumbs up"}, {"👏", "Clapping"}, {"👋", "Waving hand"}, {"💪", "Muscle"}, {"❤️", "Red heart"}, {"😂", "Face with tears of joy"}, {"🎉", "Party popper"}, {"🔥", "Fire"}}
 
 func parseTemplates(secrets *rails.Secrets) (*template.Template, error) {
-	return template.New("pages").Funcs(template.FuncMap{
+	var reactionBodies []template.HTML
+	t, err := template.New("pages").Funcs(template.FuncMap{
 		"helpMailto": func(user database.User) template.HTMLAttr {
 			value := "mailto:" + (&mail.Address{Name: user.Name, Address: user.Email}).String()
 			return template.HTMLAttr(`href="` + template.HTMLEscapeString(value) + `"`)
@@ -76,6 +77,19 @@ func parseTemplates(secrets *rails.Secrets) (*template.Template, error) {
 		"versionTime": func(t time.Time) string { return t.UTC().Format("20060102150405") },
 		"epoch":       func(t time.Time) string { return fmt.Sprintf("%d", t.UnixMilli()) },
 		"iso":         func(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") },
-		"reactions":   func() []reaction { return reactions },
+		"reactions":   func() []template.HTML { return reactionBodies },
 	}).ParseFS(templateFiles, "templates/*.html")
+	if err != nil {
+		return nil, err
+	}
+	// Only fixed reaction contents are retained. Message IDs and client IDs
+	// stay in the outer form template, with its contextual escaping intact.
+	for _, reaction := range reactions {
+		var body strings.Builder
+		if err := t.ExecuteTemplate(&body, "reaction-body", reaction); err != nil {
+			return nil, err
+		}
+		reactionBodies = append(reactionBodies, template.HTML(body.String()))
+	}
+	return t, nil
 }
