@@ -267,6 +267,8 @@ server-only latency. Keep fixed-rate and maximum-capacity comparisons separate.
   entries bypass retention. Zstd and streaming gzip retain their existing compression paths.
 - The default version label and fallback VAPID subject identify `once-campfire-go`. Explicit version,
   VAPID keys and subject settings remain supported.
+- Storage keys containing separators, NUL, or parent-directory shards are rejected before
+  filesystem access. Rust directly joins the key's shards; valid keys retain the same storage layout.
 - Native host media output can differ with installed library versions. All byte-golden media tests
   pass with the pinned container libraries. Web Push is verified locally, not against external push
   providers.
