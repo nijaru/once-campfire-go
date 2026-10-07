@@ -56,7 +56,13 @@ func testApp(t *testing.T) (*Server, *httptest.Server, *http.Cookie, database.Us
 	t.Cleanup(server.Close)
 	return app, server, &http.Cookie{Name: "session_token", Value: rails.EscapeCookie(signed)}, user
 }
-func perform(t *testing.T, server *httptest.Server, method, path, ct string, body io.Reader, cookie *http.Cookie) (*http.Response, []byte) {
+func perform(
+	t *testing.T,
+	server *httptest.Server,
+	method, path, ct string,
+	body io.Reader,
+	cookie *http.Cookie,
+) (*http.Response, []byte) {
 	t.Helper()
 	if !strings.HasPrefix(path, "http") {
 		path = server.URL + path
@@ -89,13 +95,36 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	app, server, cookie, _ := testApp(t)
 	content := "uploaded through Active Storage"
 	sum := md5.Sum([]byte(content))
-	request := map[string]any{"blob": map[string]any{"filename": "notes.txt", "content_type": "text/plain", "byte_size": len(content), "checksum": base64.StdEncoding.EncodeToString(sum[:])}}
+	request := map[string]any{
+		"blob": map[string]any{
+			"filename":     "notes.txt",
+			"content_type": "text/plain",
+			"byte_size":    len(content),
+			"checksum":     base64.StdEncoding.EncodeToString(sum[:]),
+		},
+	}
 	raw, _ := json.Marshal(request)
-	response, _ := perform(t, server, "POST", "/rails/active_storage/direct_uploads", "application/json", bytes.NewReader(raw), nil)
+	response, _ := perform(
+		t,
+		server,
+		"POST",
+		"/rails/active_storage/direct_uploads",
+		"application/json",
+		bytes.NewReader(raw),
+		nil,
+	)
 	if response.StatusCode != 401 {
 		t.Fatal("unauthenticated direct upload", response.Status)
 	}
-	response, data := perform(t, server, "POST", "/rails/active_storage/direct_uploads", "application/json", bytes.NewReader(raw), cookie)
+	response, data := perform(
+		t,
+		server,
+		"POST",
+		"/rails/active_storage/direct_uploads",
+		"application/json",
+		bytes.NewReader(raw),
+		cookie,
+	)
 	if response.StatusCode != 200 {
 		t.Fatalf("create: %s %s", response.Status, data)
 	}
@@ -109,13 +138,26 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	if err := json.Unmarshal(data, &result); err != nil {
 		t.Fatal(err)
 	}
-	response, _ = perform(t, server, "PUT", result.Direct.URL, "text/plain", strings.NewReader(content), cookie)
-	if response.StatusCode != 204 {
-		t.Fatal("upload", response.Status)
-	}
 	b, err := app.Storage.Blob(context.Background(), result.ID)
 	if err != nil {
 		t.Fatal(err)
+	}
+	proxy := strings.Replace(app.Storage.BlobURL(b), "/redirect/", "/proxy/", 1)
+	response, _ = perform(t, server, "GET", proxy, "", nil, nil)
+	if response.StatusCode != 404 || response.Header.Get("Cache-Control") != "no-cache" {
+		t.Fatalf("unwritten upload cached: %s %v", response.Status, response.Header)
+	}
+	response, _ = perform(
+		t,
+		server,
+		"PUT",
+		result.Direct.URL,
+		"text/plain",
+		strings.NewReader(content),
+		cookie,
+	)
+	if response.StatusCode != 204 {
+		t.Fatal("upload", response.Status)
 	}
 	response, _ = perform(t, server, "GET", app.Storage.BlobURL(b), "", nil, nil)
 	if response.StatusCode != 302 {
@@ -125,7 +167,12 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	if response.StatusCode != 200 || string(data) != content {
 		t.Fatalf("download: %s %q", response.Status, data)
 	}
-	if response.Header.Get("Content-Disposition") != storage.Disposition("attachment", "notes.txt") {
+	if response.Header.Get(
+		"Content-Disposition",
+	) != storage.Disposition(
+		"attachment",
+		"notes.txt",
+	) {
 		t.Fatal(response.Header)
 	}
 	altered := strings.Replace(app.Storage.BlobURL(b), result.SignedID, result.SignedID+"bad", 1)
@@ -176,7 +223,9 @@ func TestMessageImageUploadAndVariant(t *testing.T) {
 		t.Fatalf("representation: %s %s", response.Status, data)
 	}
 	response, data = perform(t, server, "GET", response.Header.Get("Location"), "", nil, nil)
-	if response.StatusCode != 200 || !strings.HasPrefix(response.Header.Get("Content-Type"), "image/jpeg") || len(data) == 0 {
+	if response.StatusCode != 200 ||
+		!strings.HasPrefix(response.Header.Get("Content-Type"), "image/jpeg") ||
+		len(data) == 0 {
 		t.Fatalf("preview: %s %v", response.Status, response.Header)
 	}
 	response, data = perform(t, server, "GET", path, "", nil, cookie)

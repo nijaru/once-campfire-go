@@ -18,23 +18,51 @@ import (
 )
 
 func (s *Server) registerStorageRoutes() {
-	s.mux.HandleFunc("GET /rails/active_storage/representations/redirect/{token}/{variation}/{filename...}", s.representation)
-	s.mux.HandleFunc("GET /rails/active_storage/representations/proxy/{token}/{variation}/{filename...}", s.representation)
-	s.mux.HandleFunc("GET /rails/active_storage/representations/{token}/{variation}/{filename...}", s.representation)
+	s.mux.HandleFunc(
+		"GET /rails/active_storage/representations/redirect/{token}/{variation}/{filename...}",
+		s.representation,
+	)
+	s.mux.HandleFunc(
+		"GET /rails/active_storage/representations/proxy/{token}/{variation}/{filename...}",
+		s.representation,
+	)
+	s.mux.HandleFunc(
+		"GET /rails/active_storage/representations/{token}/{variation}/{filename...}",
+		s.representation,
+	)
 	s.mux.HandleFunc("POST /rails/active_storage/direct_uploads", s.storageAuth(s.directUpload))
 	s.mux.HandleFunc("PUT /rails/active_storage/disk/{token}", s.storageAuth(s.diskUpload))
 	s.mux.HandleFunc("GET /rails/active_storage/disk/{token}/{filename...}", s.diskDownload)
-	s.mux.HandleFunc("GET /rails/active_storage/blobs/redirect/{token}/{filename...}", s.blobDownload)
+	s.mux.HandleFunc(
+		"GET /rails/active_storage/blobs/redirect/{token}/{filename...}",
+		s.blobDownload,
+	)
 	s.mux.HandleFunc("GET /rails/active_storage/blobs/proxy/{token}/{filename...}", s.blobDownload)
 	s.mux.HandleFunc("GET /rails/active_storage/blobs/{token}/{filename...}", s.blobDownload)
 }
+
 func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
 	var data struct {
 		Blob map[string]json.RawMessage `json:"blob"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil || data.Blob == nil {
-		http.Error(w, "Invalid blob", 400)
-		return
+	mediaType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if mediaType == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil || data.Blob == nil {
+			http.Error(w, "Invalid blob", 400)
+			return
+		}
+	} else {
+		data.Blob = make(map[string]json.RawMessage)
+		for key, values := range r.Form {
+			if strings.HasPrefix(key, "blob[") && strings.HasSuffix(key, "]") {
+				raw, _ := json.Marshal(values[len(values)-1])
+				data.Blob[key[len("blob["):len(key)-1]] = raw
+			}
+		}
+		if len(data.Blob) == 0 {
+			http.Error(w, "Invalid blob", 400)
+			return
+		}
 	}
 	scalar := func(key string) (string, bool) {
 		raw, ok := data.Blob[key]
@@ -78,7 +106,12 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 		return
 	}
 	contentType, hasType := scalar("content_type")
-	b := storage.Blob{Filename: filename, Checksum: checksum, ByteSize: size, Metadata: json.RawMessage("{}")}
+	b := storage.Blob{
+		Filename: filename,
+		Checksum: checksum,
+		ByteSize: size,
+		Metadata: json.RawMessage("{}"),
+	}
 	if hasType {
 		b.ContentType = &contentType
 	}
@@ -114,6 +147,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
+
 func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
 	var token storage.DiskToken
 	if err := s.Storage.Verifier.Verify(r.PathValue("token"), "blob_token", s.DB.Now(), &token); err != nil {
@@ -128,7 +162,8 @@ func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.U
 	if token.ContentType != nil {
 		expected = *token.ContentType
 	}
-	if !strings.EqualFold(ct, expected) || r.ContentLength != token.ContentLength || token.ContentLength < 0 {
+	if !strings.EqualFold(ct, expected) || r.ContentLength != token.ContentLength ||
+		token.ContentLength < 0 {
 		w.WriteHeader(422)
 		return
 	}
@@ -142,6 +177,7 @@ func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.U
 	}
 	w.WriteHeader(204)
 }
+
 func (s *Server) diskDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=3600, public")
 	var key storage.DiskKey
@@ -158,8 +194,9 @@ func (s *Server) diskDownload(w http.ResponseWriter, r *http.Request) {
 	if key.ContentType != nil {
 		ct = *key.ContentType
 	}
-	s.serveStored(w, r, path, ct, key.Disposition, false)
+	s.serveStored(w, r, path, ct, key.Disposition, diskFile)
 }
+
 func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
 	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("token"))
 	if err != nil {
@@ -167,6 +204,10 @@ func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	disposition := r.URL.Query().Get("disposition")
+	// Blob byte ranges are sent inline unless the MIME type forces a download.
+	if strings.Contains(r.URL.Path, "/proxy/") && strings.TrimSpace(r.Header.Get("Range")) != "" {
+		disposition = "inline"
+	}
 	if disposition != "attachment" {
 		disposition = "inline"
 	}
@@ -180,7 +221,14 @@ func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Cache-Control", "max-age=3155695200, public, immutable")
-		s.serveStored(w, r, path, storage.ServingType(b.Type()), storage.Disposition(disposition, storage.Filename(b.Filename)), true)
+		s.serveStored(
+			w,
+			r,
+			path,
+			storage.ServingType(b.Type()),
+			storage.Disposition(disposition, storage.Filename(b.Filename)),
+			blobFile,
+		)
 		return
 	}
 	path, err := s.Storage.DiskURL(b, disposition)
@@ -191,39 +239,46 @@ func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=300, private")
 	http.Redirect(w, r, s.origin(r)+path, 302)
 }
-func (s *Server) serveStored(w http.ResponseWriter, r *http.Request, path, ct, disposition string, proxy bool) {
+
+func (s *Server) serveStored(
+	w http.ResponseWriter,
+	r *http.Request,
+	path, ct, disposition string,
+	mode storageFileMode,
+) {
 	file, err := os.Open(path)
 	if err != nil {
-		http.NotFound(w, r)
+		w.Header().Set("Cache-Control", "no-cache")
+		if errors.Is(err, os.ErrNotExist) {
+			http.NotFound(w, r)
+		} else {
+			s.fail(w, err)
+		}
 		return
 	}
 	defer file.Close()
 	stat, err := file.Stat()
 	if err != nil {
+		w.Header().Set("Cache-Control", "no-cache")
 		s.fail(w, err)
+		return
+	}
+	if !stat.Mode().IsRegular() {
+		w.Header().Set("Cache-Control", "no-cache")
+		http.NotFound(w, r)
 		return
 	}
 	if ct != "" {
 		w.Header().Set("Content-Type", ct)
 	}
 	w.Header().Set("Content-Disposition", disposition)
-	if strings.HasPrefix(r.URL.Path, "/rails/active_storage/") {
-		serveStorageFile(w, r, file, stat, ct, proxy)
+	if mode == contentFile {
+		http.ServeContent(w, r, stat.Name(), time.Time{}, file)
 		return
 	}
-	modified := stat.ModTime()
-	if proxy {
-		modified = time.Time{}
-	}
-	http.ServeContent(w, r, stat.Name(), modified, file)
+	serveStorageFile(w, r, file, stat, ct, mode)
 }
-func (s *Server) uploadAttachment(r *http.Request, field string) (storage.Blob, error) {
-	staged, err := s.stageAttachment(r, field)
-	if err != nil {
-		return storage.Blob{}, err
-	}
-	return staged.Save(r.Context())
-}
+
 func (s *Server) stageAttachment(r *http.Request, field string) (*storage.Staged, error) {
 	file, header, err := uploadedFile(r, field)
 	if err != nil {
@@ -237,20 +292,17 @@ func (s *Server) stageAttachment(r *http.Request, field string) (*storage.Staged
 	}
 	head = head[:n]
 	ct := storage.Identify(head, header.Filename, header.Header.Get("Content-Type"))
-	return s.Storage.StageFile(r.Context(), header.Filename, ct, io.MultiReader(strings.NewReader(string(head)), file))
-}
-func (s *Server) attachUploaded(r *http.Request, field, kind string, id int64, name string) error {
-	if r.MultipartForm == nil || len(r.MultipartForm.File[field]) == 0 {
-		return nil
-	}
-	b, err := s.uploadAttachment(r, field)
-	if err != nil {
-		return err
-	}
-	return s.Storage.Attach(r.Context(), b, kind, id, name)
+	return s.Storage.StageFile(
+		r.Context(),
+		header.Filename,
+		ct,
+		io.MultiReader(strings.NewReader(string(head)), file),
+	)
 }
 
-func (s *Server) storageAuth(next func(http.ResponseWriter, *http.Request, database.User)) http.HandlerFunc {
+func (s *Server) storageAuth(
+	next func(http.ResponseWriter, *http.Request, database.User),
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_token")
 		if err != nil {
@@ -293,8 +345,22 @@ func (s *Server) representation(w http.ResponseWriter, r *http.Request) {
 			s.fail(w, err)
 			return
 		}
+		disposition := r.URL.Query().Get("disposition")
+		if disposition != "attachment" {
+			disposition = "inline"
+		}
+		if !storage.Inline(b.Type()) {
+			disposition = "attachment"
+		}
 		w.Header().Set("Cache-Control", "max-age=3155695200, public, immutable")
-		s.serveStored(w, r, path, b.Type(), storage.Disposition("inline", storage.Filename(b.Filename)), true)
+		s.serveStored(
+			w,
+			r,
+			path,
+			storage.ServingType(b.Type()),
+			storage.Disposition(disposition, storage.Filename(b.Filename)),
+			representationFile,
+		)
 		return
 	}
 	path, err := s.Storage.DiskURL(b, r.URL.Query().Get("disposition"))
@@ -312,6 +378,7 @@ func (s *Server) optionalUpload(r *http.Request, field string) (*storage.Staged,
 	}
 	return s.stageAttachment(r, field)
 }
+
 func (s *Server) analyzeUpload(upload *storage.Staged) {
 	if upload != nil {
 		s.Jobs.Enqueue("analyze", func(ctx context.Context) error {
