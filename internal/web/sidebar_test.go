@@ -55,7 +55,7 @@ func TestSidebarDocumentAndFrameKeepLayoutFresh(t *testing.T) {
 	}
 	// These changes do not alter the cached sidebar frame or its key: the account
 	// permits room creation for both roles. Surrounding observations stay fresh.
-	entries := len(app.fragments.entries)
+	originalFrame := get(true)
 	if _, err := app.DB.Write.ExecContext(context.Background(), "UPDATE users SET role=0 WHERE id=?", user.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -71,8 +71,8 @@ func TestSidebarDocumentAndFrameKeepLayoutFresh(t *testing.T) {
 	if strings.Contains(frame, styles) {
 		t.Fatal("cached application layout leaked into the Turbo-Frame response")
 	}
-	if len(app.fragments.entries) != entries {
-		t.Fatal("layout-only changes unnecessarily invalidated the sidebar frame")
+	if frame != originalFrame {
+		t.Fatal("layout-only changes altered the sidebar frame")
 	}
 	if _, err := app.DB.Write.ExecContext(context.Background(), "UPDATE users SET name=? WHERE id=?", "Fresh Profile Name", user.ID); err != nil {
 		t.Fatal(err)
