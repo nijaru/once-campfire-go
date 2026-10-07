@@ -136,6 +136,10 @@ Browser writes use Rust’s token-free Fetch Metadata policy: exact `same-origin
 HTTP with TLS disabled. Signed disk uploads retain their authenticated capability
 exemption; bot-key endpoints exempt authenticated bots only.
 
+- Bundled Turbo 8.0.13 awaits its asynchronous response delegates so cancelled frame-body reads
+  reach the existing abort handler; other errors still propagate. The attributed override is in
+  `assets/overrides/turbo.js`. Tests require it to match the pinned library with only two added
+  `await`s and a license notice. This is an intentional frontend fix, not exact JavaScript parity.
 
 - Session-transfer auto-submit forms explicitly close their form tag; the pinned Rails
   reference omitted it.
