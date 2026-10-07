@@ -99,6 +99,15 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
+The [competing-PR comparison](bench/results/pr-comparison-20261007/README.md) measures all six
+open Go alternatives, this fork and pinned Rust on the same ARM64 Linux VM. The retained,
+template-derived renderer roughly doubles fragment-disabled read capacity and improves posts;
+complete Go response bytes remain unchanged. Warm reads are mixed, and Cable results include
+regressions rather than a claimed capacity win. Matched-rate HTTP tails expose material generator/
+VM lateness; Rust-relative latency targets remain unmet. Workload-matched core and paced 1,000-client
+Cable memory stay roughly unchanged. The report records exact sources, runtime differences,
+raw measurements, correctness boundaries and deliberately rejected migrations.
+
 The [native Intel follow-up](bench/results/native-final-20261006/README.md) uses distinct physical
 P-cores, gzip, 16 clients and repeated 30-second samples. Go's five warm read workloads have
 9–44% higher throughput than pinned Rust, but worse p99 and higher end-of-suite memory;
@@ -221,7 +230,11 @@ bytes. Reports include raw samples, source/binary hashes, toolchains, load avera
 HTTP measurements use the direct application listener and identity encoding; public TLS/compression
 throughput is not measured in that upstream comparison. The fork harness also supports
 `--listener public --gzip 1`, named candidates, concurrent active-room/search writes,
-and `--fragment-cache-mb 0` for fragment-disabled rendering.
+and `--fragment-cache-mb 0` for fragment-disabled rendering. Build `go build -o httprate ./bench/httprate`
+and pass `--rate-loadgen ./httprate --http-rates 1000 --concurrency 16` to replace closed-loop capacity
+samples with scheduled-arrival latency at a fixed offered rate. Select a rate each application can
+sustain; inspect generator lateness, queueing, errors and drain time rather than treating it as
+server-only latency. Keep fixed-rate and maximum-capacity comparisons separate.
 `bench/health` remains available for the much narrower health-handler test.
 
 ## Known differences

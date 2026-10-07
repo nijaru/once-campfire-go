@@ -1,0 +1,155 @@
+{
+  "app": "pr-6",
+  "rep": 2,
+  "http": [
+    {
+      "mode": "fixed-offered-rate",
+      "path": "/rooms/486777696",
+      "offered_rps": 500,
+      "conc": 16,
+      "queue_capacity": 8192,
+      "queue_peak": 0,
+      "gzip": true,
+      "secs": 10,
+      "elapsed_secs": 10.002015031,
+      "drain_secs": 10,
+      "planned": 5000,
+      "scheduled": 5000,
+      "attempted": 5000,
+      "ok": 5000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 499.8992687476597,
+      "avg_bytes": 19259,
+      "statuses": {
+        "200": 5000
+      },
+      "latency": {
+        "max_ms": 32.941069,
+        "mean_ms": 3.5909023760000003,
+        "n": 5000,
+        "p50_ms": 2.996,
+        "p90_ms": 6.312,
+        "p95_ms": 8.352,
+        "p99_ms": 15.872
+      },
+      "service_latency": {
+        "max_ms": 32.185228,
+        "mean_ms": 2.4512400514,
+        "n": 5000,
+        "p50_ms": 1.89,
+        "p90_ms": 4.648,
+        "p95_ms": 6.528,
+        "p99_ms": 12.992
+      },
+      "queue_latency": {
+        "max_ms": 1.466304,
+        "mean_ms": 0.0145085854,
+        "n": 5000,
+        "p50_ms": 0.004,
+        "p90_ms": 0.036,
+        "p95_ms": 0.074,
+        "p99_ms": 0.136
+      },
+      "generator_lateness": {
+        "max_ms": 13.700892,
+        "mean_ms": 1.1251537392,
+        "n": 5000,
+        "p50_ms": 0.708,
+        "p90_ms": 3.056,
+        "p95_ms": 3.472,
+        "p99_ms": 4.96
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "route": "room_show",
+      "cpu_us_per_request": 1729.9999999999995
+    }
+  ],
+  "cable": [],
+  "load_start": "3.79 1.49 0.55 1/356 395\n",
+  "startup_ms": 57.29,
+  "idle_memory_kib": {
+    "Rss": 45120,
+    "Pss": 43303,
+    "Private_Dirty": 16056
+  },
+  "scrape": {
+    "bytes": 306744,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "room_show": {
+      "bytes": 306756,
+      "sha256": "3afa068003ea8d6eb6b621fdca02d397b9c3a7c5270d2cd6e832344c0f84f62a",
+      "encoded_bytes": 19260,
+      "encoding": "gzip",
+      "origin_normalized_sha256": "1529b5796f9c30a1e4303631b5ccd2c3b083fd7f5bf0ff83e9e88aa67abc76c9",
+      "contract": [
+        "136976342",
+        "217777555",
+        "303968118",
+        "366357198",
+        "421488677",
+        "684468941",
+        "746403085",
+        "749124092",
+        "925779126",
+        "933434481",
+        "933434601",
+        "933434602",
+        "933434603",
+        "933434604",
+        "933434605",
+        "933434606",
+        "933434607",
+        "933434608",
+        "933434609",
+        "933434610",
+        "933434611",
+        "933434612",
+        "933434613",
+        "933434614",
+        "933434615",
+        "933434616",
+        "933434617",
+        "933434618",
+        "933434619",
+        "933434620",
+        "933434621",
+        "933434622",
+        "933434623",
+        "933434624",
+        "933434625",
+        "933434626",
+        "933434627",
+        "933434628",
+        "933434629",
+        "933434630"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 66584,
+    "Pss": 64767,
+    "Private_Dirty": 37144
+  },
+  "final_memory_kib": {
+    "Rss": 66584,
+    "Pss": 64767,
+    "Private_Dirty": 37144
+  },
+  "load_end": "3.97 1.60 0.60 1/366 427\n"
+}

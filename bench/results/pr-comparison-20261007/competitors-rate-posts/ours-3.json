@@ -1,0 +1,109 @@
+{
+  "app": "ours",
+  "rep": 3,
+  "http": [
+    {
+      "mode": "fixed-offered-rate",
+      "path": "POST /rooms/201306877/messages",
+      "offered_rps": 1000,
+      "conc": 16,
+      "queue_capacity": 8192,
+      "queue_peak": 9,
+      "gzip": true,
+      "secs": 10,
+      "elapsed_secs": 10.004228563,
+      "drain_secs": 10,
+      "planned": 10000,
+      "scheduled": 10000,
+      "attempted": 10000,
+      "ok": 10000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 999.5773224318725,
+      "avg_bytes": 1954,
+      "statuses": {
+        "200": 10000
+      },
+      "latency": {
+        "max_ms": 39.421844,
+        "mean_ms": 2.7662323917,
+        "n": 10000,
+        "p50_ms": 2.072,
+        "p90_ms": 5.368,
+        "p95_ms": 6.704,
+        "p99_ms": 11.248
+      },
+      "service_latency": {
+        "max_ms": 38.402617,
+        "mean_ms": 1.6204161064,
+        "n": 10000,
+        "p50_ms": 1.066,
+        "p90_ms": 3.076,
+        "p95_ms": 4.768,
+        "p99_ms": 8.992
+      },
+      "queue_latency": {
+        "max_ms": 6.102386,
+        "mean_ms": 0.0269618234,
+        "n": 10000,
+        "p50_ms": 0.003,
+        "p90_ms": 0.049,
+        "p95_ms": 0.062,
+        "p99_ms": 0.089
+      },
+      "generator_lateness": {
+        "max_ms": 7.106687,
+        "mean_ms": 1.1188544619,
+        "n": 10000,
+        "p50_ms": 0.547,
+        "p90_ms": 3.1,
+        "p95_ms": 3.608,
+        "p99_ms": 4.568
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "route": "post_message",
+      "cpu_us_per_request": 787.0000000000001
+    }
+  ],
+  "cable": [],
+  "load_start": "4.38 4.51 2.94 1/356 2508\n",
+  "startup_ms": 60.28,
+  "idle_memory_kib": {
+    "Rss": 43308,
+    "Pss": 41490,
+    "Private_Dirty": 14820
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "write_validation": {
+    "expected": 15338,
+    "persisted": 15338,
+    "indexed": 15338
+  },
+  "http_memory_kib": {
+    "Rss": 139064,
+    "Pss": 137230,
+    "Private_Dirty": 109532
+  },
+  "final_memory_kib": {
+    "Rss": 139064,
+    "Pss": 137230,
+    "Private_Dirty": 109532
+  },
+  "load_end": "4.62 4.56 2.97 1/368 2543\n"
+}

@@ -1,0 +1,155 @@
+{
+  "app": "ours",
+  "rep": 2,
+  "http": [
+    {
+      "mode": "fixed-offered-rate",
+      "path": "/rooms/486777696",
+      "offered_rps": 500,
+      "conc": 16,
+      "queue_capacity": 8192,
+      "queue_peak": 1,
+      "gzip": true,
+      "secs": 10,
+      "elapsed_secs": 9.998571437,
+      "drain_secs": 10,
+      "planned": 5000,
+      "scheduled": 5000,
+      "attempted": 5000,
+      "ok": 5000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 500,
+      "avg_bytes": 21295,
+      "statuses": {
+        "200": 5000
+      },
+      "latency": {
+        "max_ms": 23.043142,
+        "mean_ms": 2.6310862542,
+        "n": 5000,
+        "p50_ms": 2.124,
+        "p90_ms": 4.824,
+        "p95_ms": 5.984,
+        "p99_ms": 10.576
+      },
+      "service_latency": {
+        "max_ms": 20.80709,
+        "mean_ms": 1.2140944672,
+        "n": 5000,
+        "p50_ms": 0.847,
+        "p90_ms": 2.148,
+        "p95_ms": 3.136,
+        "p99_ms": 7.064
+      },
+      "queue_latency": {
+        "max_ms": 9.28812,
+        "mean_ms": 0.036719831599999996,
+        "n": 5000,
+        "p50_ms": 0.006,
+        "p90_ms": 0.09,
+        "p95_ms": 0.135,
+        "p99_ms": 0.352
+      },
+      "generator_lateness": {
+        "max_ms": 13.502264,
+        "mean_ms": 1.3802719554,
+        "n": 5000,
+        "p50_ms": 1.005,
+        "p90_ms": 3.112,
+        "p95_ms": 3.824,
+        "p99_ms": 5.216
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "route": "room_show",
+      "cpu_us_per_request": 766.0
+    }
+  ],
+  "cable": [],
+  "load_start": "3.75 1.85 0.73 1/356 528\n",
+  "startup_ms": 56.87,
+  "idle_memory_kib": {
+    "Rss": 43784,
+    "Pss": 41967,
+    "Private_Dirty": 15360
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "room_show": {
+      "bytes": 374036,
+      "sha256": "2b8d9c59d5ee206704a662dda4928574b65449398c2ddd6d0e06dd7bcb508492",
+      "encoded_bytes": 21289,
+      "encoding": "gzip",
+      "origin_normalized_sha256": "af9710538752552a43c3f9bd3db58f985bbb688166b67bb84071e34e4b550e6b",
+      "contract": [
+        "136976342",
+        "217777555",
+        "303968118",
+        "366357198",
+        "421488677",
+        "684468941",
+        "746403085",
+        "749124092",
+        "925779126",
+        "933434481",
+        "933434601",
+        "933434602",
+        "933434603",
+        "933434604",
+        "933434605",
+        "933434606",
+        "933434607",
+        "933434608",
+        "933434609",
+        "933434610",
+        "933434611",
+        "933434612",
+        "933434613",
+        "933434614",
+        "933434615",
+        "933434616",
+        "933434617",
+        "933434618",
+        "933434619",
+        "933434620",
+        "933434621",
+        "933434622",
+        "933434623",
+        "933434624",
+        "933434625",
+        "933434626",
+        "933434627",
+        "933434628",
+        "933434629",
+        "933434630"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 51700,
+    "Pss": 49883,
+    "Private_Dirty": 22072
+  },
+  "final_memory_kib": {
+    "Rss": 51700,
+    "Pss": 49883,
+    "Private_Dirty": 22072
+  },
+  "load_end": "3.85 1.94 0.77 1/367 561\n"
+}

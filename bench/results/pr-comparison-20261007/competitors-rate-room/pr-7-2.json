@@ -1,0 +1,155 @@
+{
+  "app": "pr-7",
+  "rep": 2,
+  "http": [
+    {
+      "mode": "fixed-offered-rate",
+      "path": "/rooms/486777696",
+      "offered_rps": 500,
+      "conc": 16,
+      "queue_capacity": 8192,
+      "queue_peak": 96,
+      "gzip": true,
+      "secs": 10,
+      "elapsed_secs": 10.000236559,
+      "drain_secs": 10,
+      "planned": 5000,
+      "scheduled": 5000,
+      "attempted": 5000,
+      "ok": 5000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 499.9881723297942,
+      "avg_bytes": 22259,
+      "statuses": {
+        "200": 5000
+      },
+      "latency": {
+        "max_ms": 224.274468,
+        "mean_ms": 4.902439467,
+        "n": 5000,
+        "p50_ms": 1.978,
+        "p90_ms": 4.552,
+        "p95_ms": 5.432,
+        "p99_ms": 126.848
+      },
+      "service_latency": {
+        "max_ms": 11.059342,
+        "mean_ms": 1.052066655,
+        "n": 5000,
+        "p50_ms": 0.849,
+        "p90_ms": 1.568,
+        "p95_ms": 2.296,
+        "p99_ms": 5.256
+      },
+      "queue_latency": {
+        "max_ms": 10.026209,
+        "mean_ms": 0.1548935048,
+        "n": 5000,
+        "p50_ms": 0.005,
+        "p90_ms": 0.074,
+        "p95_ms": 0.112,
+        "p99_ms": 7.576
+      },
+      "generator_lateness": {
+        "max_ms": 220.598521,
+        "mean_ms": 3.6954793072000003,
+        "n": 5000,
+        "p50_ms": 1.088,
+        "p90_ms": 3.336,
+        "p95_ms": 3.584,
+        "p99_ms": 120.704
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "route": "room_show",
+      "cpu_us_per_request": 807.9999999999998
+    }
+  ],
+  "cable": [],
+  "load_start": "3.97 1.60 0.60 1/356 427\n",
+  "startup_ms": 58.29,
+  "idle_memory_kib": {
+    "Rss": 41100,
+    "Pss": 39296,
+    "Private_Dirty": 12240
+  },
+  "scrape": {
+    "bytes": 374024,
+    "csrf": null,
+    "css": "/assets/_reset-9c3efd7b.css",
+    "js": "/assets/application-a54c74a7.js",
+    "status": 200,
+    "streams": [
+      "RoomMessagesChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VW05dmJYTTZPa05zYjNObFpDODBPRFkzTnpjMk9UWTptZXNzYWdlcyI=--f98e18a32690d137064fc06219db7ca06e526194553c6b9d8855aaf69475d333",
+      "Turbo::StreamsChannel|InJvb21zIg==--60a2ff565fb2226042c779b5711156db1d1cc48f89e6f59c94e4bf1da3f0945c",
+      "Turbo::StreamsChannel|IloybGtPaTh2WTJGdGNHWnBjbVV2VlhObGNpOHhNamN6TWpZeE5ERTpyb29tcyI=--09af904f289002fca1337b027cd00933c76f783dd56bd0fa5d4f9cebd3500a9f"
+    ]
+  },
+  "bodies": {
+    "room_show": {
+      "bytes": 374036,
+      "sha256": "ac08969be7976b9bb44ac797aa05f5d0da67e63640d91d04dc3a284e17552dac",
+      "encoded_bytes": 22259,
+      "encoding": "gzip",
+      "origin_normalized_sha256": "04d10e8878f80a29556ce059dcf4a2dcd75deed433242bf27a5ed3d1e5fa58ff",
+      "contract": [
+        "136976342",
+        "217777555",
+        "303968118",
+        "366357198",
+        "421488677",
+        "684468941",
+        "746403085",
+        "749124092",
+        "925779126",
+        "933434481",
+        "933434601",
+        "933434602",
+        "933434603",
+        "933434604",
+        "933434605",
+        "933434606",
+        "933434607",
+        "933434608",
+        "933434609",
+        "933434610",
+        "933434611",
+        "933434612",
+        "933434613",
+        "933434614",
+        "933434615",
+        "933434616",
+        "933434617",
+        "933434618",
+        "933434619",
+        "933434620",
+        "933434621",
+        "933434622",
+        "933434623",
+        "933434624",
+        "933434625",
+        "933434626",
+        "933434627",
+        "933434628",
+        "933434629",
+        "933434630"
+      ]
+    }
+  },
+  "http_memory_kib": {
+    "Rss": 52844,
+    "Pss": 51040,
+    "Private_Dirty": 23164
+  },
+  "final_memory_kib": {
+    "Rss": 52844,
+    "Pss": 51040,
+    "Private_Dirty": 23164
+  },
+  "load_end": "4.07 1.74 0.66 2/367 460\n"
+}
