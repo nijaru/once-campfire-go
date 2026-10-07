@@ -30,6 +30,7 @@ func (s *Server) registerRoomRoutes() {
 	s.mux.HandleFunc("PUT /rooms/{id}/involvement", s.auth(s.involvement))
 	s.mux.HandleFunc("GET /rooms/{id}/{anchor}", s.auth(s.roomAt))
 }
+
 func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, database.ErrForbidden) {
 		s.flash(r, "alert", "Room not found or inaccessible")
@@ -38,6 +39,7 @@ func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err e
 		s.fail(w, err)
 	}
 }
+
 func namespaceKind(r *http.Request) string {
 	switch strings.Split(r.URL.Path, "/")[2] {
 	case "closeds":
@@ -48,6 +50,7 @@ func namespaceKind(r *http.Request) string {
 		return "Rooms::Open"
 	}
 }
+
 func roomUsers(r *http.Request) []int64 {
 	var ids []int64
 	for _, value := range append(r.Form["user_ids[]"], r.Form["user_ids"]...) {
@@ -57,6 +60,7 @@ func roomUsers(r *http.Request) []int64 {
 	}
 	return ids
 }
+
 func (s *Server) canCreateRoom(ctx context.Context, u database.User, kind string) error {
 	if kind == "Rooms::Direct" || u.Role == 1 {
 		return nil
@@ -70,6 +74,7 @@ func (s *Server) canCreateRoom(ctx context.Context, u database.User, kind string
 	}
 	return nil
 }
+
 func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.User) {
 	kind := namespaceKind(r)
 	room := database.Room{Type: kind, CreatorID: u.ID, Name: "New room"}
@@ -140,8 +145,24 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 			}
 		}
 	}
-	s.render(w, r, "room-form", 200, page{UserDivider: divider, Title: "Room settings", User: u, Room: room, Users: users, Selected: selected, CanAdminister: room.ID == 0 || u.Role == 1 || room.CreatorID == u.ID || kind == "Rooms::Direct"})
+	s.render(
+		w,
+		r,
+		"room-form",
+		200,
+		page{
+			UserDivider: divider,
+			Title:       "Room settings",
+			User:        u,
+			Room:        room,
+			Users:       users,
+			Selected:    selected,
+			CanAdminister: room.ID == 0 || u.Role == 1 || room.CreatorID == u.ID ||
+				kind == "Rooms::Direct",
+		},
+	)
 }
+
 func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.User) {
 	kind := namespaceKind(r)
 	id := roomID(r)
@@ -161,7 +182,7 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 	} else {
 		room, err := s.DB.Room(r.Context(), u.ID, id)
 		if err != nil {
-			s.fail(w, err)
+			s.roomLookupFailure(w, r, err)
 			return
 		}
 		if room.Type == "Rooms::Direct" || kind == "Rooms::Direct" {
@@ -188,6 +209,7 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 	}
 	http.Redirect(w, r, fmt.Sprintf("/rooms/%d", id), 302)
 }
+
 func (s *Server) redirectRoom(w http.ResponseWriter, r *http.Request, u database.User) {
 	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
 	if err != nil {
@@ -200,6 +222,7 @@ func (s *Server) redirectRoom(w http.ResponseWriter, r *http.Request, u database
 	}
 	http.Redirect(w, r, fmt.Sprintf("/rooms/%d", room.ID), 302)
 }
+
 func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.User) {
 	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
 	if err != nil {
@@ -222,6 +245,7 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
 	s.Cable.PublishStream(r.Context(), "rooms", stream("remove", room.DOM("list"), ""))
 	http.Redirect(w, r, "/", 302)
 }
+
 func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.User) {
 	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
 	if err != nil {
@@ -241,7 +265,11 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 		}
 		if room.Type != "Rooms::Direct" {
 			if value == "invisible" {
-				s.Cable.PublishStream(r.Context(), rails.UserRoomsStream(u.ID), stream("remove", room.DOM("list"), ""))
+				s.Cable.PublishStream(
+					r.Context(),
+					rails.UserRoomsStream(u.ID),
+					stream("remove", room.DOM("list"), ""),
+				)
 			} else if previous == "invisible" {
 				markup, err := s.markup("sidebar-shared", sidebarRoom{Room: room})
 				if err != nil {
@@ -261,6 +289,7 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 	}
 	s.render(w, r, "involvement", 200, page{User: u, Room: room, Involvement: value})
 }
+
 func (s *Server) roomAt(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !strings.HasPrefix(r.PathValue("anchor"), "@") {
 		http.NotFound(w, r)
