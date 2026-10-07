@@ -454,11 +454,11 @@ func (d *DB) MessagePageReferences(
 	}
 	defer rows.Close()
 	var messages []Message
+	message := Message{RoomID: room}
 	for rows.Next() {
 		if messages == nil {
 			messages = make([]Message, 0, 40)
 		}
-		message := Message{RoomID: room}
 		if err := rows.Scan(&message.ID, timestamp{&message.UpdatedAt}); err != nil {
 			return nil, err
 		}

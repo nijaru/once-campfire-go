@@ -140,10 +140,10 @@ KLOC counts backend code plus executable code in templates; excludes plain HTML,
 [Shared verification](https://github.com/basecamp/once-campfire-verification) · [Detailed results](https://github.com/basecamp/once-campfire-verification/blob/main/docs/performance-review.md).
 
 See [`bench/`](bench/) for tooling. The [initial Go/Rust baseline](bench/results/current-baseline-20261007/README.md)
-and [latest hydration comparison](bench/results/sidebar-hydration-20261007/README.md) use identical
-fixtures and full-response/write validation on an ARM64 Linux VM. Sidebar response parts and narrow
-hydration improve measured Go performance, but Rust still has higher capacity on the five measured
-routes. Their machine and methodology differ from the historical table above.
+and [sidebar hydration comparison](bench/results/sidebar-hydration-20261007/README.md) use identical
+fixtures and full-response/write validation on an ARM64 Linux VM. The [reference scan comparison](bench/results/scan-record-20261007/README.md)
+reduces allocations and improves measured room throughput. Rust still leads read capacity; write
+results vary across repetitions. Their machine and methodology differ from the historical table above.
 
 ## Known differences
 
