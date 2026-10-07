@@ -575,3 +575,112 @@ def avatar_lifecycle(app):
         "stale avatar session",
         stale[:2],
     )
+
+
+def upload_metadata(app):
+    assert app.login("kevin")[0] == 302
+    fields = "blob[filename]=metadata.txt&blob[byte_size]=0&blob[checksum]=1B2M2Y8AsgTpgAmY7PhCfg%3D%3D"
+    metadata = (
+        "&blob[metadata][note]=caf%C3%A9+%26+tea"
+        "&blob[metadata][nested][count]=42"
+        "&blob[metadata][tags][]=a&blob[metadata][tags][]=b"
+        "&blob[metadata][items][][name]=one&blob[metadata][items][][details][x]=1"
+        "&blob[metadata][items][][details][y]=2&blob[metadata][items][][name]=two"
+        "&blob[metadata][items][][tags][]=a&blob[metadata][items][][tags][]=b"
+        "&blob[metadata][empty]=&blob[metadata][nil]"
+        "&blob[metadata][numbered][0]=zero"
+        "&blob[metadata][duplicate]=first&blob[metadata][duplicate]=last"
+    )
+    expected = {
+        "note": "café & tea",
+        "nested": {"count": "42"},
+        "tags": ["a", "b"],
+        "items": [
+            {"name": "one", "details": {"x": "1", "y": "2"}},
+            {"name": "two", "tags": ["a", "b"]},
+        ],
+        "empty": "",
+        "nil": None,
+        "numbered": {"0": "zero"},
+        "duplicate": "last",
+    }
+    typed = {"flag": True, "count": 42, "nested": {"tags": ["x", False, None, 7]}}
+    typed_expected = {"flag": True, "count": 42, "nested": {"tags": ["x", False, 7]}}
+    cases = [
+        ("application/x-www-form-urlencoded", fields + metadata, "", expected),
+        (
+            "application/x-www-form-urlencoded",
+            fields + metadata,
+            "?" + fields + "&blob[metadata][query]=only",
+            {"query": "only"},
+        ),
+        (
+            "application/x-www-form-urlencoded",
+            fields + "&blob[metadata][]=ignored",
+            "",
+            {},
+        ),
+        (
+            "application/json",
+            json.dumps(
+                {
+                    "blob": {
+                        "filename": "metadata.txt",
+                        "byte_size": 0,
+                        "checksum": "1B2M2Y8AsgTpgAmY7PhCfg==",
+                        "metadata": typed,
+                    }
+                }
+            ),
+            "",
+            typed_expected,
+        ),
+        (
+            "application/json",
+            json.dumps(
+                {
+                    "blob": {
+                        "filename": "metadata.txt",
+                        "byte_size": 0,
+                        "checksum": "1B2M2Y8AsgTpgAmY7PhCfg==",
+                        "metadata": typed,
+                    }
+                }
+            ),
+            "?" + fields + "&blob[metadata][query]=only",
+            {"query": "only"},
+        ),
+    ]
+    for content_type, body, query, want in cases:
+        response = app.fetch(
+            "kevin",
+            "POST",
+            "/rails/active_storage/direct_uploads" + query,
+            body.encode(),
+            {"Content-Type": content_type, "Accept": "application/json"},
+        )
+        assert response[0] == 200, ("metadata allocation", response[0], response[3])
+        blob = json.loads(response[3])
+        assert blob["metadata"] == want, ("response metadata", blob["metadata"], want)
+        stored = app.rows(
+            "SELECT metadata FROM active_storage_blobs WHERE id=?", (blob["id"],)
+        )
+        assert len(stored) == 1 and json.loads(stored[0][0]) == want, (
+            "stored metadata",
+            stored,
+        )
+        assert not file_path(app, blob["key"]).exists()
+    before = app.rows("SELECT count(*) FROM active_storage_blobs")
+    for extra in (
+        "&blob[metadata][x]=scalar&blob[metadata][x][y]=nested",
+        "&blob[metadata]" + "[x]" * 99 + "=deep",
+    ):
+        response = app.fetch(
+            "kevin",
+            "POST",
+            "/rails/active_storage/direct_uploads",
+            (fields + extra).encode(),
+            {"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response[0] == 400, ("invalid form structure", response[0])
+        assert app.rows("SELECT count(*) FROM active_storage_blobs") == before

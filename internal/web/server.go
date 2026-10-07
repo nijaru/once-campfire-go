@@ -275,7 +275,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			s.routeHTTP(w, r)
 			return
 		}
-		if err := r.ParseForm(); err != nil {
+		if err := parseRequestForm(r); err != nil {
 			var limit *http.MaxBytesError
 			if errors.As(err, &limit) {
 				http.Error(w, "Request too large", 413)

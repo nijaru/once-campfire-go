@@ -42,42 +42,31 @@ func (s *Server) registerStorageRoutes() {
 }
 
 func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
-	var data struct {
-		Blob map[string]json.RawMessage `json:"blob"`
-	}
-	mediaType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if mediaType == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&data); err != nil || data.Blob == nil {
-			http.Error(w, "Invalid blob", 400)
-			return
-		}
+	attributes := make(map[string]any)
+	if params, ok := r.Context().Value(uploadParamsKey{}).(map[string]any); ok {
+		attributes, _ = params["blob"].(map[string]any)
 	} else {
-		data.Blob = make(map[string]json.RawMessage)
+		// Multipart fields remain flat; JSON and ordered URL-encoded forms use
+		// the structured parameters owned by the request parsing boundary.
 		for key, values := range r.Form {
 			if strings.HasPrefix(key, "blob[") && strings.HasSuffix(key, "]") {
-				raw, _ := json.Marshal(values[len(values)-1])
-				data.Blob[key[len("blob["):len(key)-1]] = raw
+				attributes[key[len("blob["):len(key)-1]] = values[len(values)-1]
 			}
 		}
-		if len(data.Blob) == 0 {
-			http.Error(w, "Invalid blob", 400)
-			return
-		}
+	}
+	if len(attributes) == 0 {
+		http.Error(w, "Invalid blob", 400)
+		return
 	}
 	scalar := func(key string) (string, bool) {
-		raw, ok := data.Blob[key]
-		if !ok {
+		switch value := attributes[key].(type) {
+		case string:
+			return value, true
+		case json.Number:
+			return value.String(), true
+		default:
 			return "", false
 		}
-		var text string
-		if json.Unmarshal(raw, &text) == nil {
-			return text, true
-		}
-		var number json.Number
-		if json.Unmarshal(raw, &number) == nil && len(raw) > 0 && string(raw) != "null" {
-			return number.String(), true
-		}
-		return "", false
 	}
 	filename, _ := scalar("filename")
 	checksum, _ := scalar("checksum")
@@ -115,8 +104,12 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 	if hasType {
 		b.ContentType = &contentType
 	}
-	if raw := data.Blob["metadata"]; len(raw) > 0 && raw[0] == '{' {
-		b.Metadata = raw
+	if metadata, ok := attributes["metadata"].(map[string]any); ok {
+		b.Metadata, err = json.Marshal(metadata)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
 	}
 	b.ID = 0
 	b.Key = ""

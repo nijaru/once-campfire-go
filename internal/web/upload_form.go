@@ -1,0 +1,210 @@
+package web
+
+import (
+	"context"
+	"errors"
+	"io"
+	"mime"
+	"net/http"
+	"net/url"
+	"strings"
+	"unicode/utf8"
+)
+
+type uploadParamsKey struct{}
+
+// Direct uploads need a tree, not flattened url.Values: [] hashes depend on
+// wire order. Keep other form consumers on their existing flat representation.
+func parseRequestForm(r *http.Request) error {
+	media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if media == "application/x-www-form-urlencoded" {
+		route, _, _ := recognize(r.Method, r.URL.EscapedPath())
+		if route == nil || route.Action != "active_storage::direct_uploads_create" {
+			return r.ParseForm()
+		}
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+		// ParseForm must not reread an unwrapped body and impose its independent
+		// 10 MiB cap. The server's MaxBytesReader already bounded this read.
+		r.PostForm, err = url.ParseQuery(string(raw))
+		if err != nil {
+			return err
+		}
+		params, err := uploadFormTree(string(raw))
+		if err != nil {
+			return err
+		}
+		query, err := uploadFormTree(r.URL.RawQuery)
+		if err != nil {
+			return err
+		}
+		// Ctx::new merges query hashes at the top level, not at flattened leaves.
+		for key, value := range query {
+			params[key] = value
+		}
+		*r = *r.WithContext(context.WithValue(r.Context(), uploadParamsKey{}, params))
+	}
+	return r.ParseForm()
+}
+
+// The valid bracket forms from kit's store_nested_param. Bare values are nil;
+// repeated scalars overwrite, [] appends, and numbered keys remain hash keys.
+func uploadFormTree(raw string) (map[string]any, error) {
+	params := map[string]any{}
+	for i, pair := range strings.Split(raw, "&") {
+		if i > 0 {
+			pair = strings.TrimLeft(pair, " ")
+		}
+		if pair == "" {
+			continue
+		}
+		key, text, hasValue := strings.Cut(pair, "=")
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return nil, err
+		}
+		if key == "" {
+			continue
+		}
+		var value any
+		if hasValue {
+			text, err = url.QueryUnescape(text)
+			if err != nil {
+				return nil, err
+			}
+			value = text
+		}
+		if !utf8.ValidString(key) || !utf8.ValidString(text) {
+			return nil, errors.New("invalid parameter encoding")
+		}
+		path := []string{key}
+		if start := strings.IndexByte(key, '['); start >= 0 {
+			path[0] = key[:start]
+			for rest := key[start:]; rest != ""; {
+				end := strings.IndexByte(rest, ']')
+				if rest[0] != '[' || end < 0 || strings.ContainsAny(rest[1:end], "[]") {
+					return nil, errors.New("invalid parameter key")
+				}
+				path = append(path, rest[1:end])
+				// A builder step consumes at most a hash key and its [] suffix.
+				if len(path) > 200 {
+					return nil, errors.New("parameters too deep")
+				}
+				rest = rest[end+1:]
+			}
+		}
+		if path[0] == "" {
+			return nil, errors.New("invalid parameter key")
+		}
+		if _, err := storeUploadFormParam(params, path, value, 0); err != nil {
+			return nil, err
+		}
+	}
+	return params, nil
+}
+
+func storeUploadFormParam(node any, path []string, value any, depth int) (any, error) {
+	if len(path) == 0 {
+		return value, nil
+	}
+	if depth >= 100 {
+		return nil, errors.New("parameters too deep")
+	}
+	key := path[0]
+	if key == "" {
+		if node == nil {
+			node = []any{}
+		}
+		items, ok := node.([]any)
+		if !ok {
+			return nil, errors.New("expected parameter array")
+		}
+		if len(path) == 1 {
+			if value != nil {
+				items = append(items, value)
+			}
+			return items, nil
+		}
+		// Reuse the last hash only when this child path is not already present.
+		// A child containing [] always reuses it (e.g. items[][tags][]).
+		var child any
+		reuse := false
+		if len(items) > 0 {
+			if last, ok := items[len(items)-1].(map[string]any); ok {
+				reuse = !uploadFormHasPath(last, path[1:])
+				if reuse {
+					child = last
+				}
+			}
+		}
+		child, err := storeUploadFormParam(child, path[1:], value, depth+1)
+		if err != nil {
+			return nil, err
+		}
+		if reuse {
+			items[len(items)-1] = child
+		} else {
+			items = append(items, child)
+		}
+		return items, nil
+	}
+	if node == nil {
+		node = map[string]any{}
+	}
+	object, ok := node.(map[string]any)
+	if !ok {
+		return nil, errors.New("expected parameter hash")
+	}
+	childDepth := depth + 1
+	if len(path) > 1 && path[1] == "" {
+		childDepth = depth // A key's [] suffix is handled in the same builder step.
+	}
+	child, err := storeUploadFormParam(object[key], path[1:], value, childDepth)
+	if err != nil {
+		return nil, err
+	}
+	object[key] = child
+	return object, nil
+}
+
+func uploadFormHasPath(object map[string]any, path []string) bool {
+	for _, key := range path {
+		if key == "" {
+			return false
+		}
+	}
+	for i, key := range path {
+		value, exists := object[key]
+		if !exists {
+			return false
+		}
+		if i < len(path)-1 {
+			object, _ = value.(map[string]any)
+		}
+	}
+	return true
+}
+
+// Action Dispatch's deep_munge removes nil array elements, but retains nil hash
+// values and JSON scalar types. Depth has already been validated by flattening.
+func uploadJSONValue(value any) any {
+	switch value := value.(type) {
+	case map[string]any:
+		for key, child := range value {
+			value[key] = uploadJSONValue(child)
+		}
+		return value
+	case []any:
+		items := value[:0]
+		for _, child := range value {
+			if child != nil {
+				items = append(items, uploadJSONValue(child))
+			}
+		}
+		return items
+	default:
+		return value
+	}
+}
