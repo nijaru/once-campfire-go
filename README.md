@@ -65,7 +65,7 @@ the image provides ONCE's `/hooks/pre-backup` and `/hooks/post-restore` hooks.
 
 ```sh
 bin/check                              # gofmt, assets, vet, all tests with the race detector
-bin/check-assets                       # asset digests/importmap
+bin/check-assets                       # pinned assets plus the declared Turbo override
 bin/check-upgrade --rust-root ../once-campfire-rust
 bin/check-parity --seed /path/to/parity-seed --go-binary ./campfire \
   --rust-binary /path/to/rust/campfire --out .cache/contracts
@@ -85,6 +85,7 @@ It does not cover uploads, membership revocation, JavaScript, Cable delivery or 
 
 The browser smoke accepts `GO_BINARY`, `PLAYWRIGHT_ROOT` and `CHROMIUM_EXECUTABLE` overrides;
 otherwise it uses the local `campfire` binary and the Rust checkout's installed Playwright.
+Set Playwright's `PLAYWRIGHT_BROWSERS_PATH` when browsers are installed outside its default cache.
 The browser/upgrade tools use the Rust checkout's parity seed and installed Playwright. Screen
 comparison runs both binaries on disposable copies of each seed, recording their hashes and keeping
 the original parity masks. Reports distinguish screenshots, accessibility, server/live DOM, network
@@ -126,6 +127,10 @@ See [`bench/`](bench/) for benchmark tooling and earlier measurements.
 
 ## Known differences
 
+- Bundled Turbo 8.0.13 awaits its asynchronous response delegates so cancelled frame-body reads
+  reach the existing abort handler; other errors still propagate. The attributed override is in
+  `assets/overrides/turbo.js`. Tests require it to match the pinned library with only two added
+  `await`s and a license notice. This is an intentional frontend fix, not exact JavaScript parity.
 - Templates use `html/template`. Whitespace, attribute serialization, some canonical form-action
   URLs, and response headers/validators differ from Rust. Strict server/live DOM and network layers
   therefore still fail in many inventory cells, even when screenshots, accessibility and workflows
