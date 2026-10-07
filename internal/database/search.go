@@ -9,7 +9,8 @@ import (
 
 func SearchQuery(query string) string {
 	return strings.Map(func(c rune) rune {
-		if unicode.IsLetter(c) || unicode.IsNumber(c) || unicode.IsMark(c) || unicode.Is(unicode.Pc, c) {
+		if unicode.IsLetter(c) || unicode.IsNumber(c) || unicode.IsMark(c) ||
+			unicode.Is(unicode.Pc, c) {
 			return c
 		}
 		return ' '
@@ -23,14 +24,19 @@ func (d *DB) SearchReferences(ctx context.Context, user int64, query string) ([]
 	if terms == "" {
 		return []Message{}, nil
 	}
-	rows, err := d.Read.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at FROM messages m JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100", user, terms)
+	rows, err := d.Read.QueryContext(
+		ctx,
+		"SELECT m.id,m.room_id,m.updated_at FROM messages m JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100",
+		user,
+		terms,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	messages := []Message{}
+	var m Message
 	for rows.Next() {
-		var m Message
 		if err := rows.Scan(&m.ID, &m.RoomID, timestamp{&m.UpdatedAt}); err != nil {
 			return nil, err
 		}
@@ -49,7 +55,12 @@ func (d *DB) Search(ctx context.Context, user int64, query string) ([]Message, e
 	if terms == "" {
 		return []Message{}, nil
 	}
-	rows, err := d.Read.QueryContext(ctx, messageSelect+"JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100", user, terms)
+	rows, err := d.Read.QueryContext(
+		ctx,
+		messageSelect+"JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100",
+		user,
+		terms,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -72,9 +83,17 @@ func (d *DB) RecordSearch(ctx context.Context, user int64, query string) error {
 	return d.Transaction(ctx, func(tx *sql.Tx) error {
 		now := Stamp(d.Now())
 		var id int64
-		err := tx.QueryRowContext(ctx, "SELECT id FROM searches WHERE user_id=? AND query=? LIMIT 1", user, query).Scan(&id)
+		err := tx.QueryRowContext(ctx, "SELECT id FROM searches WHERE user_id=? AND query=? LIMIT 1", user, query).
+			Scan(&id)
 		if err == sql.ErrNoRows {
-			result, e := tx.ExecContext(ctx, "INSERT INTO searches(user_id,query,created_at,updated_at) VALUES (?,?,?,?)", user, query, now, now)
+			result, e := tx.ExecContext(
+				ctx,
+				"INSERT INTO searches(user_id,query,created_at,updated_at) VALUES (?,?,?,?)",
+				user,
+				query,
+				now,
+				now,
+			)
 			if e != nil {
 				return e
 			}
@@ -92,8 +111,13 @@ func (d *DB) RecordSearch(ctx context.Context, user int64, query string) error {
 		return err
 	})
 }
+
 func (d *DB) RecentSearches(ctx context.Context, user int64) ([]string, error) {
-	rows, err := d.Read.QueryContext(ctx, "SELECT query FROM searches WHERE user_id=? ORDER BY updated_at DESC", user)
+	rows, err := d.Read.QueryContext(
+		ctx,
+		"SELECT query FROM searches WHERE user_id=? ORDER BY updated_at DESC",
+		user,
+	)
 	if err != nil {
 		return nil, err
 	}
