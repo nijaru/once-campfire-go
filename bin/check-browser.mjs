@@ -9,7 +9,8 @@ import path from "node:path"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const require = createRequire(import.meta.url)
-const { chromium } = require(path.resolve(process.env.RUST_ROOT || path.join(root, "../once-campfire-rust"), "parity/node_modules/playwright"))
+const playwrightRoot = process.env.PLAYWRIGHT_ROOT || path.resolve(process.env.RUST_ROOT || path.join(root, "../once-campfire-rust"), "parity/node_modules/playwright")
+const { chromium } = require(playwrightRoot)
 const work = await mkdtemp(path.join(root, ".cache/tmp/browser-"))
 const socket = createServer()
 await new Promise(resolve => socket.listen(0, "127.0.0.1", resolve))
@@ -17,7 +18,7 @@ const port = socket.address().port
 await new Promise(resolve => socket.close(resolve))
 const base = `http://127.0.0.1:${port}`
 let logs = "", browser
-const server = spawn(path.join(root, "campfire"), ["server"], {
+const server = spawn(process.env.GO_BINARY || path.join(root, "campfire"), ["server"], {
   cwd: root,
   env: { ...process.env, SECRET_KEY_BASE: "browser-test-only", DISABLE_SSL: "1", HTTP_PORT: "0", TARGET_BIND: "127.0.0.1", TARGET_PORT: String(port), CAMPFIRE_STORAGE_PATH: work, CAMPFIRE_DATABASE_PATH: path.join(work, "browser.sqlite3") },
   stdio: ["ignore", "pipe", "pipe"]
@@ -33,16 +34,25 @@ try {
     await new Promise(resolve => setTimeout(resolve, 50))
   }
   if (!ready) throw new Error(`Server did not start: ${logs}`)
-  browser = await chromium.launch({ headless: true, env: { ...process.env, TMPDIR: work } })
+  browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_EXECUTABLE, env: { ...process.env, TMPDIR: work } })
   const context = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] })
   const errors = []
   function watch(page) {
     if(process.env.DEBUG_BROWSER){page.on("response",async res=>{if(new URL(res.url()).pathname.startsWith("/rooms/")||res.status()>=400)console.error(res.status(),res.url(),(await res.text().catch(()=>"")).slice(0,500))});page.on("websocket",ws=>ws.on("framereceived",({payload})=>console.error("WS",String(payload).slice(0,700))))}
-    page.on("pageerror", error => {errors.push(String(error));if(process.env.DEBUG_BROWSER)console.error(error)})
+    page.on("pageerror", error => {errors.push(String(error));if(process.env.DEBUG_BROWSER)console.error(error.stack || error)})
     page.on("console", msg => { if (msg.type() === "error") {errors.push(msg.text()); if (process.env.DEBUG_BROWSER) console.error(msg.text())} })
     return new Promise(resolve => page.on("websocket", socket => socket.on("framereceived", ({ payload }) => {
-      if (JSON.parse(String(payload)).type === "confirm_subscription") resolve()
+      const message = JSON.parse(String(payload))
+      if (message.type === "confirm_subscription" && JSON.parse(message.identifier).channel === "RoomMessagesChannel") resolve()
     })))
+  }
+  async function saveAndRender(page, button) {
+    await page.evaluate(() => {
+      window.nextTurboLoad = false
+      document.addEventListener("turbo:load", () => { window.nextTurboLoad = true }, { once: true })
+    })
+    await button.click()
+    await page.waitForFunction(() => window.nextTurboLoad)
   }
   const first = await context.newPage()
   const firstSubscribed = watch(first)
@@ -66,7 +76,9 @@ try {
   await first.getByRole("button", { name: "Send Message", exact: true }).click()
   await second.locator(".messages > .message[data-message-id]").filter({ hasText: "safe browser text" }).waitFor()
   for (const page of [first, second]) {
-    if (await page.locator(".messages > .message[data-message-id]").count() !== 3) throw new Error("duplicate or missing message")
+    await page.waitForFunction(() => document.querySelectorAll(".messages > .message[data-message-id]").length === 3)
+    const ids = await page.locator(".messages > .message[data-message-id]").evaluateAll(messages => messages.map(message => message.dataset.messageId))
+    if (new Set(ids).size !== 3) throw new Error("duplicate message IDs")
     if (await page.evaluate(() => window.injected === true)) throw new Error("stored markup executed")
   }
   const messageID = await first.locator(".messages > .message[data-message-id]").filter({ hasText: "Hello from the first tab" }).getAttribute("id")
@@ -84,7 +96,7 @@ try {
   await first.locator("#search-results > .message").filter({ hasText: "Edited in the browser" }).waitFor()
   await first.goto(`${base}/users/me/profile`)
   await first.locator('[name="user[bio]"]').fill("Browser profile update")
-  await first.getByRole("button", { name: "Save changes", exact: true }).click()
+  await saveAndRender(first, first.getByRole("button", { name: "Save changes", exact: true }))
   await first.waitForFunction(() => document.querySelector('[name="user[bio]"]').value === "Browser profile update")
   const transferURL = await first.locator("#session_transfer_url").inputValue()
   if (!transferURL.startsWith(`${base}/session/transfers/`)) throw new Error("Missing transfer URL")
@@ -92,7 +104,7 @@ try {
   if (!qr.ok() || !qr.headers()["content-type"].includes("image/svg+xml")) throw new Error("QR code failed")
   await first.goto(`${base}/account/edit`)
   await first.locator('[name="account[name]"]').fill("Browser Campfire")
-  await first.getByRole("button", { name: "Save changes", exact: true }).click()
+  await saveAndRender(first, first.getByRole("button", { name: "Save changes", exact: true }))
   await first.waitForFunction(() => document.querySelector('[name="account[name]"]').value === "Browser Campfire")
   await first.goto(`${base}/rooms/opens/new`)
   await first.getByRole("textbox", { name: "Name this room", exact: true }).fill("Browser room")
@@ -126,6 +138,7 @@ try {
   await transferred.waitForURL(/\/rooms\/\d+$/)
   await transferred.goto(`${base}/users/me/profile`)
   if (await transferred.locator('[name="user[email_address]"]').inputValue() !== "browser@example.test") throw new Error("Transfer signed in the wrong user")
+  await transferred.waitForLoadState("networkidle")
   await transferContext.close()
   const joinedContext = await browser.newContext()
   const joined = await joinedContext.newPage()
@@ -138,6 +151,9 @@ try {
   await joined.goto(`${base}/account/edit`)
   if (await joined.getByRole("link", { name: "Set up chat bots" }).count()) throw new Error("Member sees admin controls")
   await first.goto(roomURL)
+  // The sidebar reloads once its unread channel connects. Finish that bootstrap
+  // before interacting with a form it would otherwise replace mid-edit.
+  await first.waitForLoadState("networkidle")
   await first.getByRole("link", { name: "New Ping" }).click()
   const autocomplete = first.locator('[data-autocomplete-target="input"]')
   await autocomplete.fill("Joined browser")
@@ -146,6 +162,8 @@ try {
   if (process.env.DEBUG_BROWSER) console.error(await first.locator('[data-autocomplete-target="select"]').evaluate(el=>({html:el.outerHTML,value:el.value,valid:el.validity.valid,form:el.form?.outerHTML})))
   await Promise.all([first.waitForURL(url => /\/rooms\/\d+$/.test(url.pathname) && url.href !== roomURL), first.getByRole("button", {name: "Start Ping", exact: true}).click()])
   await first.locator("#nav").getByRole("heading", {name: "Ping with Joined browser user", exact: true}).waitFor()
+  await joined.waitForLoadState("networkidle")
+  await first.waitForLoadState("networkidle")
   await joinedContext.close()
   if (errors.length) throw new Error(errors.join("\n"))
   console.log("PASS: setup, two-tab live messaging, duplicate suppression, and stored-markup safety, copying message permalinks, editing, search, profile/account updates, QR codes, live room creation/renaming, bots, custom styles, session transfers, joining, and autocomplete-started direct pings in Chromium.")
