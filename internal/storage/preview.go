@@ -15,7 +15,9 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
-var ffmpegAvailable = sync.OnceValue(func() bool { return exec.Command("ffmpeg", "-version").Run() == nil })
+var ffmpegAvailable = sync.OnceValue(
+	func() bool { return exec.Command("ffmpeg", "-version").Run() == nil },
+)
 
 func Previewable(ct string) bool { return strings.HasPrefix(ct, "video") && ffmpegAvailable() }
 func (s *Store) PreviewImage(ctx context.Context, b Blob) (Blob, error) {
@@ -37,7 +39,19 @@ func (s *Store) PreviewImage(ctx context.Context, b Blob) (Blob, error) {
 		return Blob{}, ctx.Err()
 	}
 	processCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	command := exec.CommandContext(processCtx, "ffmpeg", "-i", input, "-vf", `select=eq(n\,0)+eq(key\,1)+gt(scene\,0.015),loop=loop=-1:size=2,trim=start_frame=1`, "-frames:v", "1", "-f", "image2", "-")
+	command := exec.CommandContext(
+		processCtx,
+		"ffmpeg",
+		"-i",
+		input,
+		"-vf",
+		`select=eq(n\,0)+eq(key\,1)+gt(scene\,0.015),loop=loop=-1:size=2,trim=start_frame=1`,
+		"-frames:v",
+		"1",
+		"-f",
+		"image2",
+		"-",
+	)
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
 	raw, err := command.Output()
@@ -47,13 +61,13 @@ func (s *Store) PreviewImage(ctx context.Context, b Blob) (Blob, error) {
 		return Blob{}, fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	name := strings.TrimSuffix(Filename(b.Filename), filepath.Ext(b.Filename)) + ".jpg"
-	image, err := s.Stage(ctx, name, "image/jpeg", bytes.NewReader(raw))
+	image, err := s.StageFile(ctx, name, "image/jpeg", bytes.NewReader(raw))
 	if err != nil {
 		return Blob{}, err
 	}
-	image, err = s.Analyze(ctx, image)
+	defer image.Discard()
+	image.Blob, err = s.analyzeMetadata(ctx, image.Blob)
 	if err != nil {
-		s.discard(ctx, image)
 		return Blob{}, err
 	}
 	won := false
@@ -65,19 +79,34 @@ func (s *Store) PreviewImage(ctx context.Context, b Blob) (Blob, error) {
 		if count > 0 {
 			return nil
 		}
-		_, err := tx.ExecContext(ctx, "INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'ActiveStorage::Blob',?,'preview_image',?)", image.ID, b.ID, database.Stamp(s.DB.Now()))
+		var sourceID int64
+		if err := tx.QueryRowContext(ctx, "SELECT id FROM active_storage_blobs WHERE id=?", b.ID).Scan(&sourceID); err != nil {
+			return err
+		}
+		blobID, err := image.Insert(ctx, tx)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(
+			ctx,
+			"INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'ActiveStorage::Blob',?,'preview_image',?)",
+			blobID,
+			sourceID,
+			database.Stamp(s.DB.Now()),
+		)
 		won = err == nil
 		return err
 	})
-	if err != nil || !won {
-		s.discard(ctx, image)
-		if err != nil {
-			return Blob{}, err
-		}
+	if err != nil {
+		return Blob{}, err
+	}
+	if !won {
 		return s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image")
 	}
-	return image, nil
+	image.Keep()
+	return image.Blob, nil
 }
+
 func (s *Store) Representation(ctx context.Context, b Blob, v Variation) (Blob, error) {
 	if Previewable(b.Type()) {
 		image, err := s.PreviewImage(ctx, b)
@@ -94,6 +123,7 @@ func (s *Store) Representation(ctx context.Context, b Blob, v Variation) (Blob, 
 	}
 	return Blob{}, errors.New("unrepresentable blob")
 }
+
 func (s *Store) ProcessAttachment(ctx context.Context, b Blob) (Blob, error) {
 	b, err := s.Analyze(ctx, b)
 	if err != nil {
