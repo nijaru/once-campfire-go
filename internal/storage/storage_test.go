@@ -181,6 +181,15 @@ func TestTrackedVariantIsReusable(t *testing.T) {
 		count != 2 {
 		t.Fatalf("leaked variant blobs: %d %v", count, err)
 	}
+	if files := storedFiles(t, store.Root); len(files) != 2 {
+		t.Fatalf("leaked variant files: %v", files)
+	}
+	for _, table := range []string{"active_storage_variant_records", "active_storage_attachments"} {
+		if err = db.Read.QueryRow("SELECT count(*) FROM " + table).Scan(&count); err != nil ||
+			count != 1 {
+			t.Fatalf("duplicate variant graph in %s: %d %v", table, count, err)
+		}
+	}
 }
 
 func TestRepresentationURLIncludesDefaultFormat(t *testing.T) {

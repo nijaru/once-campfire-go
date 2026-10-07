@@ -41,7 +41,10 @@ func (s *Store) checkedFile(ctx context.Context, b Blob) (string, error) {
 	}
 	return path, ctx.Err()
 }
-func (s *Store) Analyze(ctx context.Context, b Blob) (Blob, error) {
+
+// analyzeMetadata operates on owned bytes without inserting or updating a blob.
+// Derivatives are analyzed while staged, before their graph is committed.
+func (s *Store) analyzeMetadata(ctx context.Context, b Blob) (Blob, error) {
 	metadata := map[string]any{}
 	decoder := json.NewDecoder(bytes.NewReader(b.Metadata))
 	decoder.UseNumber()
@@ -94,8 +97,17 @@ func (s *Store) Analyze(ctx context.Context, b Blob) (Blob, error) {
 	if err != nil {
 		return b, err
 	}
+	b.Metadata = raw
+	return b, ctx.Err()
+}
+
+func (s *Store) Analyze(ctx context.Context, b Blob) (Blob, error) {
+	b, err := s.analyzeMetadata(ctx, b)
+	if err != nil {
+		return b, err
+	}
 	err = s.DB.Transaction(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, "UPDATE active_storage_blobs SET metadata=? WHERE id=?", string(raw), b.ID); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE active_storage_blobs SET metadata=? WHERE id=?", string(b.Metadata), b.ID); err != nil {
 			return err
 		}
 		now := database.Stamp(s.DB.Now())
@@ -104,15 +116,28 @@ func (s *Store) Analyze(ctx context.Context, b Blob) (Blob, error) {
 				return err
 			}
 		}
-		_, err := tx.ExecContext(ctx, "UPDATE rooms SET updated_at=? WHERE id IN (SELECT room_id FROM messages WHERE id IN (SELECT record_id FROM active_storage_attachments WHERE blob_id=? AND record_type='Message'))", now, b.ID)
+		_, err := tx.ExecContext(
+			ctx,
+			"UPDATE rooms SET updated_at=? WHERE id IN (SELECT room_id FROM messages WHERE id IN (SELECT record_id FROM active_storage_attachments WHERE blob_id=? AND record_type='Message'))",
+			now,
+			b.ID,
+		)
 		return err
 	})
-	b.Metadata = raw
 	return b, err
 }
+
 func (s *Store) existingVariant(ctx context.Context, blob int64, digest string) (Blob, error) {
-	return scanBlob(s.DB.Read.QueryRowContext(ctx, "SELECT "+columns+" FROM active_storage_blobs b JOIN active_storage_attachments a ON a.blob_id=b.id JOIN active_storage_variant_records v ON v.id=a.record_id WHERE a.record_type='ActiveStorage::VariantRecord' AND a.name='image' AND v.blob_id=? AND v.variation_digest=? LIMIT 1", blob, digest))
+	return scanBlob(
+		s.DB.Read.QueryRowContext(
+			ctx,
+			"SELECT "+columns+" FROM active_storage_blobs b JOIN active_storage_attachments a ON a.blob_id=b.id JOIN active_storage_variant_records v ON v.id=a.record_id WHERE a.record_type='ActiveStorage::VariantRecord' AND a.name='image' AND v.blob_id=? AND v.variation_digest=? LIMIT 1",
+			blob,
+			digest,
+		),
+	)
 }
+
 func (s *Store) Variant(ctx context.Context, b Blob, variation Variation) (Blob, error) {
 	defaultFormat := b.DefaultFormat()
 	v := variation.DefaultFormat(defaultFormat)
@@ -164,7 +189,7 @@ func (s *Store) Variant(ctx context.Context, b Blob, variation Variation) (Blob,
 		return Blob{}, err
 	}
 	temporary := filepath.Join(s.Root, ".processing")
-	if err = os.MkdirAll(temporary, 0755); err != nil {
+	if err = os.MkdirAll(temporary, 0o755); err != nil {
 		return Blob{}, err
 	}
 	file, err := os.CreateTemp(temporary, "variant-*."+format)
@@ -193,18 +218,23 @@ func (s *Store) Variant(ctx context.Context, b Blob, variation Variation) (Blob,
 	if format == "jpg" {
 		ct = "image/jpeg"
 	}
-	image, err := s.Stage(ctx, name, ct, file)
+	image, err := s.StageFile(ctx, name, ct, file)
 	if err != nil {
 		return Blob{}, err
 	}
-	image, err = s.Analyze(ctx, image)
+	defer image.Discard()
+	image.Blob, err = s.analyzeMetadata(ctx, image.Blob)
 	if err != nil {
-		s.discard(ctx, image)
 		return Blob{}, err
 	}
 	won := false
 	err = s.DB.Transaction(ctx, func(tx *sql.Tx) error {
-		result, err := tx.ExecContext(ctx, "INSERT INTO active_storage_variant_records(blob_id,variation_digest) VALUES (?,?) ON CONFLICT(blob_id,variation_digest) DO NOTHING", b.ID, digest)
+		result, err := tx.ExecContext(
+			ctx,
+			"INSERT INTO active_storage_variant_records(blob_id,variation_digest) VALUES (?,?) ON CONFLICT(blob_id,variation_digest) DO NOTHING",
+			b.ID,
+			digest,
+		)
 		if err != nil {
 			return err
 		}
@@ -216,32 +246,30 @@ func (s *Store) Variant(ctx context.Context, b Blob, variation Variation) (Blob,
 		if err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, "INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'ActiveStorage::VariantRecord',?,'image',?)", image.ID, id, database.Stamp(s.DB.Now()))
+		blobID, err := image.Insert(ctx, tx)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(
+			ctx,
+			"INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'ActiveStorage::VariantRecord',?,'image',?)",
+			blobID,
+			id,
+			database.Stamp(s.DB.Now()),
+		)
 		won = err == nil
 		return err
 	})
-	if err != nil || !won {
-		s.discard(ctx, image)
-		if err != nil {
-			return Blob{}, err
-		}
+	if err != nil {
+		return Blob{}, err
+	}
+	if !won {
 		return s.existingVariant(ctx, b.ID, digest)
 	}
-	return image, nil
+	image.Keep()
+	return image.Blob, nil
 }
-func (s *Store) discard(ctx context.Context, b Blob) {
-	result, err := s.DB.Write.ExecContext(ctx, "DELETE FROM active_storage_blobs WHERE id=? AND NOT EXISTS(SELECT 1 FROM active_storage_attachments WHERE blob_id=?)", b.ID, b.ID)
-	if err != nil {
-		return
-	}
-	n, err := result.RowsAffected()
-	if err != nil || n == 0 {
-		return
-	}
-	if path, err := s.Path(b.Key); err == nil {
-		os.Remove(path)
-	}
-}
+
 func (s *Store) RepresentationURL(b Blob, v Variation) (string, error) {
 	// ActiveStorage::Blob#variation defaults the format before signing the URL.
 	if v.Get("format") == nil {
@@ -251,5 +279,14 @@ func (s *Store) RepresentationURL(b Blob, v Variation) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "/rails/active_storage/representations/redirect/" + Escape(s.SignedID(b), false) + "/" + Escape(key, false) + "/" + Escape(Filename(b.Filename), true), nil
+	return "/rails/active_storage/representations/redirect/" + Escape(
+		s.SignedID(b),
+		false,
+	) + "/" + Escape(
+		key,
+		false,
+	) + "/" + Escape(
+		Filename(b.Filename),
+		true,
+	), nil
 }
