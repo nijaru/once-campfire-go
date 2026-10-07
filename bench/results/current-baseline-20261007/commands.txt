@@ -1,0 +1,29 @@
+# Run from the repository root with the recorded cached image, release binaries,
+# seed and load generators. Output directories must not already contain a run.
+# Builds, tests and asset generation finished before these commands.
+
+# Common Docker invocation used for each Python command below:
+docker run --rm --network none \
+  -v "$PWD:/src:ro" -v "$PWD/.cache:/cache" \
+  -v "$PWD/.cache/performance-current-20261007/work:/src/bench/.work" \
+  -w /src -e CGO_ENABLED=1 -e GOMAXPROCS=4 \
+  campfire-compare-toolchain python3 bench/application \
+  --rust-root /src/reference --seed /cache/parity-seeds/default \
+  --loadgen /cache/linux/loadgen \
+  --candidate rust=/cache/rust-linux-target/release/campfire \
+  --go-binary /cache/parity-acceptance/campfire-go-linux \
+  --out /cache/performance-current-20261007/capacity \
+  --apps rust go --reps 3 --seconds 10 --concurrency 16 --gzip 1 \
+  --routes room_show messages_page sidebar search post_message \
+  --server-cpus 0-3 --loadgen-cpus 4-7 --upload-reps 0 --cable-clients
+
+# Fixed-load comparison used the same invocation, replacing output and workloads:
+# --out /cache/performance-current-20261007/fixed-load
+# --concurrency 64 --routes sidebar post_message
+# --rate-loadgen /cache/performance-current-20261007/httprate --http-rates 500
+# The rate generator was built from bench/httprate before timing began.
+
+# Separate diagnostic profile used the same invocation with:
+# --out /cache/performance-current-20261007/profile
+# --apps go --reps 1 --routes sidebar --concurrency 16 --cpu-profile
+# It is not included in the comparison medians.

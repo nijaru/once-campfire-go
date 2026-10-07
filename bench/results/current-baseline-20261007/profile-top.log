@@ -1,0 +1,27 @@
+File: campfire-go-linux
+Build ID: 06dd0878b13c32521a66caad6c7ef45a22a9b560
+Type: cpu
+Time: 2026-10-07 20:47:51 UTC
+Duration: 12.31s, Total samples = 27.51s (223.51%)
+Showing nodes accounting for 12.74s, 46.31% of 27.51s total
+Dropped 841 nodes (cum <= 0.14s)
+Showing top 18 nodes out of 276
+      flat  flat%   sum%        cum   cum%
+     5.61s 20.39% 20.39%      5.87s 21.34%  runtime.cgocall
+     1.43s  5.20% 25.59%      1.43s  5.20%  crypto/internal/fips140/sha256.blockSHA2
+     1.05s  3.82% 29.41%      1.05s  3.82%  internal/runtime/syscall/linux.Syscall6
+     0.75s  2.73% 32.13%         1s  3.64%  runtime.gcmarknewobject
+     0.66s  2.40% 34.53%      0.88s  3.20%  runtime.tryDeferToSpanScan
+     0.60s  2.18% 36.71%      0.60s  2.18%  runtime.memmove
+     0.35s  1.27% 37.99%      1.90s  6.91%  reflect.Value.call
+     0.30s  1.09% 39.08%      0.30s  1.09%  runtime.pageIndexOf (inline)
+     0.24s  0.87% 39.95%      0.24s  0.87%  runtime.memclrNoHeapPointers
+     0.23s  0.84% 40.79%      0.23s  0.84%  runtime.nanotime
+     0.22s   0.8% 41.58%      0.90s  3.27%  database/sql.convertAssignRows
+     0.21s  0.76% 42.35%      0.21s  0.76%  golang.org/x/crypto/blowfish.encryptBlock
+     0.21s  0.76% 43.11%      0.49s  1.78%  runtime.scanObjectsSmall
+     0.18s  0.65% 43.77%      0.51s  1.85%  reflect.(*structType).FieldByName
+     0.18s  0.65% 44.42%      0.22s   0.8%  runtime.typePointers.next
+     0.18s  0.65% 45.07%      0.67s  2.44%  runtime.wbBufFlush1
+     0.17s  0.62% 45.69%      0.17s  0.62%  runtime.acquirem
+     0.17s  0.62% 46.31%      0.18s  0.65%  time.nextStdChunk
