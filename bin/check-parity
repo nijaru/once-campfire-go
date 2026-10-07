@@ -23,6 +23,7 @@ from parity_storage import (
     avatar_lifecycle,
     direct_upload,
     storage_downloads,
+    upload_metadata,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -400,6 +401,7 @@ WORKFLOWS = {
     "storage_downloads": storage_downloads,
     "attachment_lifecycle": attachment_lifecycle,
     "avatar_lifecycle": avatar_lifecycle,
+    "upload_metadata": upload_metadata,
 }
 
 
