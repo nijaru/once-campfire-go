@@ -62,4 +62,6 @@ A minimal setup/join/direct-ping reproduction also fails in Go and passes in Rus
 `FrameController.requestSucceededWithResponse` in bundled Turbo 8.0.13. `FetchRequest.receive`
 does not await that asynchronous callback, so a cancelled cloned response-body read escapes the
 existing abort handler. `checks/browser-exception.log.gz` retains that diagnostic. The frontend
-cancellation issue remains unfixed; these backend results do not establish browser parity.
+cancellation issue was unfixed at this checkpoint; these backend results do not establish browser
+parity. A later [frontend fix and verification](../turbo-cancellation-20261007/) records the
+resolution separately.
