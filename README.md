@@ -75,13 +75,13 @@ bin/check-acme
 bin/check-container --image once-campfire-go:verification
 ```
 
-`bin/check-parity` compares authentication, direct-ping reuse, pagination, sidebar documents and
-message creation/editing/deletion against pinned Rust. Supply a prepared parity seed and binaries
+`bin/check-parity` compares authentication, direct-ping reuse, pagination, sidebar documents,
+message creation/editing/deletion, and room conversion/membership revocation against pinned Rust. Supply a prepared parity seed and binaries
 built for the same host. Each workflow uses a fresh SQLite backup, including WAL state, and a copy
 of seeded storage. It checks HTTP behavior, controls, authorization, fresh reads and committed
 message/FTS state, not byte-identical HTML or internal implementation details. Reports include
 binary, tool and seed-snapshot hashes; failures remain visible and produce a nonzero exit status.
-It does not cover uploads, membership revocation, JavaScript, Cable delivery or crash durability.
+It does not cover uploads, JavaScript, live Cable delivery or crash durability.
 
 The browser smoke accepts `GO_BINARY`, `PLAYWRIGHT_ROOT` and `CHROMIUM_EXECUTABLE` overrides;
 otherwise it uses the local `campfire` binary and the Rust checkout's installed Playwright.
