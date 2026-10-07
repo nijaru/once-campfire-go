@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -38,8 +39,6 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 		{room, records[2].ID, "before"},
 		{room, records[22].ID, "around"},
 		{room, records[22].ID, "after"},
-		{room, -1, "before"},
-		{room + 1, records[22].ID, "before"},
 	} {
 		want, err := d.MessagePage(ctx, page.room, page.anchor, page.direction)
 		if err != nil {
@@ -50,9 +49,27 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 			t.Fatalf("page %+v: got %d, want %d: %v", page, len(got), len(want), err)
 		}
 		for i := range want {
-			if got[i].ID != want[i].ID || got[i].RoomID != want[i].RoomID || !got[i].UpdatedAt.Equal(want[i].UpdatedAt) {
+			if got[i].ID != want[i].ID || got[i].RoomID != want[i].RoomID ||
+				!got[i].UpdatedAt.Equal(want[i].UpdatedAt) {
 				t.Fatalf("page %+v: reference %d differs", page, i)
 			}
+		}
+	}
+	for _, direction := range []string{"before", "after", "around"} {
+		for _, anchor := range []int64{-1, records[22].ID} {
+			// A missing anchor or one belonging to another room is not an empty page.
+			for _, load := range []func(context.Context, int64, int64, string) ([]Message, error){d.MessagePage, d.MessagePageReferences} {
+				if _, err := load(ctx, room+1, anchor, direction); !errors.Is(err, sql.ErrNoRows) {
+					t.Fatalf("foreign/missing %s cursor %d: %v", direction, anchor, err)
+				}
+			}
+		}
+	}
+	// An existing oldest message has a valid, empty preceding page.
+	for _, load := range []func(context.Context, int64, int64, string) ([]Message, error){d.MessagePage, d.MessagePageReferences} {
+		if messages, err := load(ctx, room, records[0].ID, "before"); err != nil ||
+			len(messages) != 0 {
+			t.Fatalf("oldest cursor: %d messages, %v", len(messages), err)
 		}
 	}
 	// Reads must observe external commits and the scanner's existing formats.
@@ -71,7 +88,10 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
-	if _, err := d.MessagePageReferences(cancelled, room, 0, "around"); !errors.Is(err, context.Canceled) {
+	if _, err := d.MessagePageReferences(cancelled, room, 0, "around"); !errors.Is(
+		err,
+		context.Canceled,
+	) {
 		t.Fatalf("cancelled query: %v", err)
 	}
 }
