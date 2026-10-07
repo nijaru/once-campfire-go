@@ -40,7 +40,7 @@ func (d *DB) UpdateAccount(
 	ctx context.Context,
 	name *string,
 	styles *string,
-	restrict *bool,
+	restrict *sql.NullBool,
 	resetJoin bool,
 	uploads ...BlobStager,
 ) error {
@@ -65,7 +65,10 @@ func (d *DB) UpdateAccount(
 			if json.Unmarshal([]byte(settings), &data) != nil || data == nil {
 				data = map[string]any{}
 			}
-			data["restrict_room_creation_to_administrators"] = *restrict
+			data["restrict_room_creation_to_administrators"] = nil
+			if restrict.Valid {
+				data["restrict_room_creation_to_administrators"] = restrict.Bool
+			}
 			b, err := json.Marshal(data)
 			if err != nil {
 				return err

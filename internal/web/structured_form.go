@@ -11,17 +11,38 @@ import (
 	"unicode/utf8"
 )
 
-type uploadParamsKey struct{}
+type structuredParamsKey struct{}
 
-// Direct uploads need a tree, not flattened url.Values: [] hashes depend on
-// wire order. Keep other form consumers on their existing flat representation.
+func needsStructuredParams(r *http.Request) bool {
+	method := r.Method
+	if method == "POST" {
+		values := r.PostForm["_method"]
+		if len(values) > 0 {
+			switch override := strings.ToUpper(values[len(values)-1]); override {
+			case "PATCH", "PUT", "DELETE":
+				method = override
+			}
+		}
+	}
+	route, _, _ := recognize(method, r.URL.EscapedPath())
+	if route == nil {
+		return false
+	}
+	switch route.Action {
+	case "active_storage::direct_uploads_create", "rooms::opens::create", "rooms::opens::update",
+		"rooms::closeds::create", "rooms::closeds::update":
+		return true
+	}
+	return false
+}
+
+// Direct uploads and room attributes need a tree, not flattened url.Values.
+// Keep other form consumers on their existing flat representation.
 func parseRequestForm(r *http.Request) error {
 	media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if media == "application/x-www-form-urlencoded" {
-		route, _, _ := recognize(r.Method, r.URL.EscapedPath())
-		if route == nil || route.Action != "active_storage::direct_uploads_create" {
-			return r.ParseForm()
-		}
+		// Read the bounded body once so route selection can honor _method before
+		// choosing a structured representation, just like the final dispatcher.
 		raw, err := io.ReadAll(r.Body)
 		if err != nil {
 			return err
@@ -32,11 +53,14 @@ func parseRequestForm(r *http.Request) error {
 		if err != nil {
 			return err
 		}
-		params, err := uploadFormTree(string(raw))
+		if !needsStructuredParams(r) {
+			return r.ParseForm()
+		}
+		params, err := formTree(string(raw))
 		if err != nil {
 			return err
 		}
-		query, err := uploadFormTree(r.URL.RawQuery)
+		query, err := formTree(r.URL.RawQuery)
 		if err != nil {
 			return err
 		}
@@ -44,14 +68,14 @@ func parseRequestForm(r *http.Request) error {
 		for key, value := range query {
 			params[key] = value
 		}
-		*r = *r.WithContext(context.WithValue(r.Context(), uploadParamsKey{}, params))
+		*r = *r.WithContext(context.WithValue(r.Context(), structuredParamsKey{}, params))
 	}
 	return r.ParseForm()
 }
 
 // The valid bracket forms from kit's store_nested_param. Bare values are nil;
 // repeated scalars overwrite, [] appends, and numbered keys remain hash keys.
-func uploadFormTree(raw string) (map[string]any, error) {
+func formTree(raw string) (map[string]any, error) {
 	params := map[string]any{}
 	for i, pair := range strings.Split(raw, "&") {
 		if i > 0 {
@@ -98,14 +122,14 @@ func uploadFormTree(raw string) (map[string]any, error) {
 		if path[0] == "" {
 			return nil, errors.New("invalid parameter key")
 		}
-		if _, err := storeUploadFormParam(params, path, value, 0); err != nil {
+		if _, err := storeFormParam(params, path, value, 0); err != nil {
 			return nil, err
 		}
 	}
 	return params, nil
 }
 
-func storeUploadFormParam(node any, path []string, value any, depth int) (any, error) {
+func storeFormParam(node any, path []string, value any, depth int) (any, error) {
 	if len(path) == 0 {
 		return value, nil
 	}
@@ -133,13 +157,13 @@ func storeUploadFormParam(node any, path []string, value any, depth int) (any, e
 		reuse := false
 		if len(items) > 0 {
 			if last, ok := items[len(items)-1].(map[string]any); ok {
-				reuse = !uploadFormHasPath(last, path[1:])
+				reuse = !formHasPath(last, path[1:])
 				if reuse {
 					child = last
 				}
 			}
 		}
-		child, err := storeUploadFormParam(child, path[1:], value, depth+1)
+		child, err := storeFormParam(child, path[1:], value, depth+1)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +185,7 @@ func storeUploadFormParam(node any, path []string, value any, depth int) (any, e
 	if len(path) > 1 && path[1] == "" {
 		childDepth = depth // A key's [] suffix is handled in the same builder step.
 	}
-	child, err := storeUploadFormParam(object[key], path[1:], value, childDepth)
+	child, err := storeFormParam(object[key], path[1:], value, childDepth)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +193,7 @@ func storeUploadFormParam(node any, path []string, value any, depth int) (any, e
 	return object, nil
 }
 
-func uploadFormHasPath(object map[string]any, path []string) bool {
+func formHasPath(object map[string]any, path []string) bool {
 	for _, key := range path {
 		if key == "" {
 			return false
@@ -189,18 +213,18 @@ func uploadFormHasPath(object map[string]any, path []string) bool {
 
 // Action Dispatch's deep_munge removes nil array elements, but retains nil hash
 // values and JSON scalar types. Depth has already been validated by flattening.
-func uploadJSONValue(value any) any {
+func formJSONValue(value any) any {
 	switch value := value.(type) {
 	case map[string]any:
 		for key, child := range value {
-			value[key] = uploadJSONValue(child)
+			value[key] = formJSONValue(child)
 		}
 		return value
 	case []any:
 		items := value[:0]
 		for _, child := range value {
 			if child != nil {
-				items = append(items, uploadJSONValue(child))
+				items = append(items, formJSONValue(child))
 			}
 		}
 		return items

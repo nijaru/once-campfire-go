@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"io"
@@ -22,7 +23,13 @@ func TestSearchShellKeepsNavigationFresh(t *testing.T) {
 	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "shell-navigation", "<p>shellneedle</p>", "shellneedle"); err != nil {
 		t.Fatal(err)
 	}
-	other, err := app.DB.CreateRoom(ctx, user.ID, "Rooms::Open", "Other", []int64{user.ID})
+	other, err := app.DB.CreateRoom(
+		ctx,
+		user.ID,
+		"Rooms::Open",
+		&sql.NullString{String: "Other", Valid: true},
+		[]int64{user.ID},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -45,6 +45,7 @@ func (s *Server) registerAccountRoutes() {
 	s.mux.HandleFunc("PATCH /session/transfers/{token}", s.browserCheck(s.transfer))
 	s.mux.HandleFunc("PUT /session/transfers/{token}", s.browserCheck(s.transfer))
 }
+
 func administrator(w http.ResponseWriter, u database.User) bool {
 	if u.Role != 1 {
 		http.Error(w, "Forbidden", 403)
@@ -52,6 +53,7 @@ func administrator(w http.ResponseWriter, u database.User) bool {
 	}
 	return true
 }
+
 func accountPage(raw string, count int) (int64, int64) {
 	var number int64
 	fmt.Sscan(raw, &number)
@@ -63,6 +65,7 @@ func accountPage(raw string, count int) (int64, int64) {
 	}
 	return number, next
 }
+
 func (s *Server) accountForm(w http.ResponseWriter, r *http.Request, u database.User) {
 	users, err := s.DB.AccountUsers(r.Context(), u.Role == 1)
 	if err != nil {
@@ -80,6 +83,7 @@ func (s *Server) accountForm(w http.ResponseWriter, r *http.Request, u database.
 	}
 	s.render(w, r, "account", 200, p)
 }
+
 func (s *Server) accountUsers(w http.ResponseWriter, r *http.Request, u database.User) {
 	if respondFormat(w, r, "turbo_stream") == "" {
 		return
@@ -91,13 +95,17 @@ func (s *Server) accountUsers(w http.ResponseWriter, r *http.Request, u database
 	}
 	number, next := accountPage(r.Form.Get("page"), len(users))
 	start := min(int((number-1)*500), len(users))
-	body, err := s.markup("account-users-stream", page{User: u, Users: users[start:min(start+500, len(users))], NextPage: next})
+	body, err := s.markup(
+		"account-users-stream",
+		page{User: u, Users: users[start:min(start+500, len(users))], NextPage: next},
+	)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
 	writeStream(w, body)
 }
+
 func (s *Server) updateAccount(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -107,11 +115,18 @@ func (s *Server) updateAccount(w http.ResponseWriter, r *http.Request, u databas
 		value := r.Form.Get("account[name]")
 		name = &value
 	}
-	var restrict *bool
+	var restrict *sql.NullBool
 	if r.Form.Has("account[settings][restrict_room_creation_to_administrators]") {
 		value := r.Form.Get("account[settings][restrict_room_creation_to_administrators]")
-		on := value != "0" && value != "false" && value != ""
-		restrict = &on
+		cast := sql.NullBool{Bool: true, Valid: true}
+		// ActiveModel boolean casting is case-sensitive; blank remains JSON null.
+		switch value {
+		case "":
+			cast = sql.NullBool{}
+		case "0", "f", "F", "false", "FALSE", "off", "OFF":
+			cast.Bool = false
+		}
+		restrict = &cast
 	}
 	upload, err := s.optionalUpload(r, "account[logo]")
 	if err != nil {
@@ -126,6 +141,7 @@ func (s *Server) updateAccount(w http.ResponseWriter, r *http.Request, u databas
 	s.flash(r, "notice", "✓")
 	http.Redirect(w, r, "/account/edit", 302)
 }
+
 func (s *Server) resetJoinCode(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -136,6 +152,7 @@ func (s *Server) resetJoinCode(w http.ResponseWriter, r *http.Request, u databas
 	}
 	http.Redirect(w, r, "/account/edit", 302)
 }
+
 func (s *Server) customStyles(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -144,13 +161,17 @@ func (s *Server) customStyles(w http.ResponseWriter, r *http.Request, u database
 		s.render(w, r, "custom-styles", 200, page{Title: "Custom styles", User: u})
 		return
 	}
-	value := r.Form.Get("account[custom_styles]")
-	if err := s.DB.UpdateAccount(r.Context(), nil, &value, nil, false); err != nil {
-		s.fail(w, err)
-		return
+	if r.Form.Has("account[custom_styles]") {
+		value := r.Form.Get("account[custom_styles]")
+		if err := s.DB.UpdateAccount(r.Context(), nil, &value, nil, false); err != nil {
+			s.fail(w, err)
+			return
+		}
 	}
-	http.Redirect(w, r, "/account/edit", 302)
+	s.flash(r, "notice", "✓")
+	http.Redirect(w, r, "/account/custom_styles/edit", 302)
 }
+
 func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User) {
 	if r.Method == "GET" || r.Method == "HEAD" {
 		rooms, err := s.DB.AllRooms(r.Context(), u.ID)
@@ -158,7 +179,12 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 			s.fail(w, err)
 			return
 		}
-		p := page{Title: "My settings", User: u, Rooms: rooms, Transfer: s.origin(r) + s.transferPath(u)}
+		p := page{
+			Title:    "My settings",
+			User:     u,
+			Rooms:    rooms,
+			Transfer: s.origin(r) + s.transferPath(u),
+		}
 		_, err = s.Storage.Attached(r.Context(), "User", u.ID, "avatar")
 		p.AvatarAttached = err == nil
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -177,7 +203,10 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 				return
 			}
 			if room.Type == "Rooms::Direct" {
-				p.DirectMemberships = append(p.DirectMemberships, profileMembership{view.Room, involvement})
+				p.DirectMemberships = append(
+					p.DirectMemberships,
+					profileMembership{view.Room, involvement},
+				)
 			} else {
 				p.Memberships = append(p.Memberships, profileMembership{view.Room, involvement})
 			}
@@ -216,14 +245,27 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 	s.flash(r, "notice", notice)
 	http.Redirect(w, r, "/users/me/profile", 302)
 }
+
 func (s *Server) showUser(w http.ResponseWriter, r *http.Request, u database.User) {
 	subject, err := s.DB.User(r.Context(), pathInt(r, "user"))
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "user", 200, page{Title: subject.Name, User: u, Subject: subject, Transfer: s.origin(r) + s.transferPath(subject)})
+	s.render(
+		w,
+		r,
+		"user",
+		200,
+		page{
+			Title:    subject.Name,
+			User:     u,
+			Subject:  subject,
+			Transfer: s.origin(r) + s.transferPath(subject),
+		},
+	)
 }
+
 func (s *Server) manageUser(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -254,6 +296,7 @@ func (s *Server) manageUser(w http.ResponseWriter, r *http.Request, u database.U
 	}
 	http.Redirect(w, r, "/account/edit", 302)
 }
+
 func (s *Server) banUser(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -270,6 +313,7 @@ func (s *Server) banUser(w http.ResponseWriter, r *http.Request, u database.User
 	s.Cable.Disconnect(id)
 	http.Redirect(w, r, fmt.Sprintf("/users/%d", id), 302)
 }
+
 func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 	if !s.requireUnauthenticated(w, r) {
 		return
@@ -312,7 +356,16 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	user, err := s.DB.CreateUser(r.Context(), r.Form.Get("user[name]"), email, string(digest), "", 0, nil, pendingBlob(upload))
+	user, err := s.DB.CreateUser(
+		r.Context(),
+		r.Form.Get("user[name]"),
+		email,
+		string(digest),
+		"",
+		0,
+		nil,
+		pendingBlob(upload),
+	)
 	if err != nil {
 		if existing, e := s.DB.UserByEmail(r.Context(), email); e == nil && existing.ID != 0 {
 			http.Redirect(w, r, "/session/new?email_address="+url.QueryEscape(email), 302)
@@ -324,6 +377,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 	s.analyzeUpload(upload)
 	s.startSession(w, r, user)
 }
+
 func (s *Server) bots(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -358,6 +412,7 @@ func (s *Server) bots(w http.ResponseWriter, r *http.Request, u database.User) {
 	}
 	s.render(w, r, "bots", 200, p)
 }
+
 func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -375,7 +430,8 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 			http.NotFound(w, r)
 			return
 		}
-		err = s.DB.Read.QueryRowContext(r.Context(), "SELECT url FROM webhooks WHERE user_id=?", id).Scan(&webhook)
+		err = s.DB.Read.QueryRowContext(r.Context(), "SELECT url FROM webhooks WHERE user_id=?", id).
+			Scan(&webhook)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			s.fail(w, err)
 			return
@@ -391,8 +447,15 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 			return
 		}
 	}
-	s.render(w, r, "bot-form", 200, page{AvatarURL: avatarURL, Title: "Bot settings", User: u, Subject: bot, Webhook: webhook})
+	s.render(
+		w,
+		r,
+		"bot-form",
+		200,
+		page{AvatarURL: avatarURL, Title: "Bot settings", User: u, Subject: bot, Webhook: webhook},
+	)
 }
+
 func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -409,7 +472,16 @@ func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User
 		defer upload.Discard()
 	}
 	if id == 0 {
-		_, err = s.DB.CreateUser(r.Context(), name, "", "", "", 2, &webhook, recordAttachment(r, "user[avatar]", upload, false))
+		_, err = s.DB.CreateUser(
+			r.Context(),
+			name,
+			"",
+			"",
+			"",
+			2,
+			&webhook,
+			recordAttachment(r, "user[avatar]", upload, false),
+		)
 	} else {
 		bot, e := s.DB.User(r.Context(), id)
 		if e != nil {
@@ -436,6 +508,7 @@ func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User
 	}
 	http.Redirect(w, r, "/account/bots", 302)
 }
+
 func botChanges(r *http.Request) map[string]string {
 	fields := map[string]string{}
 	if r.Form.Has("user[name]") {
@@ -443,6 +516,7 @@ func botChanges(r *http.Request) map[string]string {
 	}
 	return fields
 }
+
 func botWebhook(r *http.Request) *string {
 	if !r.Form.Has("user[webhook_url]") {
 		return nil
@@ -450,6 +524,7 @@ func botWebhook(r *http.Request) *string {
 	value := r.Form.Get("user[webhook_url]")
 	return &value
 }
+
 func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
@@ -470,6 +545,7 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
 	}
 	http.Redirect(w, r, "/account/bots", 302)
 }
+
 func (s *Server) transfer(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" || r.Method == "HEAD" {
 		s.render(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("token")})
@@ -490,5 +566,10 @@ func (s *Server) transfer(w http.ResponseWriter, r *http.Request) {
 
 // Transfer links expire after the same four-hour window as User#transfer_id.
 func (s *Server) transferPath(u database.User) string {
-	return "/session/transfers/" + s.Secrets.SignedID("User", u.ID, "transfer", s.DB.Now().Add(4*time.Hour))
+	return "/session/transfers/" + s.Secrets.SignedID(
+		"User",
+		u.ID,
+		"transfer",
+		s.DB.Now().Add(4*time.Hour),
+	)
 }

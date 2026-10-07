@@ -76,9 +76,10 @@ bin/check-container --image once-campfire-go:verification
 ```
 
 `bin/check-parity` compares authentication, direct-ping reuse, pagination, sidebar documents,
-message creation/editing/deletion, room conversion/membership revocation, direct uploads,
-signed blob/disk/representation downloads, multipart attachment replacement/purge, and avatar
-assignment/deletion, and nested direct-upload metadata against pinned Rust. Supply a prepared parity seed and
+message creation/editing/deletion, room conversion/membership revocation and partial updates,
+account restrictions/custom styles, direct uploads, signed blob/disk/representation downloads,
+multipart attachment replacement/purge, avatar assignment/deletion and nested direct-upload
+metadata against pinned Rust. Supply a prepared parity seed and
 binaries built for the same host. Each workflow uses a fresh SQLite backup, including WAL state, and a copy
 of seeded storage. It checks HTTP behavior, controls, authorization, fresh reads and committed
 message/FTS state, not byte-identical HTML or internal implementation details. Reports include
