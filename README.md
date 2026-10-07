@@ -172,7 +172,8 @@ Its machine and methodology differ from the historical table above.
   without a scan error; Rust can raise a nil-inquiry error on a subsequent involvement request.
 - The response cache uses least-recently-used eviction instead of Rust's sampled eviction. The Go
   message-fragment cache is also independently implemented. It retains versioned message lists
-  and sidebar HTML; current membership and permission data are read before cache lookup.
+  and owned sidebar frame/layout parts; current membership, permission and layout observations
+  are read before cache lookup.
   Room pages also cache their surrounding HTML keyed by fresh page data, inserting freshly selected
   messages and their queried refresh cursor. Search layouts similarly surround a captured immutable
   result body; misses rerun the scoped full query. Complete GET gzip representations have a bounded
