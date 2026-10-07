@@ -2,7 +2,6 @@
 """Compare observable HTTP workflows and stored state against pinned Rust."""
 
 import argparse
-import base64
 import hashlib
 import http.cookiejar
 import importlib.machinery
@@ -13,10 +12,18 @@ import re
 import shutil
 import sqlite3
 import tempfile
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+from parity_storage import (
+    attachment_lifecycle,
+    avatar_lifecycle,
+    direct_upload,
+    storage_downloads,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 loader = importlib.machinery.SourceFileLoader(
@@ -382,228 +389,6 @@ def room_membership(app):
     )
 
 
-def allocate_blob(app, content, filename, content_type, form=False):
-    fields = {
-        "filename": filename,
-        "content_type": content_type,
-        "byte_size": len(content),
-        "checksum": base64.b64encode(hashlib.md5(content).digest()).decode(),
-    }
-    body = (
-        urllib.parse.urlencode(
-            {f"blob[{key}]": value for key, value in fields.items()}
-        ).encode()
-        if form
-        else json.dumps({"blob": fields}).encode()
-    )
-    status, _, _, data = app.fetch(
-        "kevin",
-        "POST",
-        "/rails/active_storage/direct_uploads",
-        body,
-        {
-            "Content-Type": "application/x-www-form-urlencoded"
-            if form
-            else "application/json",
-            "Accept": "application/json",
-        },
-    )
-    assert status == 200, ("allocate", form, status, data)
-    blob = json.loads(data)
-    uploaded = urllib.parse.urlsplit(blob["direct_upload"]["url"])
-    assert (uploaded.scheme, uploaded.netloc) == (
-        urllib.parse.urlsplit(app.base).scheme,
-        urllib.parse.urlsplit(app.base).netloc,
-    )
-    blob["upload_path"] = uploaded.path
-    blob["proxy_path"] = (
-        f"/rails/active_storage/blobs/proxy/{blob['signed_id']}/{filename}"
-    )
-    assert app.rows(
-        "SELECT filename,content_type,byte_size,checksum FROM active_storage_blobs WHERE id=?",
-        (blob["id"],),
-    ) == [tuple(fields.values())]
-    assert (
-        app.rows(
-            "SELECT id FROM active_storage_attachments WHERE blob_id=?", (blob["id"],)
-        )
-        == []
-    )
-    return blob
-
-
-def direct_upload(app):
-    assert app.login("kevin")[0] == 302
-    content = b"0123456789"
-    for form in (False, True):
-        blob = allocate_blob(app, content, "audit.png", "image/png", form)
-        file = (
-            app.database.parent
-            / "files"
-            / blob["key"][:2]
-            / blob["key"][2:4]
-            / blob["key"]
-        )
-        assert not file.exists()
-        status, _, headers, _ = app.fetch("public", "GET", blob["proxy_path"])
-        assert status == 404 and "no-cache" in headers.get("Cache-Control", ""), (
-            "unwritten download",
-            status,
-            dict(headers),
-        )
-        for body, mime_type in (
-            (content, "text/plain"),
-            (content[:-1], "image/png"),
-            (b"abcdefghij", "image/png"),
-        ):
-            result = app.fetch(
-                "kevin", "PUT", blob["upload_path"], body, {"Content-Type": mime_type}
-            )
-            assert result[0] == 422, ("invalid upload", result[0])
-            assert not file.exists()
-        assert (
-            app.fetch(
-                "kevin",
-                "PUT",
-                blob["upload_path"],
-                content,
-                blob["direct_upload"]["headers"],
-            )[0]
-            == 204
-        )
-        assert file.read_bytes() == content
-        status, _, headers, body = app.fetch("public", "GET", blob["proxy_path"])
-        assert (
-            status == 200
-            and body == content
-            and "immutable" in headers.get("Cache-Control", "")
-        )
-    cookies = next(
-        handler.cookiejar
-        for handler in app.clients["kevin"].handlers
-        if isinstance(handler, urllib.request.HTTPCookieProcessor)
-    )
-    retained = "; ".join(f"{cookie.name}={cookie.value}" for cookie in cookies)
-    assert retained
-    assert app.request("kevin", "DELETE", "/session", {})[0] == 302
-    assert (
-        app.fetch(
-            "stale",
-            "PUT",
-            blob["upload_path"],
-            content,
-            {"Cookie": retained, "Content-Type": "image/png"},
-        )[0]
-        == 401
-    )
-    count = app.rows("SELECT count(*) FROM active_storage_blobs")
-    assert (
-        app.fetch(
-            "stale",
-            "POST",
-            "/rails/active_storage/direct_uploads",
-            b"{}",
-            {"Cookie": retained, "Content-Type": "application/json"},
-        )[0]
-        == 401
-    )
-    assert (
-        app.rows("SELECT count(*) FROM active_storage_blobs") == count
-        and file.read_bytes() == content
-    )
-    assert app.fetch("public", "GET", blob["proxy_path"])[3] == content
-
-
-def storage_downloads(app):
-    assert app.login("kevin")[0] == 302
-    content = b"0123456789"
-    blob = allocate_blob(app, content, "audit.png", "image/png")
-    assert (
-        app.fetch(
-            "kevin",
-            "PUT",
-            blob["upload_path"],
-            content,
-            blob["direct_upload"]["headers"],
-        )[0]
-        == 204
-    )
-    redirect = blob["proxy_path"].replace("/proxy/", "/redirect/")
-    status, disk, _, _ = app.fetch("public", "GET", redirect)
-    assert status == 302
-    for path, proxy in (
-        (disk, False),
-        (blob["proxy_path"] + "?disposition=attachment", True),
-    ):
-        status, _, headers, body = app.fetch(
-            "public", "GET", path, headers={"Range": "bytes=1-2"}
-        )
-        assert (
-            status == 206
-            and body == b"12"
-            and headers["Content-Range"] == "bytes 1-2/10"
-        )
-        if proxy:
-            assert headers["Content-Disposition"].startswith("inline;"), (
-                "ranged disposition",
-                headers["Content-Disposition"],
-            )
-        head = app.fetch("public", "HEAD", path, headers={"Range": "bytes=1-2"})
-        assert (
-            head[0] == 206
-            and head[3] == b""
-            and head[2]["Content-Range"] == headers["Content-Range"]
-            and head[2]["Content-Length"] == "2"
-        )
-        status, _, headers, body = app.fetch(
-            "public", "GET", path, headers={"Range": "bytes=99-"}
-        )
-        assert status == 416 and body == (
-            b"" if proxy else b"Byte range unsatisfiable\n"
-        )
-        if not proxy:
-            assert headers["Content-Range"] == "bytes */10"
-        response = app.fetch("public", "GET", path)
-        key, value = (
-            ("If-None-Match", response[2]["ETag"])
-            if proxy
-            else ("If-Modified-Since", response[2]["Last-Modified"])
-        )
-        conditional = app.fetch("public", "GET", path, headers={key: value})
-        assert conditional[0] == 304 and conditional[3] == b""
-    room = app.labels["rooms.designers"]
-    body = app.request("kevin", "GET", f"/rooms/{room}")[2]
-    representation = re.search(
-        r'(?:src|href)="([^"]*/rails/active_storage/representations/redirect/[^"]+)"',
-        body,
-    )
-    assert representation, "missing seeded image representation"
-    path = representation[1].removeprefix(app.base)
-    path = path.replace("/redirect/", "/proxy/") + "?disposition=attachment"
-    status, _, headers, full = app.fetch("public", "GET", path)
-    assert (
-        status == 200
-        and full
-        and headers["Content-Disposition"].startswith("attachment;")
-    ), ("representation", status, dict(headers))
-    status, _, ranged, data = app.fetch(
-        "public", "GET", path, headers={"Range": "bytes=0-1"}
-    )
-    assert status == 200 and data == full and not ranged.get("Content-Range"), (
-        "ranged representation",
-        status,
-        len(data),
-        len(full),
-    )
-    response = app.fetch(
-        "public",
-        "GET",
-        path,
-        headers={"Range": "bytes=99-", "If-None-Match": headers["ETag"]},
-    )
-    assert response[0] == 304 and response[3] == b""
-
-
 WORKFLOWS = {
     "authentication": authentication,
     "direct_ping": direct_ping,
@@ -613,6 +398,8 @@ WORKFLOWS = {
     "room_membership": room_membership,
     "direct_upload": direct_upload,
     "storage_downloads": storage_downloads,
+    "attachment_lifecycle": attachment_lifecycle,
+    "avatar_lifecycle": avatar_lifecycle,
 }
 
 
@@ -650,6 +437,9 @@ def main():
             for name, binary in binaries.items()
         },
         "tool_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "storage_tool_sha256": hashlib.sha256(
+            (ROOT / "bin/parity_storage.py").read_bytes()
+        ).hexdigest(),
         "labels_sha256": hashlib.sha256(
             (args.seed / "labels.json").read_bytes()
         ).hexdigest(),
@@ -695,6 +485,7 @@ def main():
                             {
                                 "pass": False,
                                 "error": str(error) or "contract assertion failed",
+                                "failure_traceback": traceback.format_exc(),
                             }
                         )
                         failed = True
