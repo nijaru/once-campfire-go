@@ -1,0 +1,15 @@
+{
+  "parent_commit": "27324d9",
+  "before_binary_commit": "912e443",
+  "web_baseline_note": "Upload, file-range and media handlers are unchanged between 912e443 and 27324d9. Fail-before Go tests use the 912e443 private worktree; HTTP uses its previously gated binary.",
+  "source_sha256": {
+    "bin/check-parity": "f98e3ed3d35fc927c265985b48649f64fb8c49e5f3a85117868e2f8cb20f000c",
+    "internal/web/uploads.go": "cdc077048afa900e3d374d02119cf3802fed8b46cc9337d49b7fcb98d9b72b4f",
+    "internal/web/file_ranges.go": "5918b2fa789a8b1b54551d992a3d1d7811fbef0976eddfcb7032869d5710499b",
+    "internal/web/media.go": "90ae54a4c728373c85f776d9ebdb31571ab4a18ac6f628ccaafd0a4e03137c1a",
+    "internal/web/storage_policy_test.go": "f82a3d72db138cef19aea6c8e4f7a0e87ae6a5357c413f9f7a74beddb6e1d386",
+    "internal/web/uploads_test.go": "9f62e299b6f9610f3151eef30c695d6a10e298f425676f36b34ae9d2cf4ee843",
+    "internal/web/file_ranges_test.go": "cd5cf7637eec7e8824de65fc748b97c446846d5ca6517b0c80d0931fa544ef42"
+  },
+  "performance_measured": false
+}
