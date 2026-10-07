@@ -98,10 +98,10 @@ func TestSidebarCacheTracksRenderedChanges(t *testing.T) {
 				{Room: database.Room{ID: 1, Name: "Chat", Type: "Rooms::Open"}},
 				{
 					Room:    database.Room{ID: 2, Type: "Rooms::Direct"},
-					Members: []database.User{{ID: 2, Name: "Second Person"}},
+					Members: []database.RoomParticipant{{ID: 2, Name: "Second Person"}},
 				},
 			},
-			Placeholders: []database.User{{ID: 3, Name: "Third Person"}},
+			Placeholders: []database.RoomParticipant{{ID: 3, Name: "Third Person"}},
 		}
 	}
 	render := func(p page) string {
