@@ -390,6 +390,179 @@ def room_membership(app):
     )
 
 
+def room_updates(app):
+    assert app.login("david")[0] == 302
+    name = "Contract preserved name"
+    status, location, _ = app.request(
+        "david", "POST", "/rooms/opens", {"room[name]": name}
+    )
+    assert status == 302 and re.fullmatch(r"/rooms/\d+", location)
+    room = int(location.rsplit("/", 1)[1])
+    state = lambda: app.rows(
+        "SELECT name,type,updated_at FROM rooms WHERE id=?", (room,)
+    )[0]
+    original = state()
+    members = lambda: app.rows(
+        "SELECT user_id FROM memberships WHERE room_id=? ORDER BY user_id", (room,)
+    )
+    original_members = members()
+    for namespace in ("opens", "closeds"):
+        for body, content_type in (
+            (b"", "application/x-www-form-urlencoded"),
+            (b"{}", "application/json"),
+            (b'{"room":{}}', "application/json"),
+            (b'{"room":null}', "application/json"),
+        ):
+            result = app.fetch(
+                "david",
+                "PATCH",
+                f"/rooms/{namespace}/{room}",
+                body,
+                {"Content-Type": content_type},
+            )
+            assert result[0] == 400, (
+                "missing room root",
+                namespace,
+                body.decode(),
+                result[0],
+            )
+            assert state() == original and members() == original_members
+            count = app.rows("SELECT count(*) FROM rooms")[0][0]
+            assert (
+                app.fetch(
+                    "david",
+                    "POST",
+                    f"/rooms/{namespace}",
+                    body,
+                    {"Content-Type": content_type},
+                )[0]
+                == 400
+            )
+            assert app.rows("SELECT count(*) FROM rooms")[0][0] == count
+    assert name in app.request("david", "GET", location)[2]
+    assert name in app.request("david", "GET", "/users/me/sidebar")[2]
+    for method, body, content_type in (
+        ("PATCH", b"room[ignored]=value", "application/x-www-form-urlencoded"),
+        ("PUT", b'{"room":{"ignored":true}}', "application/json"),
+        ("PATCH", b'{"room":{"ignored":{}}}', "application/json"),
+    ):
+        status, destination, _, _ = app.fetch(
+            "david",
+            method,
+            f"/rooms/opens/{room}",
+            body,
+            {"Content-Type": content_type},
+        )
+        assert (status, destination) == (302, location)
+        assert state() == original, ("partial room update", method, state(), original)
+    result = app.request(
+        "david",
+        "POST",
+        f"/rooms/opens/{room}?room[ignored]=query",
+        {"_method": "patch", "room[name]": "must not overwrite"},
+    )
+    assert result[:2] == (302, location) and state() == original, (
+        "method override/query room attributes",
+        result[:2],
+        state(),
+    )
+    david, kevin = (app.labels["users." + actor] for actor in ("david", "kevin"))
+    fields = [("room[ignored]", "value"), ("user_ids[]", david), ("user_ids[]", kevin)]
+    assert app.request("david", "PATCH", f"/rooms/closeds/{room}", fields)[:2] == (
+        302,
+        location,
+    )
+    assert state()[:2] == (name, "Rooms::Closed")
+    assert app.rows(
+        "SELECT user_id FROM memberships WHERE room_id=? ORDER BY user_id", (room,)
+    ) == sorted([(david,), (kevin,)])
+    assert app.request(
+        "david", "PATCH", f"/rooms/opens/{room}", {"room[ignored]": "value"}
+    )[:2] == (302, location)
+    assert state()[:2] == (name, "Rooms::Open")
+    for body, content_type, expected in (
+        (b"room[name]=", "application/x-www-form-urlencoded", ""),
+        (b'{"room":{"name":null}}', "application/json", None),
+        (b'{"room":{"ignored":true}}', "application/json", None),
+        (
+            b'{"room":{"name":"Contract renamed room"}}',
+            "application/json",
+            "Contract renamed room",
+        ),
+    ):
+        assert app.fetch(
+            "david",
+            "PATCH",
+            f"/rooms/opens/{room}",
+            body,
+            {"Content-Type": content_type},
+        )[:2] == (302, location)
+        assert state()[0] == expected, ("explicit/omitted room name", state(), expected)
+    name = state()[0]
+    assert name in app.request("david", "GET", location)[2]
+    assert name in app.request("david", "GET", "/users/me/sidebar")[2]
+    assert app.request("david", "DELETE", location, {})[:2] == (302, "/")
+    for body in (b'{"room":{"ignored":true}}', b'{"room":{"name":null}}'):
+        status, destination, _, _ = app.fetch(
+            "david", "POST", "/rooms/opens", body, {"Content-Type": "application/json"}
+        )
+        assert status == 302
+        created = int(destination.rsplit("/", 1)[1])
+        assert app.rows("SELECT name FROM rooms WHERE id=?", (created,)) == [(None,)]
+        assert app.request("david", "DELETE", destination, {})[:2] == (302, "/")
+
+
+def account_settings(app):
+    assert app.login("david")[0] == 302
+    assert app.login("kevin")[0] == 302
+    setting = "restrict_room_creation_to_administrators"
+    field = f"account[settings][{setting}]"
+    for value, expected in (
+        ("1", True),
+        ("off", False),
+        ("OFF", False),
+        ("f", False),
+        ("F", False),
+        ("FALSE", False),
+        ("false", False),
+        ("0", False),
+        ("Off", True),
+        ("", None),
+    ):
+        assert app.request("david", "PATCH", "/account", {field: value})[:2] == (
+            302,
+            "/account/edit",
+        )
+        stored = json.loads(app.rows("SELECT settings FROM accounts")[0][0])
+        assert stored[setting] is expected, ("boolean account setting", value, stored)
+        assert app.request("kevin", "GET", "/rooms/opens/new")[0] == (
+            403 if expected else 200
+        )
+    css = ":root { --contract-color: red; }"
+    assert app.request(
+        "david", "PATCH", "/account/custom_styles", {"account[custom_styles]": css}
+    )[:2] == (302, "/account/custom_styles/edit")
+    assert app.rows("SELECT custom_styles FROM accounts") == [(css,)]
+    status, _, body = app.request("david", "GET", "/account/custom_styles/edit")
+    assert status == 200 and css in body and "✓" in body
+    assert css in app.request("kevin", "GET", "/users/me/sidebar")[2]
+    assert (
+        app.request(
+            "kevin",
+            "PATCH",
+            "/account/custom_styles",
+            {"account[custom_styles]": "forbidden"},
+        )[0]
+        == 403
+    )
+    assert app.request("kevin", "PATCH", "/account", {field: "1"})[0] == 403
+    assert app.rows("SELECT custom_styles FROM accounts") == [(css,)]
+    assert app.request(
+        "david", "PUT", "/account/custom_styles", {"account[ignored]": "value"}
+    )[:2] == (302, "/account/custom_styles/edit")
+    assert app.rows("SELECT custom_styles FROM accounts") == [(css,)]
+
+
 WORKFLOWS = {
     "authentication": authentication,
     "direct_ping": direct_ping,
@@ -397,6 +570,8 @@ WORKFLOWS = {
     "sidebar": sidebar,
     "message_lifecycle": message_lifecycle,
     "room_membership": room_membership,
+    "room_updates": room_updates,
+    "account_settings": account_settings,
     "direct_upload": direct_upload,
     "storage_downloads": storage_downloads,
     "attachment_lifecycle": attachment_lifecycle,

@@ -43,7 +43,7 @@ func (s *Server) registerStorageRoutes() {
 
 func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
 	attributes := make(map[string]any)
-	if params, ok := r.Context().Value(uploadParamsKey{}).(map[string]any); ok {
+	if params, ok := r.Context().Value(structuredParamsKey{}).(map[string]any); ok {
 		attributes, _ = params["blob"].(map[string]any)
 	} else {
 		// Multipart fields remain flat; JSON and ordered URL-encoded forms use
