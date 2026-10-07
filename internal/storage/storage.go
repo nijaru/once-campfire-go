@@ -23,9 +23,10 @@ import (
 )
 
 type Store struct {
-	DB       *database.DB
-	Verifier rails.Verifier
-	Root     string
+	DB          *database.DB
+	Verifier    rails.Verifier
+	Root        string
+	derivatives derivativeFlights
 }
 type Blob struct {
 	ID          int64           `json:"id"`
@@ -59,7 +60,7 @@ func New(db *database.DB, secrets *rails.Secrets, root string) *Store {
 	if files == "" {
 		files = filepath.Join(root, "files")
 	}
-	return &Store{db, secrets.AppVerifier("ActiveStorage"), files}
+	return &Store{DB: db, Verifier: secrets.AppVerifier("ActiveStorage"), Root: files}
 }
 
 func Key() string {

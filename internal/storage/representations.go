@@ -145,11 +145,20 @@ func (s *Store) Variant(ctx context.Context, b Blob, variation Variation) (Blob,
 		v[0].Value = defaultFormat
 	}
 	digest := v.Digest()
-	if existing, err := s.existingVariant(ctx, b.ID, digest); err == nil {
-		return existing, nil
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return Blob{}, err
+	if existing, err := s.existingVariant(ctx, b.ID, digest); !errors.Is(err, sql.ErrNoRows) {
+		return existing, err
 	}
+	return s.derivative(ctx, derivativeKey{blob: b.ID, digest: digest},
+		func(ctx context.Context) (Blob, error) { return s.existingVariant(ctx, b.ID, digest) },
+		func(ctx context.Context) (Blob, error) { return s.createVariant(ctx, b, v, digest) })
+}
+
+func (s *Store) createVariant(
+	ctx context.Context,
+	b Blob,
+	v Variation,
+	digest string,
+) (Blob, error) {
 	format, err := v.Format()
 	if err != nil {
 		return Blob{}, err
