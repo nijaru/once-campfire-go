@@ -21,11 +21,20 @@ var ffmpegAvailable = sync.OnceValue(
 
 func Previewable(ct string) bool { return strings.HasPrefix(ct, "video") && ffmpegAvailable() }
 func (s *Store) PreviewImage(ctx context.Context, b Blob) (Blob, error) {
-	if image, err := s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image"); err == nil {
-		return image, nil
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return Blob{}, err
+	if image, err := s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image"); !errors.Is(
+		err,
+		sql.ErrNoRows,
+	) {
+		return image, err
 	}
+	return s.derivative(ctx, derivativeKey{blob: b.ID},
+		func(ctx context.Context) (Blob, error) {
+			return s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image")
+		},
+		func(ctx context.Context) (Blob, error) { return s.createPreviewImage(ctx, b) })
+}
+
+func (s *Store) createPreviewImage(ctx context.Context, b Blob) (Blob, error) {
 	if !Previewable(b.Type()) {
 		return Blob{}, errors.New("unpreviewable blob")
 	}
