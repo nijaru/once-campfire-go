@@ -1,0 +1,368 @@
+#!/usr/bin/env python3
+"""Compare observable HTTP workflows and stored state against pinned Rust."""
+
+import argparse
+import hashlib
+import http.cookiejar
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import shutil
+import sqlite3
+import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+loader = importlib.machinery.SourceFileLoader(
+    "upgrade", str(ROOT / "bin/check-upgrade")
+)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+upgrade = importlib.util.module_from_spec(spec)
+loader.exec_module(upgrade)
+
+
+class App:
+    def __init__(self, base, database, labels):
+        self.base, self.database, self.labels = base, database, labels
+        self.trace = []
+        self.clients = {}
+
+    def request(self, actor, method, path, fields=None, frame=None):
+        if actor not in self.clients:
+            self.clients[actor] = urllib.request.build_opener(
+                urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),
+                upgrade.NoRedirect(),
+            )
+        client = self.clients[actor]
+        headers = {
+            "Accept": "text/html",
+            "Accept-Encoding": "identity",
+            "Sec-Fetch-Site": "same-origin",
+        }
+        if frame:
+            headers["Turbo-Frame"] = frame
+        body = None
+        if fields is not None:
+            body = urllib.parse.urlencode(fields).encode()
+            headers.update(
+                {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Origin": self.base,
+                    "Accept": "text/vnd.turbo-stream.html, text/html",
+                }
+            )
+        request = urllib.request.Request(
+            self.base + path, data=body, headers=headers, method=method
+        )
+        try:
+            response = client.open(request, timeout=10)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            body = response.read().decode("utf-8")
+            location = urllib.parse.urlsplit(response.headers.get("Location", ""))
+            destination = location.path + (
+                "?" + location.query if location.query else ""
+            )
+            self.trace.append(
+                {
+                    "actor": actor,
+                    "method": method,
+                    "path": path,
+                    "status": response.status,
+                    "location": destination,
+                    "frame": frame,
+                }
+            )
+            return response.status, destination, body
+
+    def login(self, actor):
+        return self.request(
+            actor,
+            "POST",
+            "/session",
+            {
+                "email_address": self.labels["emails." + actor],
+                "password": self.labels["passwords.all"],
+            },
+        )
+
+    def rows(self, query, args=()):
+        with sqlite3.connect(f"file:{self.database}?mode=ro", uri=True) as db:
+            return db.execute(query, args).fetchall()
+
+
+def authentication(app):
+    room = app.labels["rooms.hq"]
+    status, location, _ = app.request("david", "GET", f"/rooms/{room}")
+    assert (status, location) == (302, "/session/new"), (status, location)
+    status, location, _ = app.login("david")
+    assert (status, location) == (302, f"/rooms/{room}"), (status, location)
+    assert app.request("david", "GET", f"/rooms/{room}")[0] == 200
+    status, _, body = app.request("david", "GET", "/session/new")
+    assert status == 200 and 'name="password"' in body, ("signed-in login form", status)
+    status, _, _ = app.request(
+        "david",
+        "POST",
+        "/session",
+        {
+            "email_address": app.labels["emails.kevin"],
+            "password": app.labels["passwords.all"],
+        },
+    )
+    assert status == 302
+    assert (
+        app.labels["emails.kevin"]
+        in app.request("david", "GET", "/users/me/profile")[2]
+    )
+    assert app.request("david", "DELETE", "/session", {})[:2] == (302, "/")
+    assert app.request("david", "GET", f"/rooms/{room}")[:2] == (302, "/session/new")
+
+
+def direct_ping(app):
+    assert app.login("david")[0] == 302
+    for frame in (None, "direct_rooms_control"):
+        status, _, body = app.request("david", "GET", "/rooms/directs/new", frame=frame)
+        assert (
+            status == 200
+            and 'name="user_ids[]"' in body
+            and 'href="/users/me/sidebar"' in body
+        )
+    rooms_before = app.rows("SELECT count(*) FROM rooms")[0][0]
+    target = f"/rooms/{app.labels['rooms.david_and_kevin']}"
+    missing = app.rows("SELECT max(id)+1 FROM users")[0][0]
+    users = app.labels["users.kevin"], app.labels["users.david"]
+    for selected in ([users[0]], [users[1], users[0], users[0]], [users[0], missing]):
+        fields = [("user_ids[]", user) for user in selected]
+        status, location, _ = app.request("david", "POST", "/rooms/directs", fields)
+        assert (status, location) == (302, target), (selected, status, location, target)
+        assert app.rows("SELECT count(*) FROM rooms")[0][0] == rooms_before
+
+
+def message_ids(body):
+    return [int(value) for value in re.findall(r'data-message-id="([0-9]+)"', body)]
+
+
+def pagination(app):
+    assert app.login("david")[0] == 302
+    room, anchor = app.labels["rooms.watercooler"], app.labels["messages.busy_060"]
+    expected = [
+        row[0]
+        for row in app.rows(
+            "SELECT id FROM messages WHERE room_id=? ORDER BY created_at", (room,)
+        )
+    ]
+    created = app.rows("SELECT created_at FROM messages WHERE id=?", (anchor,))[0][0]
+    for direction, operator, reverse in (("before", "<", True), ("after", ">", False)):
+        ids = [
+            row[0]
+            for row in app.rows(
+                f"SELECT id FROM messages WHERE room_id=? AND created_at {operator} ? ORDER BY created_at {'DESC' if reverse else 'ASC'} LIMIT 40",
+                (room, created),
+            )
+        ]
+        if reverse:
+            ids.reverse()
+        status, _, body = app.request(
+            "david", "GET", f"/rooms/{room}/messages?{direction}={anchor}"
+        )
+        assert status == 200 and message_ids(body) == ids, (
+            direction,
+            status,
+            message_ids(body),
+            ids,
+        )
+        foreign = app.labels["messages.plain"]
+        status, _, _ = app.request(
+            "david", "GET", f"/rooms/{room}/messages?{direction}={foreign}"
+        )
+        assert status == 404, ("foreign cursor", direction, status)
+    status, _, body = app.request("david", "GET", f"/rooms/{room}/messages")
+    assert status == 200 and message_ids(body) == expected[-40:]
+    empty = app.labels["rooms.pets"]
+    status, _, body = app.request("david", "GET", f"/rooms/{empty}/messages")
+    assert status == 204 and body == "", (status, body)
+
+
+def sidebar(app):
+    assert app.login("david")[0] == 302
+    for frame in (None, "user_sidebar"):
+        status, _, body = app.request("david", "GET", "/users/me/sidebar", frame=frame)
+        assert status == 200 and "<html" in body and "<body" in body
+        assert 'id="user_sidebar"' in body and 'id="direct_rooms_control"' in body
+        assert ("<!DOCTYPE html>" in body) == (frame is None)
+        assert ('name="current-user-id"' in body) == (frame is None)
+
+
+def message_lifecycle(app):
+    assert app.login("kevin")[0] == 302
+    assert app.login("jz")[0] == 302
+    room = app.labels["rooms.hq"]
+    route = f"/rooms/{room}/messages"
+    client = "contract-message-client"
+    old, new = "contractneedlealpha", "contractneedlebeta"
+    status, _, body = app.request(
+        "kevin",
+        "POST",
+        route,
+        {"message[body]": f"<p>{old}</p>", "message[client_message_id]": client},
+    )
+    assert status == 200 and 'action="append"' in body
+    stored = app.rows(
+        "SELECT id,creator_id FROM messages WHERE client_message_id=?", (client,)
+    )
+    assert len(stored) == 1 and stored[0][1] == app.labels["users.kevin"], stored
+    message = stored[0][0]
+    path = route + f"/{message}"
+    for method, suffix, fields in (
+        ("GET", "/edit", None),
+        ("PATCH", "", {"message[body]": "forbidden"}),
+        ("DELETE", "", {}),
+    ):
+        assert app.request("jz", method, path + suffix, fields)[0] == 403
+    status, _, body = app.request("kevin", "GET", path + "/edit")
+    assert status == 200 and 'name="message[body]"' in body and 'value="patch"' in body
+    assert app.request("kevin", "GET", path)[0] == 200
+    # Warm the reads before mutation: a stale result cache cannot pass this flow.
+    for route in (f"/rooms/{room}", path, f"/searches?q={old}"):
+        assert old in app.request("kevin", "GET", route)[2]
+    assert app.request("kevin", "PATCH", path, {"message[body]": f"<p>{new}</p>"})[
+        :2
+    ] == (302, path)
+    for route in (f"/rooms/{room}", path, f"/searches?q={new}"):
+        assert new in app.request("kevin", "GET", route)[2]
+    assert message not in message_ids(
+        app.request("kevin", "GET", f"/searches?q={old}")[2]
+    )
+    assert app.rows(
+        "SELECT rowid FROM message_search_index WHERE message_search_index MATCH ?",
+        (new,),
+    ) == [(message,)]
+    assert app.request("kevin", "DELETE", path, {})[0] == 200
+    assert app.rows("SELECT id FROM messages WHERE id=?", (message,)) == []
+    assert (
+        app.rows(
+            "SELECT id FROM action_text_rich_texts WHERE record_type='Message' AND record_id=?",
+            (message,),
+        )
+        == []
+    )
+    assert (
+        app.rows("SELECT rowid FROM message_search_index WHERE rowid=?", (message,))
+        == []
+    )
+    assert app.request("kevin", "GET", path)[0] == 404
+
+
+WORKFLOWS = {
+    "authentication": authentication,
+    "direct_ping": direct_ping,
+    "pagination": pagination,
+    "sidebar": sidebar,
+    "message_lifecycle": message_lifecycle,
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--rust-root", type=Path, default=ROOT / "reference")
+    parser.add_argument("--seed", type=Path, required=True)
+    parser.add_argument("--go-binary", type=Path, default=ROOT / "campfire")
+    parser.add_argument("--rust-binary", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--only", choices=WORKFLOWS, nargs="+", default=list(WORKFLOWS))
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=False)
+    labels = json.loads((args.seed / "labels.json").read_text())
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("CAMPFIRE_", "THRUSTER_")) and key != "TLS_DOMAIN"
+    }
+    for line in (args.rust_root / "parity/.env.reference").read_text().splitlines():
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            env[key] = value
+    env.update(
+        DISABLE_SSL="true",
+        TARGET_BIND="127.0.0.1",
+        GOMAXPROCS="4",
+        TOKIO_WORKER_THREADS="4",
+    )
+    binaries = {"rust": args.rust_binary.resolve(), "go": args.go_binary.resolve()}
+    report = {
+        "scope": "Functional HTTP and persisted-state contracts, not exact HTML or JavaScript parity",
+        "binaries": {
+            name: hashlib.sha256(binary.read_bytes()).hexdigest()
+            for name, binary in binaries.items()
+        },
+        "tool_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "labels_sha256": hashlib.sha256(
+            (args.seed / "labels.json").read_bytes()
+        ).hexdigest(),
+        "runs": [],
+    }
+    failed = False
+    for name in args.only:
+        for implementation, binary in binaries.items():
+            with tempfile.TemporaryDirectory(
+                prefix="contract-", dir=args.out
+            ) as temporary:
+                work = Path(temporary)
+                database = work / "database.sqlite3"
+                with (
+                    sqlite3.connect(
+                        f"file:{args.seed}/db/production.sqlite3?mode=ro", uri=True
+                    ) as source,
+                    sqlite3.connect(database) as destination,
+                ):
+                    source.backup(destination)
+                shutil.copytree(args.seed / "storage", work / "files")
+                environment = env | {
+                    "CAMPFIRE_DATABASE_PATH": str(database),
+                    "CAMPFIRE_STORAGE_PATH": str(work),
+                    "CAMPFIRE_FILES_PATH": str(work / "files"),
+                }
+                result = {
+                    "workflow": name,
+                    "implementation": implementation,
+                    "seed_snapshot_sha256": hashlib.sha256(
+                        database.read_bytes()
+                    ).hexdigest(),
+                }
+                with upgrade.server(
+                    binary, environment, args.out, implementation + "-" + name
+                ) as base:
+                    app = App(base, database, labels)
+                    try:
+                        WORKFLOWS[name](app)
+                        result["pass"] = True
+                    except (AssertionError, urllib.error.URLError) as error:
+                        result.update(
+                            {
+                                "pass": False,
+                                "error": str(error) or "contract assertion failed",
+                            }
+                        )
+                        failed = True
+                    result["requests"] = app.trace
+                report["runs"].append(result)
+                print(
+                    implementation,
+                    name,
+                    "PASS" if result["pass"] else "FAIL: " + result["error"],
+                    flush=True,
+                )
+                (args.out / "report.json").write_text(
+                    json.dumps(report, indent=2) + "\n"
+                )
+    return int(failed)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

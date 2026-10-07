@@ -566,9 +566,6 @@ func (s *Server) hasAccount(ctx context.Context) (bool, error) {
 }
 
 func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
-	if !s.requireUnauthenticated(w, r) {
-		return
-	}
 	exists, err := s.hasAccount(r.Context())
 	if err != nil {
 		s.fail(w, err)
@@ -616,9 +613,6 @@ func (s *Server) allowLogin(ip string) bool {
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	if !s.requireUnauthenticated(w, r) {
-		return
-	}
 	if !s.allowLogin(remoteIP(r)) {
 		s.render(
 			w,

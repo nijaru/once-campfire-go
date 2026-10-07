@@ -1,12 +1,27 @@
 package web
 
 import (
+	"context",
+	"io",
+	"net/http",
+	"net/http/cookiejar",
+	"net/url",
+	"regexp",
+	"strings",
+	"testing",
+	"time",
+	"github.com/basecamp/once-campfire-go/internal/database",
+	"github.com/basecamp/once-campfire-go/internal/rails",
+	"golang.org/x/crypto/bcrypt",
+)
+
+import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -54,13 +69,21 @@ func TestEncryptedLoginReturnAndSessionRefresh(t *testing.T) {
 	if state["return_to_after_authenticating"] != server.URL+"/rooms/1?test=return" {
 		t.Fatal(state)
 	}
-	response = request("POST", "/session", url.Values{"email_address": {user.Email}, "password": {"correct horse"}}.Encode())
-	if response.StatusCode != 302 || response.Header.Get("Location") != server.URL+"/rooms/1?test=return" {
+	response = request(
+		"POST",
+		"/session",
+		url.Values{"email_address": {user.Email}, "password": {"correct horse"}}.Encode(),
+	)
+	if response.StatusCode != 302 ||
+		response.Header.Get("Location") != server.URL+"/rooms/1?test=return" {
 		t.Fatal(response.Status, response.Header)
 	}
 	response = request("GET", "/rooms/1", "")
 	if response.StatusCode != 200 {
 		t.Fatal(response.Status)
+	}
+	if response := request("GET", "/session/new", ""); response.StatusCode != 200 {
+		t.Fatalf("signed-in login form: %s", response.Status)
 	}
 	for _, c := range response.Cookies() {
 		if c.Name == "session_token" || c.Name == browserSessionCookie {
@@ -95,6 +118,60 @@ func TestEncryptedLoginReturnAndSessionRefresh(t *testing.T) {
 	response = request("GET", "/rooms/1", "")
 	if response.StatusCode != 302 {
 		t.Fatal("logout did not revoke session")
+	}
+}
+
+func TestSignedInLoginCanChangeUser(t *testing.T) {
+	app, server, cookie, _ := testApp(t)
+	digest, err := bcrypt.GenerateFromPassword([]byte("other password"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := app.DB.CreateUser(
+		context.Background(),
+		"Other",
+		"other@example.test",
+		string(digest),
+		"",
+		0,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := url.Values{"email_address": {other.Email}, "password": {"other password"}}.Encode()
+	response, data := perform(
+		t,
+		server,
+		"POST",
+		"/session",
+		"application/x-www-form-urlencoded",
+		strings.NewReader(body),
+		cookie,
+	)
+	if response.StatusCode != 302 {
+		t.Fatalf("sign in as another user: %s %s", response.Status, data)
+	}
+	var switched *http.Cookie
+	for _, c := range response.Cookies() {
+		if c.Name == "session_token" {
+			switched = c
+		}
+	}
+	if switched == nil {
+		t.Fatal("authenticated sign-in did not issue the new user's cookie")
+	}
+	response, data = perform(t, server, "GET", "/users/me/profile", "", nil, switched)
+	if response.StatusCode != 200 ||
+		!strings.Contains(
+			string(data),
+			fmt.Sprintf(`<meta name="current-user-id" content="%d">`, other.ID),
+		) {
+		t.Fatalf(
+			"subsequent request did not authenticate the new user: %s %s",
+			response.Status,
+			data,
+		)
 	}
 }
 
