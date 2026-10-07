@@ -88,6 +88,18 @@ func parseJSONParams(r *http.Request) error {
 		delete(nulls, key)
 	}
 	*r = *r.WithContext(context.WithValue(r.Context(), nullParamsKey{}, nulls))
+	if route, _, _ := recognize(r.Method, r.URL.EscapedPath()); route != nil &&
+		route.Action == "active_storage::direct_uploads_create" {
+		params := uploadJSONValue(value).(map[string]any)
+		query, err := uploadFormTree(r.URL.RawQuery)
+		if err != nil {
+			return err
+		}
+		for key, value := range query {
+			params[key] = value
+		}
+		*r = *r.WithContext(context.WithValue(r.Context(), uploadParamsKey{}, params))
+	}
 	return nil
 }
 
