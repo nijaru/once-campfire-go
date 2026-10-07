@@ -70,7 +70,8 @@ func grant(ctx context.Context, tx *sql.Tx, room, user int64, involvement, now s
 func (d *DB) CreateRoom(
 	ctx context.Context,
 	creator int64,
-	kind, name string,
+	kind string,
+	name *sql.NullString,
 	users []int64,
 ) (Room, error) {
 	var room Room
@@ -176,19 +177,33 @@ func (d *DB) CreateRoom(
 	return room, err
 }
 
-func (d *DB) UpdateRoom(ctx context.Context, id int64, kind, name string, users []int64) error {
+func (d *DB) UpdateRoom(
+	ctx context.Context,
+	id int64,
+	kind string,
+	name *sql.NullString,
+	users []int64,
+) error {
 	var revoked []int64
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
 		var old string
-		if err := tx.QueryRowContext(ctx, "SELECT type FROM rooms WHERE id=?", id).Scan(&old); err != nil {
+		var oldName sql.NullString
+		if err := tx.QueryRowContext(ctx, "SELECT type,name FROM rooms WHERE id=?", id).Scan(&old, &oldName); err != nil {
 			return err
 		}
 		if old == "Rooms::Direct" || kind != "Rooms::Open" && kind != "Rooms::Closed" {
 			return ErrForbidden
 		}
 		now := Stamp(d.Now())
-		if _, err := tx.ExecContext(ctx, "UPDATE rooms SET type=?,name=?,updated_at=? WHERE id=?", kind, name, now, id); err != nil {
-			return err
+		// Resolve omitted attributes in this transaction, not from a stale web read.
+		nextName := oldName
+		if name != nil {
+			nextName = *name
+		}
+		if kind != old || nextName != oldName {
+			if _, err := tx.ExecContext(ctx, "UPDATE rooms SET type=?,name=?,updated_at=? WHERE id=?", kind, nextName, now, id); err != nil {
+				return err
+			}
 		}
 		if kind == "Rooms::Open" && old != kind {
 			_, err := tx.ExecContext(

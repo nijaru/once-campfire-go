@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -86,7 +87,13 @@ func TestEncryptedLoginReturnAndSessionRefresh(t *testing.T) {
 	if !refreshed {
 		t.Fatal("missing hourly cookie refresh")
 	}
-	room, err := app.DB.CreateRoom(ctx, user.ID, "Rooms::Open", "Second", nil)
+	room, err := app.DB.CreateRoom(
+		ctx,
+		user.ID,
+		"Rooms::Open",
+		&sql.NullString{String: "Second", Valid: true},
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

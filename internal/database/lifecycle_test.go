@@ -27,7 +27,7 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 		ctx,
 		owner.ID,
 		"Rooms::Closed",
-		"Private",
+		&sql.NullString{String: "Private", Valid: true},
 		[]int64{owner.ID, member.ID},
 	)
 	if err != nil {
@@ -108,26 +108,32 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	room, err := d.CreateRoom(ctx, owner.ID, "Rooms::Open", "Shared", nil)
+	room, err := d.CreateRoom(
+		ctx,
+		owner.ID,
+		"Rooms::Open",
+		&sql.NullString{String: "Shared", Valid: true},
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.Room(ctx, member.ID, room.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err = d.UpdateRoom(ctx, room.ID, "Rooms::Closed", "Private", []int64{owner.ID}); err != nil {
+	if err = d.UpdateRoom(ctx, room.ID, "Rooms::Closed", &sql.NullString{String: "Private", Valid: true}, []int64{owner.ID}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.Room(ctx, member.ID, room.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("revoked room access: %v", err)
 	}
-	if err = d.UpdateRoom(ctx, room.ID, "Rooms::Open", "Shared", nil); err != nil {
+	if err = d.UpdateRoom(ctx, room.ID, "Rooms::Open", &sql.NullString{String: "Shared", Valid: true}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.Room(ctx, member.ID, room.ID); err != nil {
 		t.Fatal(err)
 	}
-	direct, err := d.CreateRoom(ctx, owner.ID, "Rooms::Direct", "", []int64{member.ID})
+	direct, err := d.CreateRoom(ctx, owner.ID, "Rooms::Direct", nil, []int64{member.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +142,7 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 		{owner.ID, owner.ID, member.ID},
 		{owner.ID, member.ID + 1}, // Nonexistent users do not change the selected set.
 	} {
-		same, err := d.CreateRoom(ctx, member.ID, "Rooms::Direct", "", selected)
+		same, err := d.CreateRoom(ctx, member.ID, "Rooms::Direct", nil, selected)
 		if err != nil || same.ID != direct.ID {
 			t.Fatalf("direct ping for %v: %+v, %v", selected, same, err)
 		}

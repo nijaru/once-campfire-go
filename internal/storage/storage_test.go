@@ -156,8 +156,14 @@ func TestTrackedVariantIsReusable(t *testing.T) {
 	variation := Resize(128, 128, "webp")
 	results := make(chan Blob, 2)
 	failures := make(chan error, 2)
-	for range 2 {
-		go func() { result, err := store.Variant(ctx, b, variation); results <- result; failures <- err }()
+	// Separate stores and SQLite connections cannot share derivative flights.
+	otherDB, err := database.Open(filepath.Join(root, "test.sqlite3"), 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer otherDB.Close()
+	for _, competing := range []*Store{store, New(otherDB, secrets, root)} {
+		go func() { result, err := competing.Variant(ctx, b, variation); results <- result; failures <- err }()
 	}
 	first, second := <-results, <-results
 	for range 2 {

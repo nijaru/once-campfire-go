@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -163,15 +164,63 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 	)
 }
 
+// Strong room attributes distinguish omitted names, explicit null, and empty text.
+func roomName(r *http.Request) (*sql.NullString, error) {
+	params, ok := r.Context().Value(structuredParamsKey{}).(map[string]any)
+	if !ok {
+		var err error
+		params, err = formTree(r.Form.Encode())
+		if err != nil {
+			return nil, err
+		}
+	}
+	room := params["room"]
+	switch value := room.(type) {
+	case nil:
+		return nil, fmt.Errorf("missing room parameter")
+	case string:
+		if strings.TrimSpace(value) == "" {
+			return nil, fmt.Errorf("missing room parameter")
+		}
+	case []any:
+		if len(value) == 0 {
+			return nil, fmt.Errorf("missing room parameter")
+		}
+	case map[string]any:
+		if len(value) == 0 {
+			return nil, fmt.Errorf("missing room parameter")
+		}
+		name, submitted := value["name"]
+		if !submitted {
+			return nil, nil
+		}
+		switch name := name.(type) {
+		case string:
+			return &sql.NullString{String: name, Valid: true}, nil
+		case nil, bool, json.Number:
+			return &sql.NullString{}, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.User) {
 	kind := namespaceKind(r)
 	id := roomID(r)
 	updating := id != 0
-	name := r.Form.Get("room[name]")
 	if id == 0 {
 		if err := s.canCreateRoom(r.Context(), u, kind); err != nil {
 			s.fail(w, err)
 			return
+		}
+		var name *sql.NullString
+		if kind != "Rooms::Direct" {
+			var err error
+			name, err = roomName(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
 		}
 		room, err := s.DB.CreateRoom(r.Context(), u.ID, kind, name, roomUsers(r))
 		if err != nil {
@@ -191,6 +240,11 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 		}
 		if u.Role != 1 && room.CreatorID != u.ID {
 			s.fail(w, database.ErrForbidden)
+			return
+		}
+		name, err := roomName(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		if err = s.DB.UpdateRoom(r.Context(), id, kind, name, roomUsers(r)); err != nil {
