@@ -25,6 +25,18 @@ type User struct {
 	Role, Status          int
 }
 
+// RoomParticipant is the owned display data for a ping or sidebar placeholder.
+// Credentials, profile text and authorization state remain in User.
+type RoomParticipant struct {
+	ID        int64
+	Name      string
+	UpdatedAt time.Time
+}
+
+func (u User) Participant() RoomParticipant {
+	return RoomParticipant{ID: u.ID, Name: u.Name, UpdatedAt: u.UpdatedAt}
+}
+
 func (u User) Title() string {
 	parts := []string{}
 	for _, value := range []string{u.Name, u.Bio} {

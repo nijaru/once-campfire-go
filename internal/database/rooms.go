@@ -379,11 +379,12 @@ func (d *DB) OriginalRoom(ctx context.Context, user int64) (int64, error) {
 	return id, err
 }
 
-// SidebarRoom loads membership state alongside the room, avoiding per-room queries.
+// SidebarRoom owns current membership state and retained direct participants.
 type SidebarRoom struct {
 	Room
 	Involvement string
 	Unread      bool
+	Members     []RoomParticipant
 }
 
 func (d *DB) SidebarRooms(ctx context.Context, user int64) ([]SidebarRoom, error) {
@@ -403,6 +404,45 @@ func (d *DB) SidebarRooms(ctx context.Context, user int64) ([]SidebarRoom, error
 			return nil, err
 		}
 		rooms = append(rooms, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	positions := make(map[int64]int)
+	var directIDs []int64
+	for i, room := range rooms {
+		if room.Type == "Rooms::Direct" {
+			positions[room.ID] = i
+			directIDs = append(directIDs, room.ID)
+		}
+	}
+	if len(directIDs) == 0 {
+		return rooms, nil
+	}
+	selected, err := json.Marshal(directIDs)
+	if err != nil {
+		return nil, err
+	}
+	// Hydrate the retained room set, just as individual RoomMembers reads did.
+	// Rechecking viewer visibility here could turn a concurrently hidden ping
+	// into a self-ping. Room entry still performs its own fresh authorization.
+	rows, err = d.Read.QueryContext(ctx, `
+SELECT m.room_id,u.id,u.name,u.updated_at
+FROM memberships m JOIN users u ON u.id=m.user_id
+WHERE m.room_id IN (SELECT value FROM json_each(?))
+ORDER BY m.room_id,m.user_id`, string(selected))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var room int64
+		var participant RoomParticipant
+		if err := rows.Scan(&room, &participant.ID, &participant.Name, timestamp{&participant.UpdatedAt}); err != nil {
+			return nil, err
+		}
+		i := positions[room]
+		rooms[i].Members = append(rooms[i].Members, participant)
 	}
 	return rooms, rows.Err()
 }

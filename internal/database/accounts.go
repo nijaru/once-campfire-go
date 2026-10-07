@@ -399,42 +399,46 @@ func (d *DB) RoomMembers(ctx context.Context, room int64) ([]User, error) {
 	return usersRows(rows)
 }
 
-func (d *DB) DirectPlaceholders(ctx context.Context, user int64) ([]User, error) {
+func (d *DB) RoomParticipants(ctx context.Context, room int64) ([]RoomParticipant, error) {
 	rows, err := d.Read.QueryContext(
 		ctx,
-		"SELECT DISTINCT user_id FROM memberships WHERE room_id IN (SELECT r.id FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE r.type='Rooms::Direct' AND m.user_id=?)",
-		user,
+		"SELECT u.id,u.name,u.updated_at FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=? ORDER BY m.user_id",
+		room,
 	)
 	if err != nil {
 		return nil, err
 	}
-	ids := []any{}
+	return participantsRows(rows)
+}
+
+func (d *DB) DirectPlaceholders(ctx context.Context, user int64) ([]RoomParticipant, error) {
+	// Exclusions include invisible directs and inactive participants. Appending
+	// the viewer consumes one slot even when they are already in the distinct set.
+	rows, err := d.Read.QueryContext(ctx, `
+WITH excluded AS MATERIALIZED (
+ SELECT DISTINCT user_id FROM memberships WHERE room_id IN (
+  SELECT r.id FROM rooms r JOIN memberships m ON m.room_id=r.id
+  WHERE r.type='Rooms::Direct' AND m.user_id=?
+ )
+)
+SELECT u.id,u.name,u.updated_at FROM users u
+WHERE u.status=0 AND u.id!=? AND u.id NOT IN (SELECT user_id FROM excluded)
+ORDER BY u.created_at ASC LIMIT max(0,19-(SELECT count(*) FROM excluded))`, user, user)
+	if err != nil {
+		return nil, err
+	}
+	return participantsRows(rows)
+}
+
+func participantsRows(rows *sql.Rows) ([]RoomParticipant, error) {
+	defer rows.Close()
+	var participants []RoomParticipant
 	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			rows.Close()
+		var participant RoomParticipant
+		if err := rows.Scan(&participant.ID, &participant.Name, timestamp{&participant.UpdatedAt}); err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		participants = append(participants, participant)
 	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return nil, err
-	}
-	ids = append(ids, user)
-	marks := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
-	rows, err = d.Read.QueryContext(
-		ctx,
-		fmt.Sprintf(
-			"SELECT %s FROM users u WHERE u.status=0 AND u.id NOT IN (%s) ORDER BY u.created_at ASC LIMIT %d",
-			userColumns,
-			marks,
-			max(0, 20-len(ids)),
-		),
-		ids...)
-	if err != nil {
-		return nil, err
-	}
-	return usersRows(rows)
+	return participants, rows.Err()
 }
