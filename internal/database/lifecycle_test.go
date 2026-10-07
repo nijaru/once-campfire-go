@@ -23,7 +23,13 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	room, err := d.CreateRoom(ctx, owner.ID, "Rooms::Closed", "Private", []int64{owner.ID, member.ID})
+	room, err := d.CreateRoom(
+		ctx,
+		owner.ID,
+		"Rooms::Closed",
+		"Private",
+		[]int64{owner.ID, member.ID},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,10 +40,16 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	if _, err = d.ReachableMessage(ctx, outsider.ID, message.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("private message: %v", err)
 	}
-	if _, err = d.CreateBoost(ctx, outsider.ID, message.ID, "hidden"); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = d.CreateBoost(ctx, outsider.ID, message.ID, "hidden"); !errors.Is(
+		err,
+		sql.ErrNoRows,
+	) {
 		t.Fatalf("private boost: %v", err)
 	}
-	if _, err = d.UpdateMessage(ctx, outsider.ID, message.ID, "hidden", "hidden"); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = d.UpdateMessage(ctx, outsider.ID, message.ID, "hidden", "hidden"); !errors.Is(
+		err,
+		sql.ErrNoRows,
+	) {
 		t.Fatalf("private edit: %v", err)
 	}
 	other, err := d.CreateMessage(ctx, owner.ID, room.ID, "", "admin message", "admin message")
@@ -84,6 +96,7 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 		t.Fatal(boosts, err)
 	}
 }
+
 func TestRoomConversionAndDeactivation(t *testing.T) {
 	d := testDB(t)
 	ctx := context.Background()
@@ -118,9 +131,15 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	same, err := d.CreateRoom(ctx, member.ID, "Rooms::Direct", "", []int64{owner.ID, member.ID})
-	if err != nil || same.ID != direct.ID {
-		t.Fatal(same, err)
+	for _, selected := range [][]int64{
+		{owner.ID, member.ID},
+		{owner.ID, owner.ID, member.ID},
+		{owner.ID, member.ID + 1}, // Nonexistent users do not change the selected set.
+	} {
+		same, err := d.CreateRoom(ctx, member.ID, "Rooms::Direct", "", selected)
+		if err != nil || same.ID != direct.ID {
+			t.Fatalf("direct ping for %v: %+v, %v", selected, same, err)
+		}
 	}
 	token, err := d.StartSession(ctx, member.ID, "test", "127.0.0.1")
 	if err != nil {
@@ -139,6 +158,7 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 		t.Fatalf("direct history should remain: %v", err)
 	}
 }
+
 func TestMessagePaginationAndRefresh(t *testing.T) {
 	d := testDB(t)
 	ctx := context.Background()

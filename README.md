@@ -67,12 +67,24 @@ the image provides ONCE's `/hooks/pre-backup` and `/hooks/post-restore` hooks.
 bin/check                              # gofmt, assets, vet, all tests with the race detector
 bin/check-assets                       # asset digests/importmap
 bin/check-upgrade --rust-root ../once-campfire-rust
+bin/check-parity --seed /path/to/parity-seed --go-binary ./campfire \
+  --rust-binary /path/to/rust/campfire --out .cache/contracts
 node bin/check-browser.mjs
 bin/check-screens --out .cache/screens --only '**'
 bin/check-acme
 bin/check-container --image once-campfire-go:verification
 ```
 
+`bin/check-parity` compares authentication, direct-ping reuse, pagination, sidebar documents and
+message creation/editing/deletion against pinned Rust. Supply a prepared parity seed and binaries
+built for the same host. Each workflow uses a fresh SQLite backup, including WAL state, and a copy
+of seeded storage. It checks HTTP behavior, controls, authorization, fresh reads and committed
+message/FTS state, not byte-identical HTML or internal implementation details. Reports include
+binary, tool and seed-snapshot hashes; failures remain visible and produce a nonzero exit status.
+It does not cover uploads, membership revocation, JavaScript, Cable delivery or crash durability.
+
+The browser smoke accepts `GO_BINARY`, `PLAYWRIGHT_ROOT` and `CHROMIUM_EXECUTABLE` overrides;
+otherwise it uses the local `campfire` binary and the Rust checkout's installed Playwright.
 The browser/upgrade tools use the Rust checkout's parity seed and installed Playwright. Screen
 comparison runs both binaries on disposable copies of each seed, recording their hashes and keeping
 the original parity masks. Reports distinguish screenshots, accessibility, server/live DOM, network
