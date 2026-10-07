@@ -1,28 +1,66 @@
 package web
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"strings"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
-// Cache only the frame, not the application/Turbo-Frame layout. The renderer
-// reads the account, flash, request mode and user profile afresh for that layout.
-func (s *Server) sidebarHTML(p page) (template.HTML, error) {
-	key := sidebarCacheKey(p)
-	if fragment, ok := s.fragments.get(key); ok {
-		return fragment, nil
+type sidebarShellPage struct {
+	layoutShellPage
+	SidebarHTML template.HTML
+}
+
+// Memberships and layout observations are read afresh before selecting parts.
+// Frame and surrounding bytes have independent identities: a profile, flash or
+// account change replaces the layout without rendering an unchanged frame again.
+func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
+	frameKey := sidebarCacheKey(p)
+	frame, ok := s.fragments.entry(frameKey)
+	if !ok {
+		html, err := s.markup("sidebar-frame", p)
+		if err != nil {
+			return nil, err
+		}
+		frame = s.fragments.putEntry(fragmentEntry{
+			key: frameKey, part: responsebody.NewPart([]byte(html)),
+		})
 	}
-	html, err := s.markup("sidebar-frame", p)
+
+	input := sidebarShellPage{layoutShellPage: shellPage(p)}
+	raw, err := json.Marshal(input)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	fragment := template.HTML(html)
-	s.fragments.put(key, fragment)
-	return fragment, nil
+	key := fmt.Sprintf("sidebar-shell/%x", sha256.Sum256(raw))
+	entry, ok := s.fragments.entry(key)
+	if !ok {
+		marker := "\x00campfire-" + rand.Text() + "\x00"
+		input.SidebarHTML = template.HTML(marker)
+		b := borrowBuffer()
+		defer releaseBuffer(b)
+		if err := s.templates.ExecuteTemplate(b, "sidebar", input); err != nil {
+			return nil, err
+		}
+		rendered := b.String()
+		before, after, found := strings.Cut(rendered, marker)
+		if !found || strings.Count(rendered, marker) != 1 {
+			return nil, fmt.Errorf("sidebar template must contain one frame insertion point")
+		}
+		entry = s.fragments.putEntry(fragmentEntry{key: key, shell: &templateShell{
+			parts: []responsebody.Part{
+				responsebody.NewPart([]byte(before)), responsebody.NewPart([]byte(after)),
+			},
+			bytes: len(before) + len(after),
+		}})
+	}
+	return []responsebody.Part{entry.shell.parts[0], frame.part, entry.shell.parts[1]}, nil
 }
 
 // Key every value the sidebar frame reads. Authorization and membership data

@@ -71,7 +71,6 @@ type page struct {
 	messageBody    *responsebody.Part
 
 	MessagesHTML                 template.HTML
-	SidebarHTML                  template.HTML
 	Version                      string
 	UserDivider                  int
 	BackPath                     string
@@ -489,11 +488,14 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 		p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
 	}
 	if name == "sidebar" {
-		p.SidebarHTML, err = s.sidebarHTML(p)
+		parts, err := s.sidebarParts(p)
 		if err != nil {
 			s.fail(w, err)
 			return
 		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		writeParts(w, status, parts)
+		return
 	}
 	b := borrowBuffer()
 	defer releaseBuffer(b)
