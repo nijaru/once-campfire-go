@@ -1,14 +1,97 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
+
+func TestAccountLogoURLsTrackReplacementAndDeletion(t *testing.T) {
+	app, server, cookie, _ := testApp(t)
+	ctx := context.Background()
+	check := func() (string, []byte) {
+		t.Helper()
+		account, err := app.DB.Account(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := "/account/logo?v=" + account.UpdatedAt.UTC().Format("20060102150405")
+		for _, name := range []string{"join", "account", "room-invitation"} {
+			body, err := app.markup(name, page{Account: account, User: database.User{Role: 0}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(body, `src="`+path+`"`) {
+				t.Errorf("%s: logo URL does not track account version %s", name, path)
+			}
+		}
+		response, body := perform(t, server, "GET", path, "", nil, nil)
+		if response.StatusCode != http.StatusOK ||
+			!strings.Contains(response.Header.Get("Cache-Control"), "max-age=300") {
+			t.Fatalf("cacheable logo: %s %v", response.Status, response.Header)
+		}
+		return path, body
+	}
+	beforePath, before := check()
+	account, err := app.DB.Account(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := account.UpdatedAt.Add(time.Second)
+	app.DB.Now = func() time.Time { return now }
+	fixture, err := os.ReadFile("../../reference/reference/test/fixtures/files/moon.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload bytes.Buffer
+	form := multipart.NewWriter(&payload)
+	file, err := form.CreateFormFile("account[logo]", "moon.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Write(fixture); err != nil {
+		t.Fatal(err)
+	}
+	if err := form.Close(); err != nil {
+		t.Fatal(err)
+	}
+	response, body := perform(
+		t,
+		server,
+		"PATCH",
+		"/account",
+		form.FormDataContentType(),
+		&payload,
+		cookie,
+	)
+	if response.StatusCode != http.StatusFound {
+		t.Fatalf("replace logo: %s %s", response.Status, body)
+	}
+	afterPath, after := check()
+	if afterPath == beforePath || bytes.Equal(before, after) {
+		t.Fatal("replacement did not invalidate the cacheable logo URL and bytes")
+	}
+	// Both mutations occur within the old response's five-minute freshness window.
+	now = now.Add(time.Second)
+	response, body = perform(t, server, "DELETE", "/account/logo", "", nil, cookie)
+	if response.StatusCode != http.StatusFound {
+		t.Fatalf("delete logo: %s %s", response.Status, body)
+	}
+	deletedPath, deleted := check()
+	if deletedPath == afterPath || !bytes.Equal(deleted, before) {
+		t.Fatal("deletion did not select a fresh URL for the fallback logo")
+	}
+}
 
 func TestAccountSettingBooleanCasting(t *testing.T) {
 	app, server, cookie, _ := testApp(t)

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -97,13 +98,26 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 		return
 	}
 	room.Type = kind
-	users, err := s.DB.Users(r.Context(), 0, false)
+	var users []database.User
+	if kind == "Rooms::Direct" {
+		if room.ID != 0 {
+			users, err = s.DB.RoomMembers(r.Context(), room.ID)
+			if len(users) > 1 {
+				users = slices.DeleteFunc(
+					users,
+					func(member database.User) bool { return member.ID == u.ID },
+				)
+			}
+		}
+	} else {
+		users, err = s.DB.Users(r.Context(), 0, false)
+	}
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
 	selected := map[int64]bool{u.ID: true}
-	if room.ID != 0 {
+	if room.ID != 0 && kind != "Rooms::Direct" {
 		members, err := s.DB.Users(r.Context(), room.ID, false)
 		if err != nil {
 			s.fail(w, err)
@@ -131,19 +145,6 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 		users = ordered
 		if divider == len(users) {
 			divider = 0
-		}
-	}
-	if room.ID != 0 && kind == "Rooms::Direct" {
-		members, e := s.DB.RoomMembers(r.Context(), room.ID)
-		if e != nil {
-			s.fail(w, e)
-			return
-		}
-		users = nil
-		for _, member := range members {
-			if len(members) == 1 || member.ID != u.ID {
-				users = append(users, member)
-			}
 		}
 	}
 	s.render(
@@ -341,7 +342,7 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "involvement", 200, page{User: u, Room: room, Involvement: value})
+	s.render(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
 }
 
 func (s *Server) roomAt(w http.ResponseWriter, r *http.Request, u database.User) {

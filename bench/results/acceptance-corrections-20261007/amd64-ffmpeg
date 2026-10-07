@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+root=/cache/parity-acceptance/ffmpeg-amd64/root
+exec "$root/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" --library-path "$root/usr/lib/x86_64-linux-gnu:$root/usr/lib/x86_64-linux-gnu/pulseaudio:$root/usr/lib/x86_64-linux-gnu/blas:$root/usr/lib/x86_64-linux-gnu/lapack" "$root/usr/bin/ffmpeg" "$@"

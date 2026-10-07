@@ -300,20 +300,24 @@ func (d *DB) DeleteRoom(ctx context.Context, id int64) error {
 }
 
 func (d *DB) Involvement(ctx context.Context, user, room int64) (string, error) {
-	var value string
+	var value sql.NullString
 	err := d.Read.QueryRowContext(ctx, "SELECT involvement FROM memberships WHERE user_id=? AND room_id=?", user, room).
 		Scan(&value)
-	return value, err
+	return value.String, err
 }
 
 func (d *DB) SetInvolvement(ctx context.Context, user, room int64, value string) error {
-	if !slices.Contains([]string{"invisible", "nothing", "mentions", "everything"}, value) {
-		return ErrValidation
+	var stored any
+	if strings.TrimSpace(value) != "" {
+		if !slices.Contains([]string{"invisible", "nothing", "mentions", "everything"}, value) {
+			return ErrValidation
+		}
+		stored = value
 	}
 	r, err := d.Write.ExecContext(
 		ctx,
 		"UPDATE memberships SET involvement=?,updated_at=? WHERE user_id=? AND room_id=?",
-		value,
+		stored,
 		Stamp(d.Now()),
 		user,
 		room,
