@@ -1,0 +1,29 @@
+File: campfire-go-linux
+Build ID: 06dd0878b13c32521a66caad6c7ef45a22a9b560
+Type: cpu
+Time: 2026-10-07 20:47:51 UTC
+Duration: 12.31s, Total samples = 27.51s (223.51%)
+Active filters:
+   focus=github.com/basecamp/once-campfire-go
+Showing nodes accounting for 5.96s, 21.66% of 27.51s total
+Dropped 675 nodes (cum <= 0.14s)
+Showing top 18 nodes out of 257
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%     23.62s 85.86%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+         0     0%     0%     23.62s 85.86%  net/http.(*conn).serve
+         0     0%     0%     23.62s 85.86%  net/http.HandlerFunc.ServeHTTP
+         0     0%     0%     23.62s 85.86%  net/http.serverHandler.ServeHTTP
+     0.01s 0.036% 0.036%     23.53s 85.53%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+         0     0% 0.036%     19.86s 72.19%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+         0     0% 0.036%     19.60s 71.25%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+     0.01s 0.036% 0.073%     19.08s 69.36%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+     0.01s 0.036%  0.11%     16.79s 61.03%  github.com/basecamp/once-campfire-go/internal/web.(*Server).sidebar
+     0.06s  0.22%  0.33%      7.69s 27.95%  database/sql.(*Rows).Next
+     0.03s  0.11%  0.44%      7.06s 25.66%  database/sql.(*Rows).Next.func1
+     0.03s  0.11%  0.55%      6.95s 25.26%  database/sql.(*Rows).nextLocked
+     0.16s  0.58%  1.13%      6.83s 24.83%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.01s 0.036%  1.16%      6.65s 24.17%  github.com/basecamp/once-campfire-go/internal/web.(*Server).render
+     5.61s 20.39% 21.56%      5.87s 21.34%  runtime.cgocall
+     0.01s 0.036% 21.59%      5.51s 20.03%  github.com/basecamp/once-campfire-go/internal/web.(*Server).sidebarRooms
+     0.02s 0.073% 21.66%      4.77s 17.34%  github.com/mattn/go-sqlite3.(*SQLiteRows).stepCancellableLocked
+         0     0% 21.66%      4.70s 17.08%  github.com/mattn/go-sqlite3.(*SQLiteRows).stepCancellableLocked.func1 (inline)

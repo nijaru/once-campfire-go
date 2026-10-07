@@ -136,7 +136,10 @@ allocated to each app. Local comparisons and their environments are recorded in 
 | Search | 415 | 120 | 1,291 | 6,725 | 1,907 | 29,775 | 34,199 |
 | Post a message | 244 | 113 | 498 | 2,183 | 1,431 | 9,442 | 8,995 |
 
-See [`bench/`](bench/) for benchmark tooling and earlier measurements.
+See [`bench/`](bench/) for tooling. The [current Go/Rust baseline](bench/results/current-baseline-20261007/README.md)
+uses identical fixtures and full-response/write validation on an ARM64 Linux VM. It records a
+substantial sidebar throughput gap and noisy write/tail results, not a general Go-over-Rust claim.
+Its machine and methodology differ from the historical table above.
 
 ## Known differences
 

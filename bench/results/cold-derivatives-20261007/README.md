@@ -54,5 +54,7 @@ repetitions. Native/Linux CGO vet/race and WebSocket-fork gates pass. Both ports
 HTTP/persisted-state workflows. Production bytes used by the final measurements match the
 recorded source hashes.
 
-The optional exact video-preview vector failure remains unchanged and documented in
-`../media-environment-20261007/`; neither ffmpeg flags nor vector assertions changed.
+At this checkpoint the required exact video-preview vector failure remained unchanged in
+`../media-environment-20261007/`. The subsequent [verification](../acceptance-corrections-20261007/README.md)
+resolves the architecture mismatch and passes the unchanged goldens. Neither ffmpeg flags nor
+vector assertions changed.

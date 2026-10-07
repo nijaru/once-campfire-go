@@ -19,8 +19,9 @@ of losing files. Native and Linux CGO vet/race checks and the WebSocket-fork gat
 An additional Linux `media_vectors` check fails on **both** the unchanged baseline and candidate:
 `alpha-centuri-preview_image.jpg` is 11,790 bytes with MD5 `Ckn6FYF3wfdTi3GYIHXgbg==`, while the
 stored vector is 11,788 bytes with MD5 `untJ1VKBeYvbPA/dvRXh9A==`. The output is identical before
-and after this change; the vector or media environment mismatch remains unresolved. No expected
-bytes were changed. The initial baseline attempt lacked the reference-fixture symlink and was
+and after this change; the environment mismatch was unresolved at this checkpoint. The subsequent
+[verification](../acceptance-corrections-20261007/README.md) reproduces the unchanged golden with
+AMD64 FFmpeg and passes both original and separate ARM64 Rails comparisons. No expected bytes were changed. The initial baseline attempt lacked the reference-fixture symlink and was
 repeated with it in place; the retained baseline log is the complete repeat.
 
 No performance measurements or crash-durability claims were made. This removes an unnecessary
