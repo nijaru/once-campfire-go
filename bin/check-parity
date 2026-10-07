@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import html
 import http.cookiejar
 import importlib.machinery
 import importlib.util
@@ -144,6 +145,73 @@ def authentication(app):
     )
     assert app.request("david", "DELETE", "/session", {})[:2] == (302, "/")
     assert app.request("david", "GET", f"/rooms/{room}")[:2] == (302, "/session/new")
+
+
+def direct_participants(app):
+    assert app.login("david")[0] == 302
+    for actor, method, resource, status in (
+        ("kevin", "DELETE", "account/users", 1),
+        ("jz", "POST", "users", 2),
+    ):
+        member = app.labels["users." + actor]
+        name = app.rows("SELECT name FROM users WHERE id=?", (member,))[0][0]
+        response, location, _ = app.request(
+            "david", "POST", "/rooms/directs", [("user_ids[]", member)]
+        )
+        assert response == 302
+        room = int(location.rsplit("/", 1)[1])
+        path = f"/{resource}/{member}" + ("/ban" if status == 2 else "")
+        assert app.request("david", method, path, {})[0] == 302
+        assert app.rows("SELECT status FROM users WHERE id=?", (member,)) == [(status,)]
+        assert app.rows(
+            "SELECT count(*) FROM memberships WHERE room_id=? AND user_id=?",
+            (room, member),
+        ) == [(1,)]
+        response, _, body = app.request("david", "GET", f"/rooms/directs/{room}/edit")
+        assert (
+            response == 200
+            and f'href="/users/{member}"' in body
+            and (f"<strong>{html.escape(name)}</strong>" in body)
+        ), ("retained ping participant", actor, status, response)
+
+
+def involvement(app):
+    assert app.login("david")[0] == 302
+    room = app.labels["rooms.hq"]
+    path = f"/rooms/{room}/involvement"
+    for fields, expected in (
+        ({"involvement": "everything"}, "everything"),
+        ({"involvement": "nothing"}, "nothing"),
+        ({"involvement": "invisible"}, "invisible"),
+        ({"involvement": "mentions"}, "mentions"),
+    ):
+        response, location, _ = app.request("david", "PUT", path, fields)
+        assert (response, location) == (302, path), (
+            "involvement update",
+            fields,
+            response,
+            location,
+        )
+        assert app.rows(
+            "SELECT involvement FROM memberships WHERE room_id=? AND user_id=?",
+            (room, app.labels["users.david"]),
+        ) == [(expected,)]
+    for frame in (None, f"involvement_rooms_open_{room}"):
+        response, _, body = app.request("david", "GET", path, frame=frame)
+        assert response == 200 and "<html>" in body and "</html>" in body, (
+            "involvement document",
+            frame,
+            response,
+        )
+        assert ('type="importmap"' in body) == (frame is None)
+        assert ('rel="stylesheet"' in body) == (frame is None)
+        assert f'id="involvement_rooms_open_{room}"' in body and 'value="put"' in body
+    assert app.request("david", "GET", "/users/me/profile")[2].count("<html>") == 1
+    assert app.request("david", "PUT", path, {})[:2] == (302, path)
+    assert app.rows(
+        "SELECT involvement FROM memberships WHERE room_id=? AND user_id=?",
+        (room, app.labels["users.david"]),
+    ) == [(None,)]
 
 
 def direct_ping(app):
@@ -564,6 +632,8 @@ def account_settings(app):
 
 
 WORKFLOWS = {
+    "direct_participants": direct_participants,
+    "involvement": involvement,
     "authentication": authentication,
     "direct_ping": direct_ping,
     "pagination": pagination,

@@ -77,9 +77,9 @@ bin/check-container --image once-campfire-go:verification
 
 `bin/check-parity` compares authentication, direct-ping reuse, pagination, sidebar documents,
 message creation/editing/deletion, room conversion/membership revocation and partial updates,
-account restrictions/custom styles, direct uploads, signed blob/disk/representation downloads,
-multipart attachment replacement/purge, avatar assignment/deletion and nested direct-upload
-metadata against pinned Rust. Supply a prepared parity seed and
+account restrictions/custom styles, retained inactive direct-room participants, involvement pages
+and nullable updates, direct uploads, signed blob/disk/representation downloads, multipart attachment
+replacement/purge, avatar assignment/deletion and nested direct-upload metadata against pinned Rust. Supply a prepared parity seed and
 binaries built for the same host. Each workflow uses a fresh SQLite backup, including WAL state, and a copy
 of seeded storage. It checks HTTP behavior, controls, authorization, fresh reads and committed
 message/FTS state, not byte-identical HTML or internal implementation details. Reports include
@@ -99,16 +99,24 @@ Package tests use temporary databases and do not silently skip integration tests
 They include Rails signing/encryption and serialization vectors, 658 rich-text cases, 385 user-agent
 cases, QR codes, route recognition, storage/ranges, transactions, access control, Cable, jobs,
 90 Open Graph cases, 19 webhook cases and Web Push encryption/local delivery. Media metadata tests
-run locally; byte-for-byte output tests require the pinned container toolchain:
+run locally. Exact media output is a required acceptance check, selected with the `media_vectors`
+build tag. The checked-in video goldens require AMD64 FFmpeg 7.1.5; ARM64 FFmpeg with the same
+version produces different JPEG bytes. Architecture is part of the toolchain identity:
 
 ```sh
-docker build --target toolchain -t once-campfire-go:toolchain .
+docker build --platform linux/amd64 --target toolchain -t once-campfire-go:toolchain .
 mkdir -p .cache/tmp .cache/docker-go-build .cache/docker-go-mod
-docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/src" -w /src \
+docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" -v "$PWD:/src" -w /src \
   -e GOCACHE=/src/.cache/docker-go-build -e GOMODCACHE=/src/.cache/docker-go-mod \
   -e TMPDIR=/src/.cache/tmp once-campfire-go:toolchain \
-  go test -tags 'sqlite_fts5 media_vectors' ./internal/storage
+  go test -race -tags 'sqlite_fts5 media_vectors' ./internal/storage
 ```
+
+`CAMPFIRE_STORAGE_VECTORS` can explicitly select a separate Rails capture for another architecture;
+the checked-in vectors remain the default. Originals, derivatives, attributes and metadata are
+checked without changing encoder flags or weakening byte comparisons. The
+[media verification record](bench/results/acceptance-corrections-20261007/README.md) distinguishes
+unchanged-golden verification from the separate ARM64 Rails comparison.
 
 `bin/build` and `bin/check` use mise when Go is absent from PATH and keep temporary build files in
 `.cache/`. Live ACME is tested against a local Pebble CA, including restart with the CA offline.
@@ -116,8 +124,9 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-Measured with 16 concurrent clients on an AMD Ryzen AI MAX+ 395 with 32 GB RAM,
-with four hardware threads allocated to each app.
+The historical table below is retained from the base branch, not measured from the current changes.
+It used 16 concurrent clients on an AMD Ryzen AI MAX+ 395 with 32 GB RAM, with four hardware threads
+allocated to each app. Local comparisons and their environments are recorded in [`bench/results/`](bench/results/).
 
 | HTTP workload (requests/sec) | Rails | [Django](https://github.com/basecamp/once-campfire-django) | [Laravel](https://github.com/basecamp/once-campfire-laravel) | [Express](https://github.com/basecamp/once-campfire-express) | [Elixir](https://github.com/basecamp/once-campfire-elixir) | [Go](https://github.com/basecamp/once-campfire-go) | [Rust](https://github.com/basecamp/once-campfire-rust) |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -136,7 +145,7 @@ See [`bench/`](bench/) for benchmark tooling and earlier measurements.
   `assets/overrides/turbo.js`. Tests require it to match the pinned library with only two added
   `await`s and a license notice. This is an intentional frontend fix, not exact JavaScript parity.
 - Templates use `html/template`. Whitespace, attribute serialization, some canonical form-action
-  URLs, and response headers/validators differ from Rust. Strict server/live DOM and network layers
+  URLs, some document titles, and response headers/validators differ from Rust. Strict server/live DOM and network layers
   therefore still fail in many inventory cells, even when screenshots, accessibility and workflows
   match. These failures remain visible in the validation report. Exact protocol parity for malformed
   parameters and every content-negotiation edge case is not claimed.
@@ -146,6 +155,8 @@ See [`bench/`](bench/) for benchmark tooling and earlier measurements.
   batching distinct sessions per room. Rust uses different stream queues.
 - Go ignores typing commands for rooms that have been deleted; Rust can still echo them to an
   already subscribed socket. The composer shows the same deleted-room message.
+- Empty involvement updates preserve SQL NULL, as in the reference. Go reads that nullable value
+  without a scan error; Rust can raise a nil-inquiry error on a subsequent involvement request.
 - The response cache uses least-recently-used eviction instead of Rust's sampled eviction. The Go
   message-fragment cache is also independently implemented. It retains versioned message lists
   and sidebar HTML; current membership and permission data are read before cache lookup.
@@ -159,9 +170,10 @@ See [`bench/`](bench/) for benchmark tooling and earlier measurements.
   VAPID keys and subject settings remain supported.
 - Storage keys containing separators, NUL, or parent-directory shards are rejected before
   filesystem access. Valid keys retain the existing storage layout.
-- Native host media output can differ with installed library versions. All byte-golden media tests
-  pass with the pinned container libraries. Web Push is verified locally, not against external push
-  providers.
+- Media bytes depend on toolchain architecture as well as library versions. Unchanged goldens pass
+  with AMD64 FFmpeg 7.1.5 and ARM64 libvips 8.16.1 in the recorded mixed-architecture environment.
+  Go and Rust also match a separate native ARM64 Rails capture. A matching version string alone
+  does not guarantee matching bytes. Web Push is verified locally, not against external push providers.
 
 As in Rust, background queues are bounded and in-process: graceful shutdown drains work, but a
 process crash can lose queued jobs. See [the implementation record](plans/go-conversion.md) for

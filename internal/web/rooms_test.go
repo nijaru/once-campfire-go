@@ -4,11 +4,151 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestDirectRoomSettingsRetainInactiveParticipants(t *testing.T) {
+	for _, status := range []string{"active", "deactivated", "banned"} {
+		t.Run(status, func(t *testing.T) {
+			app, server, cookie, owner := testApp(t)
+			ctx := context.Background()
+			member, err := app.DB.CreateUser(
+				ctx,
+				"Retained Participant",
+				"participant@test",
+				"unused",
+				"",
+				0,
+				nil,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			room, err := app.DB.CreateRoom(ctx, owner.ID, "Rooms::Direct", nil, []int64{member.ID})
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch status {
+			case "deactivated":
+				err = app.DB.DeactivateUser(ctx, member.ID)
+			case "banned":
+				err = app.DB.BanUser(ctx, member.ID, true)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			response, body := perform(
+				t,
+				server,
+				"GET",
+				fmt.Sprintf("/rooms/directs/%d/edit", room.ID),
+				"",
+				nil,
+				cookie,
+			)
+			if response.StatusCode != http.StatusOK ||
+				!strings.Contains(string(body), fmt.Sprintf(`href="/users/%d"`, member.ID)) ||
+				!strings.Contains(string(body), "<strong>Retained Participant</strong>") {
+				t.Fatalf("ping settings lost %s participant: %s", status, response.Status)
+			}
+			if strings.Contains(string(body), fmt.Sprintf(`href="/users/%d"`, owner.ID)) {
+				t.Fatal("two-person ping settings included the current user")
+			}
+		})
+	}
+}
+
+func TestInvolvementDocumentAndFrame(t *testing.T) {
+	app, server, cookie, owner := testApp(t)
+	room, err := app.DB.CreateRoom(
+		context.Background(),
+		owner.ID,
+		"Rooms::Open",
+		&sql.NullString{String: "Notifications", Valid: true},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, framed := range []bool{false, true} {
+		request, err := http.NewRequest(
+			"GET",
+			fmt.Sprintf("%s/rooms/%d/involvement", server.URL, room.ID),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.AddCookie(cookie)
+		if framed {
+			request.Header.Set("Turbo-Frame", room.DOM("involvement"))
+		}
+		response, err := server.Client().Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		if err != nil || response.StatusCode != http.StatusOK {
+			t.Fatalf("involvement GET: %s %v", response.Status, err)
+		}
+		text := string(body)
+		if !strings.Contains(text, "<html>") || !strings.Contains(text, "</html>") ||
+			strings.Count(text, `id="`+room.DOM("involvement")+`"`) != 1 {
+			t.Fatal("involvement lost document or unique frame structure")
+		}
+		if strings.Contains(text, `type="importmap"`) == framed ||
+			strings.Contains(text, `rel="stylesheet"`) == framed {
+			t.Fatal("involvement used the wrong application/frame layout")
+		}
+	}
+	response, body := perform(t, server, "GET", "/users/me/profile", "", nil, cookie)
+	if response.StatusCode != http.StatusOK || strings.Count(string(body), "<html>") != 1 {
+		t.Fatal("embedded involvement introduced a nested document")
+	}
+}
+
+func TestInvolvementCanBeCleared(t *testing.T) {
+	for _, form := range []string{"", "involvement=", "involvement=++"} {
+		app, server, cookie, owner := testApp(t)
+		ctx := context.Background()
+		room, err := app.DB.CreateRoom(
+			ctx,
+			owner.ID,
+			"Rooms::Open",
+			&sql.NullString{String: "Nullable", Valid: true},
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := fmt.Sprintf("/rooms/%d/involvement", room.ID)
+		response, _ := perform(
+			t,
+			server,
+			"PUT",
+			path,
+			"application/x-www-form-urlencoded",
+			strings.NewReader(form),
+			cookie,
+		)
+		if response.StatusCode != http.StatusFound {
+			t.Fatalf("%q: %s", form, response.Status)
+		}
+		var stored sql.NullString
+		if err := app.DB.Read.QueryRowContext(ctx, "SELECT involvement FROM memberships WHERE room_id=? AND user_id=?", room.ID, owner.ID).Scan(&stored); err != nil ||
+			stored.Valid {
+			t.Fatalf("%q: stored %+v, error %v", form, stored, err)
+		}
+		if value, err := app.DB.Involvement(ctx, owner.ID, room.ID); err != nil || value != "" {
+			t.Fatalf("nullable involvement: %q %v", value, err)
+		}
+	}
+}
 
 func TestRoomUpdatesPreserveOmittedName(t *testing.T) {
 	app, server, cookie, owner := testApp(t)

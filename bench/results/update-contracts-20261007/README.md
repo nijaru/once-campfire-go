@@ -37,5 +37,7 @@ Independent source review of cancellation, staging ownership, external database 
 the changed controllers found the required-root and method-override defects; both were reproduced
 and fixed. This review and these checks are bounded evidence, not proof of every input or schedule.
 Strict malformed Rack compatibility, broad cross-browser parity and crash durability remain
-outside these workflows. The optional exact video-vector mismatch remains documented in
-`../media-environment-20261007/`; no encoding flags or expectations were changed to mask it.
+outside these workflows. At this checkpoint the required exact video-vector mismatch remained
+unresolved in `../media-environment-20261007/`. The subsequent
+[verification](../acceptance-corrections-20261007/README.md) identifies the architecture difference
+and passes the unchanged goldens; no encoding flags or expectations were changed to mask it.
