@@ -75,7 +75,7 @@ type page struct {
 	UserDivider                  int
 	BackPath                     string
 	Invitation                   bool
-	Placeholders                 []database.User
+	Placeholders                 []database.RoomParticipant
 	NextPage                     int64
 	Administrators               []database.User
 	Bots                         []botView

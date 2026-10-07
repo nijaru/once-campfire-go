@@ -2,11 +2,43 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
+
+func TestDirectRoomDisplayUsesAllNamesAndFirstFourAvatars(t *testing.T) {
+	app, _, _, viewer := testApp(t)
+	room := database.Room{ID: 40, Type: "Rooms::Direct"}
+	members := []database.RoomParticipant{viewer.Participant()}
+	for i := 1; i <= 6; i++ {
+		members = append(
+			members,
+			database.RoomParticipant{ID: viewer.ID + int64(i), Name: fmt.Sprintf("Person %d", i)},
+		)
+	}
+	view := displayRoom(room, members, viewer)
+	if len(view.Members) != 6 || view.Label() != "P1, P2, P3, P4, P5, and P6" ||
+		view.Name != "Person 1, Person 2, Person 3, Person 4, Person 5, and Person 6" {
+		t.Fatalf("direct display lost a retained participant: %+v", view)
+	}
+	body, err := app.markup("sidebar-direct", view)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(body, `width="20"`) != 4 || !strings.Contains(body, view.Label()) {
+		t.Fatal("group must render four avatars but initials for every participant")
+	}
+	self := displayRoom(room, members[:1], viewer)
+	if len(self.Members) != 1 || self.Members[0] != viewer.Participant() ||
+		self.Name != viewer.Name {
+		t.Fatalf("self-ping lost its viewing participant: %+v", self)
+	}
+}
 
 func TestSidebarDocumentAndFrameKeepLayoutFresh(t *testing.T) {
 	app, server, cookie, user := testApp(t)

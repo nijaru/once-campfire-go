@@ -10,7 +10,7 @@ import (
 
 type sidebarRoom struct {
 	database.Room
-	Members     []database.User
+	Members     []database.RoomParticipant
 	Unread      bool
 	Involvement string
 }
@@ -42,13 +42,30 @@ func (r sidebarRoom) Label() string {
 	}
 	return strings.Join(names, "")
 }
-func (s *Server) displayRoom(ctx context.Context, room database.Room, user database.User) (sidebarRoom, error) {
+
+func (s *Server) displayRoom(
+	ctx context.Context,
+	room database.Room,
+	user database.User,
+) (sidebarRoom, error) {
+	var members []database.RoomParticipant
+	if room.Type == "Rooms::Direct" {
+		var err error
+		members, err = s.DB.RoomParticipants(ctx, room.ID)
+		if err != nil {
+			return sidebarRoom{}, err
+		}
+	}
+	return displayRoom(room, members, user), nil
+}
+
+func displayRoom(
+	room database.Room,
+	members []database.RoomParticipant,
+	user database.User,
+) sidebarRoom {
 	view := sidebarRoom{Room: room}
 	if room.Type == "Rooms::Direct" {
-		members, err := s.DB.RoomMembers(ctx, room.ID)
-		if err != nil {
-			return view, err
-		}
 		var names []string
 		for _, member := range members {
 			if member.ID != user.ID {
@@ -57,7 +74,7 @@ func (s *Server) displayRoom(ctx context.Context, room database.Room, user datab
 			}
 		}
 		if len(view.Members) == 0 {
-			view.Members = []database.User{user}
+			view.Members = []database.RoomParticipant{user.Participant()}
 			view.Name = user.Name
 		} else {
 			switch len(names) {
@@ -70,8 +87,9 @@ func (s *Server) displayRoom(ctx context.Context, room database.Room, user datab
 			}
 		}
 	}
-	return view, nil
+	return view
 }
+
 func (s *Server) sidebarRooms(ctx context.Context, user database.User) ([]sidebarRoom, error) {
 	rooms, err := s.DB.SidebarRooms(ctx, user.ID)
 	if err != nil {
@@ -79,10 +97,7 @@ func (s *Server) sidebarRooms(ctx context.Context, user database.User) ([]sideba
 	}
 	var result []sidebarRoom
 	for _, room := range rooms {
-		view, err := s.displayRoom(ctx, room.Room, user)
-		if err != nil {
-			return nil, err
-		}
+		view := displayRoom(room.Room, room.Members, user)
 		view.Involvement, view.Unread = room.Involvement, room.Unread
 		result = append(result, view)
 	}
@@ -106,11 +121,15 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 	if err != nil {
 		return err
 	}
-	for _, user := range members {
-		view, err := s.displayRoom(ctx, room, user)
+	var participants []database.RoomParticipant
+	if room.Type == "Rooms::Direct" {
+		participants, err = s.DB.RoomParticipants(ctx, room.ID)
 		if err != nil {
 			return err
 		}
+	}
+	for _, user := range members {
+		view := displayRoom(room, participants, user)
 		name := "sidebar-shared"
 		if room.Type == "Rooms::Direct" {
 			name, target, action = "sidebar-direct", "direct_rooms", "prepend"

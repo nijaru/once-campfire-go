@@ -67,10 +67,10 @@ func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
 // are still read afresh before looking up the rendered fragment.
 func sidebarCacheKey(p page) string {
 	var key strings.Builder
-	user := func(u database.User) {
+	user := func(u database.RoomParticipant) {
 		fmt.Fprintf(&key, "u%d/%d/%d:%s/", u.ID, u.UpdatedAt.UnixMicro(), len(u.Name), u.Name)
 	}
-	user(p.User)
+	user(p.User.Participant())
 	fmt.Fprintf(&key, "%t/%s/%s/", p.CanCreateRooms, p.RoomsStream, p.UserRoomsStream)
 	for _, room := range p.SidebarRooms {
 		fmt.Fprintf(
