@@ -193,9 +193,9 @@ requests/sec at 16 HTTP clients, with identical seed data and four application C
 | Search | 14,817 | 14,841 | +0.2% | 30,807 |
 | Post message | 4,025 | 5,036 | +25.1% | 7,740 |
 
-The historical sidebar row is not an equivalent Go/Rust workload: Go returns a bare frame
-where the reference wraps a layout. See the known differences below; no full-page sidebar
-performance comparison is established by those numbers.
+The historical sidebar row is not an equivalent Go/Rust workload: that Go build returned a bare
+frame where the reference wrapped a layout. The handler now renders the application or Turbo-Frame
+layout, but no full-page sidebar performance comparison is established by those historical numbers.
 
 Room-page p99 latency fell from 5.69 to 4.14 ms; message-write p99 fell from 16.03 to
 12.49 ms. In that comparison, Rust was 1.81× faster on room pages and 1.54× faster on writes. All nine
@@ -244,10 +244,6 @@ server-only latency. Keep fixed-rate and maximum-capacity comparisons separate.
   therefore still fail in many inventory cells, even when screenshots, accessibility and workflows
   match. These failures remain visible in the validation report. Exact protocol parity for malformed
   parameters and every content-negotiation edge case is not claimed.
-- `GET /users/me/sidebar` currently returns only the sidebar frame, without the reference's
-  application or Turbo-frame layout. Both historical and fork sidebar figures therefore measure
-  the existing bare-frame handler, not a complete reference page. Unmerged upstream PR #4
-  proposes a fix; the compression work does not incorporate that rendering change.
 - WebSockets share serialized and compressed broadcast payloads through a small extension to
   coder/websocket v1.8.15 (see `third_party/websocket/README.campfire`). Outgoing queues hold 256
   frames; slow clients are disconnected. Authorization is checked afresh for each publication,
