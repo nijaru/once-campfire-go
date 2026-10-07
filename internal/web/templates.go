@@ -22,7 +22,7 @@ type reaction struct{ Character, Title string }
 
 var reactions = []reaction{{"👍", "Thumbs up"}, {"👏", "Clapping"}, {"👋", "Waving hand"}, {"💪", "Muscle"}, {"❤️", "Red heart"}, {"😂", "Face with tears of joy"}, {"🎉", "Party popper"}, {"🔥", "Fire"}}
 
-func parseTemplates(secrets *rails.Secrets) (*template.Template, error) {
+func parseTemplates(secrets *rails.Secrets) (*template.Template, messageLayouts, error) {
 	var reactionBodies []template.HTML
 	t, err := template.New("pages").Funcs(template.FuncMap{
 		"helpMailto": func(user database.User) template.HTMLAttr {
@@ -67,12 +67,11 @@ func parseTemplates(secrets *rails.Secrets) (*template.Template, error) {
 		"stylesheets": func() template.HTML { return assets.Stylesheets },
 		"importmap":   func() template.HTML { return assets.Importmap },
 		"avatar": func(id int64, updated ...time.Time) string {
-			token := secrets.SignedID("User", id, "avatar", time.Time{})
-			path := fmt.Sprintf("/users/%s/avatar", token)
-			if len(updated) > 0 && !updated[0].IsZero() {
-				path += "?v=" + updated[0].UTC().Format("20060102150405")
+			var version time.Time
+			if len(updated) > 0 {
+				version = updated[0]
 			}
-			return path
+			return avatarPath(secrets, id, version)
 		},
 		"versionTime": func(t time.Time) string { return t.UTC().Format("20060102150405") },
 		"epoch":       func(t time.Time) string { return fmt.Sprintf("%d", t.UnixMilli()) },
@@ -80,16 +79,31 @@ func parseTemplates(secrets *rails.Secrets) (*template.Template, error) {
 		"reactions":   func() []template.HTML { return reactionBodies },
 	}).ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
-		return nil, err
+		return nil, messageLayouts{}, err
+	}
+	// Executing even a single associated template prevents later cloning.
+	// Capture the unexecuted tree now; its reaction function observes the
+	// completed fixed bodies before message layouts are compiled below.
+	unexecuted, err := t.Clone()
+	if err != nil {
+		return nil, messageLayouts{}, err
 	}
 	// Only fixed reaction contents are retained. Message IDs and client IDs
 	// stay in the outer form template, with its contextual escaping intact.
 	for _, reaction := range reactions {
 		var body strings.Builder
 		if err := t.ExecuteTemplate(&body, "reaction-body", reaction); err != nil {
-			return nil, err
+			return nil, messageLayouts{}, err
 		}
 		reactionBodies = append(reactionBodies, template.HTML(body.String()))
 	}
-	return t, nil
+	source, err := templateFiles.ReadFile("templates/messages.html")
+	if err != nil {
+		return nil, messageLayouts{}, err
+	}
+	layouts, err := compileMessageLayouts(unexecuted, source)
+	if err != nil {
+		return nil, messageLayouts{}, err
+	}
+	return t, layouts, nil
 }

@@ -166,7 +166,7 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
 		if html, ok := s.fragments.get(key); ok {
 			views[i].Fragment = html
 		} else {
-			body, err := s.markup("message-uncached", views[i])
+			body, err := s.messageMarkup(views[i])
 			if err != nil {
 				return err
 			}

@@ -33,21 +33,22 @@ const HealthBody = `<!DOCTYPE html><html><body style="background-color: green"><
 const MaxBody = 16 << 20
 
 type Server struct {
-	fragments  *fragmentCache
-	Webhooks   *integrations.WebhookClient
-	Jobs       *jobs.Runner
-	Push       *integrations.PushSender
-	Unfurler   *integrations.Unfurler
-	Storage    *storage.Store
-	Cable      *cable.Hub
-	DB         *database.DB
-	Secrets    *rails.Secrets
-	Secure     bool
-	mux        *router
-	templates  *template.Template
-	attemptsMu sync.Mutex
-	attempts   map[string]attempt
-	dummyHash  []byte
+	fragments      *fragmentCache
+	Webhooks       *integrations.WebhookClient
+	Jobs           *jobs.Runner
+	Push           *integrations.PushSender
+	Unfurler       *integrations.Unfurler
+	Storage        *storage.Store
+	Cable          *cable.Hub
+	DB             *database.DB
+	Secrets        *rails.Secrets
+	Secure         bool
+	mux            *router
+	templates      *template.Template
+	messageLayouts messageLayouts
+	attemptsMu     sync.Mutex
+	attempts       map[string]attempt
+	dummyHash      []byte
 }
 type attempt struct {
 	Count int
@@ -134,7 +135,7 @@ func New(db *database.DB, secrets *rails.Secrets, secure bool, storagePaths ...s
 	// Same cost-12 dummy digest as reference/crates/db/src/models/user.rs.
 	// Unknown-user login still pays bcrypt; startup need not create a new hash.
 	hash := []byte("$2a$12$FiKmSp4UhLvSB4Sd/ZUjQunyKP6.NjDRHdr5LnKUVk.BUn4Mq12WS")
-	t, err := parseTemplates(secrets)
+	t, layouts, err := parseTemplates(secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +146,7 @@ func New(db *database.DB, secrets *rails.Secrets, secure bool, storagePaths ...s
 			return nil, fmt.Errorf("invalid CAMPFIRE_FRAGMENT_CACHE_MB %q", raw)
 		}
 	}
-	s := &Server{fragments: newFragmentCache(cacheMB << 20), Cable: cable.New(db, secrets), DB: db, Secrets: secrets, Secure: secure, mux: &router{}, templates: t, attempts: map[string]attempt{}, dummyHash: hash}
+	s := &Server{fragments: newFragmentCache(cacheMB << 20), Cable: cable.New(db, secrets), DB: db, Secrets: secrets, Secure: secure, mux: &router{}, templates: t, messageLayouts: layouts, attempts: map[string]attempt{}, dummyHash: hash}
 	storageRoot := "storage"
 	if len(storagePaths) > 0 {
 		storageRoot = storagePaths[0]
