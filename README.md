@@ -15,6 +15,7 @@ SQLite schema, storage keys/layout, password hashes and Rails signed/encrypted c
 An upgrade test checks Go and Rust cookies in both directions and Rust reading/searching Go-written
 messages. The port is functionally implemented; **strict HTML/network parity is not complete**.
 See [validation](plans/validation.md) and the known differences below before replacing an installation.
+The [application design and refactor plan](plans/architecture.md) describes the structural work and its compatibility boundaries.
 The pinned Rust source is in `reference/`, with its Rails source in `reference/reference/`.
 
 ## Dependencies

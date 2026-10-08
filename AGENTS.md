@@ -38,9 +38,10 @@ not old plans, benchmark tables, or assumptions about frameworks.
 
 ## Performance and delivery
 
-- Profile the complete application before choosing work. Investigate cache-hit work,
-  invalidation, duplicate queries, query plans/indexes, allocations, algorithms and
-  contention. Keep changes only when representative measurements support them.
+- For application-boundary refactors, follow [the design and execution plan](plans/architecture.md).
+  Settle ownership and contracts before profiling; complete affected caller migrations
+  and remove superseded paths. Then profile the complete application and use representative
+  measurements to resolve remaining query, allocation, cache and contention choices.
 - Use the shared harness or `bench/application`: matched data, complete responses,
   persisted-write audits, settings and sequential interleaved repetitions. Keep raw
   evidence and limitations in `bench/results/`; inspect relevant rejected experiments

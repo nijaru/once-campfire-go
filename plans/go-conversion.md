@@ -3,6 +3,9 @@
 Port: `once-campfire-go`. Pinned Rust: `64f86353021145b63849fb1cd93adeb08f3b8dbb`.
 Pinned Rails: `90b330024dec3e757c79b6a7e6568f93da8e3148`.
 
+This is a historical implementation record, not an optimal-design or universal-correctness claim.
+The current structural work follows [the application design and execution plan](architecture.md).
+
 The full application is implemented and independently runnable. The implementation uses the standard
 library for HTTP/routing, templates, SQL access and process lifecycle, with focused libraries for
 SQLite, WebSockets, bcrypt/ACME, HTTP/2 and HTML parsing. It preserves the original frontend and
