@@ -125,10 +125,6 @@ func scanMessages(rows *sql.Rows) ([]Message, error) {
 	return result, rows.Err()
 }
 
-func (d *DB) Messages(ctx context.Context, room, before int64) ([]Message, error) {
-	return d.MessagePage(ctx, room, before, "before")
-}
-
 // AuthorizedSessions checks a publication's distinct sessions in one snapshot.
 // json_each keeps the SQL shape stable and avoids SQLite's placeholder limit.
 func (d *DB) AuthorizedSessions(

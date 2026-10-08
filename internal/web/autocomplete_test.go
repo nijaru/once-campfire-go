@@ -37,7 +37,7 @@ func TestMentionAutocompleteAndRendering(t *testing.T) {
 	if response.StatusCode != 200 {
 		t.Fatalf("%d %s", response.StatusCode, raw)
 	}
-	messages, err := app.DB.Messages(ctx, room.ID, 0)
+	messages, err := messageRecords(app.DB, ctx, room.ID, 0)
 	if err != nil || len(messages) != 1 {
 		t.Fatal(err, messages)
 	}

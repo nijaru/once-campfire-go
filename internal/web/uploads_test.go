@@ -380,7 +380,7 @@ func TestMessageImageUploadAndVariant(t *testing.T) {
 	if response.StatusCode != 200 {
 		t.Fatalf("message upload: %s %s", response.Status, data)
 	}
-	messages, err := app.DB.Messages(context.Background(), rooms[0].ID, 0)
+	messages, err := messageRecords(app.DB, context.Background(), rooms[0].ID, 0)
 	if err != nil || len(messages) != 1 {
 		t.Fatal(messages, err)
 	}

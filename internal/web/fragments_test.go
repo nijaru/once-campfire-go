@@ -88,7 +88,7 @@ func TestMissingMessageAuthorKeepsPlaceholder(t *testing.T) {
 	if _, err = app.DB.Write.Exec("PRAGMA foreign_keys=ON"); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := app.DB.Messages(ctx, rooms[0].ID, 0)
+	messages, err := messageRecords(app.DB, ctx, rooms[0].ID, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

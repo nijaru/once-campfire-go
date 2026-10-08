@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
@@ -103,45 +104,21 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			before, _ = strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
 			direction = "after"
 		}
-		messages, err := s.DB.MessagePage(r.Context(), room.ID, before, direction)
+		linkAfter := r.URL.Query().Get("after") != ""
+		result, err := s.MessageQueries.APIPage(r.Context(), s.presentationFacts(r.Context()), user.ID, room.ID, before, direction, linkAfter)
 		if err != nil {
 			s.fail(w, err)
 			return true
 		}
-		var count int
-		if err = s.DB.Read.QueryRowContext(r.Context(), "SELECT count(*) FROM messages WHERE room_id=?", room.ID).Scan(&count); err != nil {
-			s.fail(w, err)
-			return true
-		}
-		w.Header().Set("X-Total-Count", strconv.Itoa(count))
-		if len(messages) > 0 {
-			anchor := messages[0]
-			operator := "<"
+		w.Header().Set("X-Total-Count", strconv.Itoa(result.Count))
+		if result.Next != 0 {
 			param := "before"
-			if r.URL.Query().Get("after") != "" {
-				anchor = messages[len(messages)-1]
-				operator = ">"
+			if linkAfter {
 				param = "after"
 			}
-			var more bool
-			if err = s.DB.Read.QueryRowContext(r.Context(), "SELECT EXISTS(SELECT 1 FROM messages WHERE room_id=? AND created_at"+operator+"?)", room.ID, database.Stamp(anchor.CreatedAt)).Scan(&more); err != nil {
-				s.fail(w, err)
-				return true
-			}
-			if more {
-				w.Header().Set("Link", fmt.Sprintf(`<%s/rooms/%d/%s/messages?%s=%d>; rel="next"`, s.origin(r), room.ID, values[2], param, anchor.ID))
-			}
+			w.Header().Set("Link", fmt.Sprintf(`<%s/rooms/%d/%s/messages?%s=%d>; rel="next"`, s.origin(r), room.ID, values[2], param, result.Next))
 		}
-		result := []messageJSON{}
-		for _, m := range messages {
-			value, err := s.messageJSON(r, m)
-			if err != nil {
-				s.fail(w, err)
-				return true
-			}
-			result = append(result, value)
-		}
-		writeJSON(w, 200, result)
+		writeJSON(w, 200, result.Messages)
 	case "POST":
 		var staged *storage.Staged
 		var body *string
@@ -194,7 +171,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			s.fail(w, err)
 			return true
 		}
-		value, err := s.messageJSON(r, message)
+		value, err := s.MessageQueries.APIRecord(r.Context(), s.presentationFacts(r.Context()), message)
 		if err != nil {
 			s.fail(w, err)
 			return true
@@ -257,72 +234,20 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 	}
 	s.publish(room.ID, rails.TurboStream("append", "boosts_message_"+message.ClientID, markup))
 	writeJSON(w, 201, struct {
-		ID        int64    `json:"id"`
-		Content   string   `json:"content"`
-		CreatedAt string   `json:"created_at"`
-		Booster   userJSON `json:"booster"`
+		ID        int64                `json:"id"`
+		Content   string               `json:"content"`
+		CreatedAt string               `json:"created_at"`
+		Booster   presentation.APIUser `json:"booster"`
 		Message   struct {
 			ID  int64  `json:"id"`
 			URL string `json:"url"`
 		} `json:"message"`
-	}{boost.ID, boost.Content, jsonTime(boost.CreatedAt), s.userJSON(r, u), struct {
+	}{boost.ID, boost.Content, jsonTime(boost.CreatedAt), s.Presentation.APIUser(s.presentationFacts(r.Context()), database.APIAuthor{UserDisplay: database.UserDisplay{ID: u.ID, Name: u.Name, UpdatedAt: u.UpdatedAt}, Role: u.Role}), struct {
 		ID  int64  `json:"id"`
 		URL string `json:"url"`
 	}{message.ID, fmt.Sprintf("%s/rooms/%d/messages/%d", s.origin(r), room.ID, message.ID)}})
 }
-
-type userJSON struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	Role   string `json:"role"`
-	Avatar string `json:"avatar_url"`
-}
-type messageJSON struct {
-	ID        int64  `json:"id"`
-	CreatedAt string `json:"created_at"`
-	Body      struct {
-		Plain string `json:"plain_text"`
-		HTML  string `json:"html"`
-	} `json:"body"`
-	Creator userJSON `json:"creator"`
-	Room    struct {
-		ID int64 `json:"id"`
-	} `json:"room"`
-	URL string `json:"url"`
-}
-
 func jsonTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
-func (s *Server) userJSON(r *http.Request, u database.User) userJSON {
-	role := "member"
-	if u.Role == 1 {
-		role = "administrator"
-	} else if u.Role == 2 {
-		role = "bot"
-	}
-	return userJSON{u.ID, u.Name, role, s.origin(r) + "/users/" + s.Secrets.SignedID("User", u.ID, "avatar", time.Time{}) + "/avatar?v=" + u.UpdatedAt.UTC().Format("20060102150405")}
-}
-func (s *Server) messageJSON(r *http.Request, m database.Message) (messageJSON, error) {
-	result := messageJSON{ID: m.ID, CreatedAt: jsonTime(m.CreatedAt), URL: fmt.Sprintf("%s/rooms/%d/messages/%d", s.origin(r), m.RoomID, m.ID)}
-	rich, err := s.ContentQueries.Content(r.Context(), s.presentationFacts(r.Context()), m.Body)
-	if err != nil {
-		return result, err
-	}
-	plain := rich.Plain
-	result.Body.Plain = plain
-	result.Body.HTML = rich.BodyHTML
-	result.Room.ID = m.RoomID
-	if strings.TrimSpace(plain) == "" {
-		if b, err := s.DB.AttachedBlob(r.Context(), "Message", m.ID, "attachment"); err == nil {
-			result.Body.Plain = storage.Filename(b.Filename)
-		}
-	}
-	user, err := s.DB.User(r.Context(), m.CreatorID)
-	if err != nil {
-		return result, err
-	}
-	result.Creator = s.userJSON(r, user)
-	return result, nil
-}
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	data, err := json.Marshal(value)
 	if err != nil {

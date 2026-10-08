@@ -57,7 +57,7 @@ func TestSchemaAndMessageTransaction(t *testing.T) {
 	if err != nil || m.ClientID != id.String() || id[6]>>4 != 4 || id[8]&0xc0 != 0x80 {
 		t.Fatalf("generated client ID must remain a canonical UUID v4: %q (%v)", m.ClientID, err)
 	}
-	messages, err := d.Messages(ctx, rooms[0].ID, 0)
+	messages, err := messageRecords(d, ctx, rooms[0].ID, 0, "before")
 	if err != nil || len(messages) != 1 || messages[0].ID != m.ID ||
 		messages[0].Body != "<p>running dogs</p>" {
 		t.Fatalf("messages: %v %v", messages, err)

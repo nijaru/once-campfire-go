@@ -41,7 +41,7 @@ func TestBanPurgesMessagesAndUnsharedFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.Jobs.Close(5 * time.Second)
-	messages, err := app.DB.Messages(ctx, rooms[0].ID, 0)
+	messages, err := messageRecords(app.DB, ctx, rooms[0].ID, 0)
 	if err != nil || len(messages) != 1 || messages[0].CreatorID != owner.ID {
 		t.Fatalf("remaining messages: %v %v", messages, err)
 	}

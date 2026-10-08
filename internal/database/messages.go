@@ -28,28 +28,6 @@ func (d *DB) ReachableMessage(ctx context.Context, user, id int64) (Message, err
 	return messages[0], nil
 }
 
-// MessagePage is the full-record lookup used by bot responses. Selection and
-// body loading share a snapshot, and all pagination directions resolve once.
-func (d *DB) MessagePage(ctx context.Context, room, anchor int64, direction string) ([]Message, error) {
-	read, err := d.BeginMessageRead(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer read.Close()
-	refs, err := messagePageReferences(ctx, read.tx, room, anchor, direction)
-	if err != nil {
-		return nil, err
-	}
-	records, err := messageReferenceRecords(ctx, read.tx, refs)
-	if err != nil {
-		return nil, err
-	}
-	if err = read.Finish(); err != nil {
-		return nil, err
-	}
-	return records, nil
-}
-
 func (d *DB) RefreshedMessages(
 	ctx context.Context,
 	room int64,
@@ -233,22 +211,4 @@ func (d *DB) FindRoom(ctx context.Context, id int64) (Room, error) {
 	err := d.Read.QueryRowContext(ctx, "SELECT id,creator_id,coalesce(name,''),type,updated_at FROM rooms WHERE id=?", id).
 		Scan(&room.ID, &room.CreatorID, &room.Name, &room.Type, timestamp{&room.UpdatedAt})
 	return room, err
-}
-
-// MessagePageReferences is the references-only lookup. Cache-aware assembly uses
-// MessageRead to keep scoped body and association misses in this observation.
-func (d *DB) MessagePageReferences(ctx context.Context, room, anchor int64, direction string) ([]MessageReference, error) {
-	read, err := d.BeginMessageRead(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer read.Close()
-	refs, err := messagePageReferences(ctx, read.tx, room, anchor, direction)
-	if err != nil {
-		return nil, err
-	}
-	if err = read.Finish(); err != nil {
-		return nil, err
-	}
-	return refs, nil
 }

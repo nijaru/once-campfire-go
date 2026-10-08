@@ -47,7 +47,7 @@ func TestCommittedMessageNotifiesWhenPresentationFails(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatalf("committed notification suppressed: %d deliveries", calls.Load())
 	}
-	messages, err := app.DB.Messages(ctx, room.ID, 0)
+	messages, err := messageRecords(app.DB, ctx, room.ID, 0)
 	if err != nil || len(messages) != 1 || messages[0].Body != "committedneedle" {
 		t.Fatalf("committed message: %+v %v", messages, err)
 	}
@@ -107,7 +107,7 @@ func TestBotWebhookReply(t *testing.T) {
 				t.Fatalf("post: %s %s", response.Status, data)
 			}
 			app.Jobs.Close(5 * time.Second)
-			messages, err := app.DB.Messages(ctx, room.ID, 0)
+			messages, err := messageRecords(app.DB, ctx, room.ID, 0)
 			if err != nil || len(messages) != 2 {
 				t.Fatalf("replies: %d %v", len(messages), err)
 			}

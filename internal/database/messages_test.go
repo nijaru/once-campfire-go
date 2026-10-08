@@ -100,11 +100,11 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 		{room, records[22].ID, "around"},
 		{room, records[22].ID, "after"},
 	} {
-		want, err := d.MessagePage(ctx, page.room, page.anchor, page.direction)
+		want, err := messageRecords(d, ctx, page.room, page.anchor, page.direction)
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := d.MessagePageReferences(ctx, page.room, page.anchor, page.direction)
+		got, err := pageReferences(d, ctx, page.room, page.anchor, page.direction)
 		if err != nil || len(got) != len(want) {
 			t.Fatalf("page %+v: got %d, want %d: %v", page, len(got), len(want), err)
 		}
@@ -117,11 +117,11 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 	}
 	loads := []func(context.Context, int64, int64, string) (int, error){
 		func(ctx context.Context, room, anchor int64, direction string) (int, error) {
-			rows, err := d.MessagePage(ctx, room, anchor, direction)
+			rows, err := messageRecords(d, ctx, room, anchor, direction)
 			return len(rows), err
 		},
 		func(ctx context.Context, room, anchor int64, direction string) (int, error) {
-			rows, err := d.MessagePageReferences(ctx, room, anchor, direction)
+			rows, err := pageReferences(d, ctx, room, anchor, direction)
 			return len(rows), err
 		},
 	}
@@ -147,8 +147,8 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 		if _, err := d.Write.ExecContext(ctx, "UPDATE messages SET updated_at=? WHERE id=?", value, records[45].ID); err != nil {
 			t.Fatal(err)
 		}
-		want, expectedErr := d.Messages(ctx, room, 0)
-		got, err := d.MessagePageReferences(ctx, room, 0, "around")
+		want, expectedErr := messageRecords(d, ctx, room, 0, "before")
+		got, err := pageReferences(d, ctx, room, 0, "around")
 		if (err != nil) != (expectedErr != nil) {
 			t.Fatalf("timestamp %q: errors differ: %v / %v", value, err, expectedErr)
 		}
@@ -158,7 +158,7 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
-	if _, err := d.MessagePageReferences(cancelled, room, 0, "around"); !errors.Is(
+	if _, err := pageReferences(d, cancelled, room, 0, "around"); !errors.Is(
 		err,
 		context.Canceled,
 	) {

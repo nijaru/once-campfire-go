@@ -95,7 +95,7 @@ func TestMessagePageKeepsStrictTimestampTies(t *testing.T) {
 		{"after", []int64{ids[3]}},
 		{"around", []int64{ids[0], ids[1], ids[3]}},
 	} {
-		refs, err := d.MessagePageReferences(ctx, rooms[0].ID, ids[1], test.direction)
+		refs, err := pageReferences(d, ctx, rooms[0].ID, ids[1], test.direction)
 		if err != nil {
 			t.Fatal(err)
 		}

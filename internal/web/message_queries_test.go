@@ -48,7 +48,12 @@ func TestMessageQueryDisablesStaleFragmentObservation(t *testing.T) {
 		t.Fatal("reused stale display observation", response.Code)
 	}
 	scope := app.MessageQueries.Observe(ctx, app.presentationFacts(queryCtx))
-	refs, err := app.DB.MessagePageReferences(ctx, rooms[0].ID, 0, "around")
+	read, err := app.DB.BeginMessageRead(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refs, err := read.PageReferences(ctx, user.ID, rooms[0].ID, 0, "around")
+	read.Close()
 	if err != nil {
 		t.Fatal(err)
 	}

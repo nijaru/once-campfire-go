@@ -188,7 +188,7 @@ func TestMessagePaginationAndRefresh(t *testing.T) {
 		}
 		all = append(all, m.Message)
 	}
-	around, err := d.MessagePage(ctx, room.ID, all[42].ID, "around")
+	around, err := messageRecords(d, ctx, room.ID, all[42].ID, "around")
 	if err != nil || len(around) != 81 || around[0].ID != all[2].ID || around[80].ID != all[82].ID {
 		t.Fatalf("around: %d %v", len(around), err)
 	}
