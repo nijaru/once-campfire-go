@@ -22,7 +22,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/cable"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/integrations"
-	"github.com/basecamp/once-campfire-go/internal/jobs"
 	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
@@ -36,19 +35,15 @@ const (
 	MaxBody    = 16 << 20
 )
 
-type Server struct {
+type Dependencies struct {
 	Fragments           *presentation.Fragments
-	responses           *responseCache
 	MessageEffects      *application.MessageEffects
 	MessagePublications *application.MessagePublications
-	WebhookReplies      *application.WebhookReplies
-	Jobs                *jobs.Runner
 	Push                *integrations.PushSender
 	Unfurler            *integrations.Unfurler
 	Storage             *storage.Store
 	MessageCommands     *application.Messages
 	MessageQueries      *application.MessageQueries
-	ContentQueries      *application.ContentQueries
 	PageQueries         *application.PageQueries
 	BotQueries          *application.BotQueries
 	AccountQueries      *application.AccountQueries
@@ -61,16 +56,24 @@ type Server struct {
 	Cable               *cable.Hub
 	DB                  *database.DB
 	Secrets             *rails.Secrets
-	Secure              bool
-	mux                 *router
 	Presentation        *presentation.Renderer
-	closeOnce           sync.Once
-	intakeMu            sync.Mutex
-	closing             bool
-	handlers            sync.WaitGroup
-	attemptsMu          sync.Mutex
-	attempts            map[string]attempt
-	dummyHash           []byte
+}
+
+type Config struct {
+	Secure             bool
+	ResponseCacheBytes int
+}
+type Server struct {
+	Dependencies
+	Secure     bool
+	responses  *responseCache
+	mux        *router
+	intakeMu   sync.Mutex
+	closing    bool
+	handlers   sync.WaitGroup
+	attemptsMu sync.Mutex
+	attempts   map[string]attempt
+	dummyHash  []byte
 }
 type attempt struct {
 	Count int
@@ -129,69 +132,19 @@ type page struct {
 	Query                        string
 	SearchResultCount            int
 }
-func New(
-	db *database.DB,
-	secrets *rails.Secrets,
-	secure bool,
-	storagePaths ...string,
-) (*Server, error) {
-	// Same cost-12 dummy digest as reference/crates/db/src/models/user.rs.
-	// Unknown-user login still pays bcrypt; startup need not create a new hash.
-	hash := []byte("$2a$12$FiKmSp4UhLvSB4Sd/ZUjQunyKP6.NjDRHdr5LnKUVk.BUn4Mq12WS")
-	presenter, err := presentation.NewRenderer(secrets)
-	if err != nil {
-		return nil, err
-	}
-	cacheMB := 32
-	if raw, ok := os.LookupEnv("CAMPFIRE_FRAGMENT_CACHE_MB"); ok {
-		cacheMB, err = strconv.Atoi(raw)
-		if err != nil || cacheMB < 0 || cacheMB > 1<<20 {
-			return nil, fmt.Errorf("invalid CAMPFIRE_FRAGMENT_CACHE_MB %q", raw)
-		}
-	}
-	responseBytes, err := responseCacheBudget()
-	if err != nil {
-		return nil, fmt.Errorf("invalid CAMPFIRE_RESPONSE_CACHE_MB: %w", err)
-	}
+func New(deps Dependencies, config Config) *Server {
+	// Same cost-12 dummy digest as the reference. Unknown-user login still
+	// pays bcrypt; startup need not create a new hash.
 	s := &Server{
-		Fragments:    presentation.NewFragments(presenter, cacheMB<<20),
-		responses:    newResponseCache(responseBytes),
-		Cable:        cable.New(db, secrets),
-		DB:           db,
-		Secrets:      secrets,
-		Secure:       secure,
+		Dependencies: deps,
+		Secure:       config.Secure,
+		responses:    newResponseCache(config.ResponseCacheBytes),
 		mux:          &router{},
-		Presentation: presenter,
 		attempts:     map[string]attempt{},
-		dummyHash:    hash,
+		dummyHash:    []byte("$2a$12$FiKmSp4UhLvSB4Sd/ZUjQunyKP6.NjDRHdr5LnKUVk.BUn4Mq12WS"),
 	}
-	storageRoot := "storage"
-	if len(storagePaths) > 0 {
-		storageRoot = storagePaths[0]
-	}
-	s.Storage = storage.New(db, secrets, storageRoot)
 	s.registerStorageRoutes()
-	s.Unfurler = integrations.NewUnfurler()
-	s.initJobs()
-	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
-	s.PageQueries = &application.PageQueries{DB: db}
-	s.BotQueries = &application.BotQueries{DB: db}
-	s.RoomQueries = &application.RoomQueries{DB: db}
-	s.AccountQueries = &application.AccountQueries{DB: db, Secrets: secrets}
-	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
-	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}
-	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}
-	s.Searches = &application.Searches{DB: db, Messages: s.MessageQueries}
-	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
-	publications := &application.MessagePublications{Queries: s.MessageQueries, Cable: s.Cable}
-	notifications := &application.MessageNotifications{DB: db, Queries: s.NotificationQueries, Cable: s.Cable, Push: s.Push, Jobs: s.Jobs}
-	s.MessagePublications = publications
-	s.WebhookReplies = &application.WebhookReplies{Queries: s.NotificationQueries, Client: integrations.NewWebhookClient(), Storage: s.Storage, Commands: s.MessageCommands, Notifications: notifications, Publications: publications, Jobs: s.Jobs}
-	s.MessageEffects = &application.MessageEffects{Notifications: notifications, Webhooks: s.WebhookReplies, Publications: publications}
-	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
-	attachments := &application.Attachments{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
-	s.AccountCommands = &application.Accounts{DB: db, Attachments: attachments, Messages: s.MessageCommands, Cable: s.Cable, Jobs: s.Jobs}
-	s.SessionCommands = &application.Sessions{DB: db, Cable: s.Cable}
+	s.registerPushRoutes()
 	s.mux.HandleFunc("POST /unfurl_link", s.auth(s.unfurl))
 	s.registerPWARoutes()
 	s.mux.HandleFunc("GET /qr_code/{code}", s.browserCheck(s.qrCode))
@@ -219,7 +172,7 @@ func New(
 	s.mux.HandleFunc("GET /searches", s.auth(s.search))
 	s.mux.HandleFunc("POST /searches", s.auth(s.search))
 	s.mux.HandleFunc("DELETE /searches/clear", s.auth(s.search))
-	return s, nil
+	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -1004,24 +957,13 @@ func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.U
 	}
 	s.Cable.Serve(w, r, u, token)
 }
-func (s *Server) Close() {
-	s.closeOnce.Do(func() {
-		s.intakeMu.Lock()
-		s.closing = true
-		s.intakeMu.Unlock()
-		// Upgraded handlers must stop before joining commands. Both can admit
-		// dependent work; persistence remains live through final purge retries.
-		s.Cable.Close()
-		s.handlers.Wait()
-		s.Jobs.Close(10 * time.Second)
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := s.Storage.RetryPurges(ctx); err != nil {
-			slog.Error("shutdown purge continuation failed", "error", err)
-		}
-	})
-}
 
+func (s *Server) StopIntake() {
+	s.intakeMu.Lock()
+	s.closing = true
+	s.intakeMu.Unlock()
+}
+func (s *Server) WaitHandlers() { s.handlers.Wait() }
 func appVersion() string {
 	for _, key := range []string{"APP_VERSION", "GIT_REVISION"} {
 		if value := os.Getenv(key); value != "" {

@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"runtime/pprof"
 	"syscall"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/front"
 	"github.com/basecamp/once-campfire-go/internal/rails"
-	"github.com/basecamp/once-campfire-go/internal/web"
 )
 
 func env(key, fallback string) string {
@@ -50,26 +48,27 @@ func run() error {
 	if command != "server" && command != "db:prepare" && command != "backup" {
 		return fmt.Errorf("unknown command %q (server, db:prepare, or backup)", command)
 	}
-	secrets, err := rails.NewSecrets(os.Getenv("SECRET_KEY_BASE"))
-	if err != nil {
-		return err
-	}
-	storage := env("CAMPFIRE_STORAGE_PATH", "storage")
-	path := env("CAMPFIRE_DATABASE_PATH", filepath.Join(storage, "db", env("RAILS_ENV", "production")+".sqlite3"))
-	db, err := database.Open(path, max(1, runtime.GOMAXPROCS(0)))
-	if err != nil {
-		return err
-	}
-	if command == "backup" {
+	databaseConfig := databaseConfigFromEnv()
+	if command != "server" {
+		if _, err := rails.NewSecrets(databaseConfig.Secret); err != nil {
+			return err
+		}
+		db, err := database.Open(databaseConfig.Path, databaseConfig.Readers)
+		if err != nil {
+			return err
+		}
+		if command == "db:prepare" {
+			return db.Close()
+		}
 		defer db.Close()
-		return db.Backup(context.Background(), filepath.Join(storage, "backups", filepath.Base(path)))
+		return db.Backup(context.Background(), filepath.Join(databaseConfig.Storage, "backups", filepath.Base(databaseConfig.Path)))
 	}
-	if command == "db:prepare" {
-		return db.Close()
-	}
-	app, err := web.New(db, secrets, os.Getenv("DISABLE_SSL") == "", storage)
+	config, err := serverConfigFromEnv(databaseConfig)
 	if err != nil {
-		db.Close()
+		return err
+	}
+	app, err := openApplication(config)
+	if err != nil {
 		return err
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -95,9 +94,10 @@ func run() error {
 	}()
 	defer func() {
 		close(closing)
-		app.Close()
-		db.Close()
+		if err := app.Close(); err != nil {
+			slog.Error("database shutdown failed", "error", err)
+		}
 		close(finished)
 	}()
-	return front.Serve(ctx, front.FromEnv(), app)
+	return front.Serve(ctx, front.FromEnv(), app.HTTP)
 }

@@ -27,7 +27,7 @@ func TestAuthenticationAndMessageFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app, err := New(db, secrets, false)
+	app, err := newTestRuntime(db, secrets, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

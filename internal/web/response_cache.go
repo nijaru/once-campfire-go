@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -245,16 +244,4 @@ func (s *Server) cacheResponse(
 		w.Header()[name] = values
 	}
 	return []responsebody.Part{entry.body}
-}
-
-func responseCacheBudget() (int, error) {
-	raw, ok := os.LookupEnv("CAMPFIRE_RESPONSE_CACHE_MB")
-	if !ok || raw == "" {
-		return 64 << 20, nil
-	}
-	mb, err := strconv.Atoi(raw)
-	if err != nil || mb < 0 || mb > 1024 {
-		return 0, strconv.ErrSyntax
-	}
-	return mb << 20, nil
 }

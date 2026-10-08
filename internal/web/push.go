@@ -4,45 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"uuid"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
-	"github.com/basecamp/once-campfire-go/internal/integrations"
-	"github.com/basecamp/once-campfire-go/internal/jobs"
 )
 
 const pushPath = "/users/me/push_subscriptions"
 
-func (s *Server) initJobs() {
-	concurrency, _ := strconv.Atoi(os.Getenv("JOB_CONCURRENCY"))
-	if concurrency < 1 {
-		concurrency = 2
-	}
-	s.Jobs = jobs.New(concurrency, "push", "webhook", "purge", "ban", "analyze")
-	var vapid *integrations.VAPID
-	if public, private := os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY"); public != "" &&
-		private != "" {
-		subject := os.Getenv("VAPID_SUBJECT")
-		if subject == "" {
-			domain := strings.TrimSpace(strings.Split(os.Getenv("TLS_DOMAIN"), ",")[0])
-			if domain != "" {
-				subject = "https://" + domain
-			} else {
-				subject = "https://github.com/basecamp/once-campfire-go"
-			}
-		}
-		var err error
-		vapid, err = integrations.NewVAPID(subject, public, private)
-		if err != nil {
-			slog.Error("Web Push disabled", "error", err)
-		}
-	}
-	s.Push = integrations.NewPushSender(vapid)
+func (s *Server) registerPushRoutes() {
 	s.mux.HandleFunc("GET /users/{user}/push_subscriptions", s.auth(s.pushSubscriptions))
 	s.mux.HandleFunc("POST /users/{user}/push_subscriptions", s.auth(s.pushSubscriptions))
 	s.mux.HandleFunc(

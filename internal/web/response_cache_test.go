@@ -22,7 +22,7 @@ import (
 
 func cachedRequest(
 	t *testing.T,
-	app *Server,
+	app *testRuntime,
 	cookie *http.Cookie,
 	method, path string,
 	headers map[string]string,
@@ -38,19 +38,19 @@ func cachedRequest(
 	return writer
 }
 
-func cacheHits(app *Server) uint64 {
+func cacheHits(app *testRuntime) uint64 {
 	app.responses.mu.Lock()
 	defer app.responses.mu.Unlock()
 	return app.responses.hits
 }
 
-func cacheEntries(app *Server) int {
+func cacheEntries(app *testRuntime) int {
 	app.responses.mu.Lock()
 	defer app.responses.mu.Unlock()
 	return len(app.responses.entries)
 }
 
-func foreignWriter(t *testing.T, app *Server) *sql.DB {
+func foreignWriter(t *testing.T, app *testRuntime) *sql.DB {
 	t.Helper()
 	var index int
 	var name, path string
@@ -391,7 +391,7 @@ func TestResponseCacheDoesNotAdmitAConcurrentCommit(t *testing.T) {
 		),
 	)
 	writer := httptest.NewRecorder()
-	buffer := &responseBuffer{ResponseWriter: writer, server: app}
+	buffer := &responseBuffer{ResponseWriter: writer, server: app.Server}
 	session, request := app.withBrowserSession(buffer, request)
 	app.beginResponseCache(request)
 	requestMetadata(request.Context()).response.user = user.ID
@@ -408,18 +408,6 @@ func TestResponseCacheDoesNotAdmitAConcurrentCommit(t *testing.T) {
 }
 
 func TestResponseCacheBudgetAndHeadMiss(t *testing.T) {
-	t.Setenv("CAMPFIRE_RESPONSE_CACHE_MB", "")
-	if n, err := responseCacheBudget(); err != nil || n != 64<<20 {
-		t.Fatal(n, err)
-	}
-	t.Setenv("CAMPFIRE_RESPONSE_CACHE_MB", "0")
-	if n, err := responseCacheBudget(); err != nil || n != 0 {
-		t.Fatal(n, err)
-	}
-	t.Setenv("CAMPFIRE_RESPONSE_CACHE_MB", "2048")
-	if _, err := responseCacheBudget(); err == nil {
-		t.Fatal("unbounded configuration accepted")
-	}
 	t.Setenv("CAMPFIRE_RESPONSE_CACHE_MB", "1")
 	app, _, cookie, _ := testApp(t)
 	head := cachedRequest(t, app, cookie, "HEAD", "/users/me/sidebar", nil)

@@ -17,7 +17,7 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
-func capturedMessagePart(ctx context.Context, app *Server, records []database.Message) (responsebody.Part, error) {
+func capturedMessagePart(ctx context.Context, app *testRuntime, records []database.Message) (responsebody.Part, error) {
 	views, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), records)
 	if err != nil {
 		return responsebody.Part{}, err
