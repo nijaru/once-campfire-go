@@ -124,60 +124,65 @@ func (s *Server) messagePageViews(
 	return views, nil
 }
 
-// Hydrate only uncached views in place, sharing room/creator reads across misses.
+// Prepare only fragment misses. Associations and mention targets are materialized
+// together; presentation and signing run after the read snapshot is released.
 func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) error {
-	roomNames := map[int64]string{}
-	creators := map[int64]database.User{}
+	var records []database.Message
+	documents := make(map[int]richtext.Document)
+	targets := make(map[string]mentionTarget)
+	var mentioned []int64
 	for i := range views {
 		if views[i].Fragment != "" {
 			continue
 		}
-		name, ok := roomNames[views[i].RoomID]
-		if !ok {
-			room, err := s.DB.FindRoom(ctx, views[i].RoomID)
-			if err != nil {
-				return err
-			}
-			name = room.Name
-			if room.Type == "Rooms::Direct" {
-				view, err := s.displayRoom(ctx, room, database.User{})
-				if err != nil {
-					return err
-				}
-				name = view.Name
-			}
-			roomNames[room.ID] = name
-		}
-		creator, found := creators[views[i].CreatorID]
-		if !found {
-			var err error
-			creator, err = s.DB.User(ctx, views[i].CreatorID)
-			if errors.Is(err, sql.ErrNoRows) {
-				views[i].Fragment = unrenderableMessage
+		records = append(records, views[i].Message)
+		doc := richtext.Prepare(views[i].Body)
+		documents[i] = doc
+		for _, token := range doc.Attachables() {
+			if _, ok := targets[token]; ok {
 				continue
 			}
-			if err != nil {
-				return err
+			target := displayMentionTarget(token)
+			targets[token] = target
+			if target.ID != 0 {
+				mentioned = append(mentioned, target.ID)
 			}
-			creators[creator.ID] = creator
 		}
+	}
+	data, users, err := s.DB.MessageDisplays(ctx, records, mentioned)
+	if err != nil {
+		return err
+	}
+	rich := s.resolvedRichContext(ctx, targets, users)
+	for i := range views {
+		if views[i].Fragment != "" {
+			continue
+		}
+		detail := data[views[i].ID]
+		if detail.Author == nil {
+			views[i].Fragment = unrenderableMessage
+			continue
+		}
+		creator := detail.Author
+		views[i].Creator = creator.Name
 		views[i].CreatorTitle = creator.Title()
 		views[i].CreatorUpdatedAt = creator.UpdatedAt
 		views[i].Permalink = messagePermalink(ctx, views[i].RoomID, views[i].ID)
-		views[i].RoomName = name
-		result, _ := richtext.Display(views[i].Body, s.richContext(ctx))
+		views[i].RoomName = displayRoom(detail.Room, detail.Participants, database.User{}).Name
+		result, err := documents[i].Display(rich)
+		if err != nil {
+			return err
+		}
 		views[i].HTML = template.HTML(result.Presentation)
 		views[i].AllEmoji = allEmoji(result.Plain)
 		if sound := soundHTML(result.Plain); sound != "" {
 			views[i].HTML = template.HTML(sound)
 		}
-		boosts, err := s.DB.Boosts(ctx, views[i].ID)
-		if err != nil {
-			return err
-		}
-		views[i].Boosts = boosts
-		if err := s.messageAttachment(ctx, &views[i]); err != nil {
-			return err
+		views[i].Boosts = detail.Boosts
+		if detail.Attachment != nil {
+			if err := s.prepareMessageAttachment(&views[i], *detail.Attachment); err != nil {
+				return err
+			}
 		}
 		key := s.fragmentKey(ctx, messageCacheKey(views[i].Message))
 		if html, ok := s.fragments.get(key); ok {
@@ -201,6 +206,10 @@ func (s *Server) messageAttachment(ctx context.Context, view *messageView) error
 	if err != nil {
 		return err
 	}
+	return s.prepareMessageAttachment(view, blob)
+}
+
+func (s *Server) prepareMessageAttachment(view *messageView, blob database.Blob) error {
 	view.Attachment = &blob
 	view.BlobURL = s.Storage.BlobURL(blob)
 	view.DownloadURL = view.BlobURL + "?disposition=attachment"
@@ -213,6 +222,7 @@ func (s *Server) messageAttachment(ctx context.Context, view *messageView) error
 				{Key: "resize_to_limit", Value: []any{int64(1200), int64(800)}},
 			}
 		}
+		var err error
 		view.PreviewURL, err = s.Storage.RepresentationURL(blob, variation)
 		if err != nil {
 			return err

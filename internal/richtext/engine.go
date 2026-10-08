@@ -138,6 +138,11 @@ func MentionIDs(body string, ctx Context) ([]int64, error) {
 }
 
 func process(body string, ctx Context, fields outputFields) (Result, error) {
+	return Prepare(body).process(ctx, fields)
+}
+
+func (doc Document) process(ctx Context, fields outputFields) (Result, error) {
+	body := doc.body
 	result := Result{Mentioned: []int64{}, Errors: map[string]error{}}
 	var err error
 	if fields&editableOutput != 0 {
@@ -147,13 +152,13 @@ func process(body string, ctx Context, fields outputFields) (Result, error) {
 		}
 	}
 
-	root, err := load(body)
-	if err != nil {
+	if doc.err != nil {
 		for _, field := range []string{"plain", "body_html", "filtered", "mentioned"} {
-			result.Errors[field] = err
+			result.Errors[field] = doc.err
 		}
 		return result, nil
 	}
+	root := doc.root
 	if fields&displayOutput != 0 {
 		plainRoot := clone(root)
 		if err = replaceAttachments(plainRoot, ctx, true, 0); err != nil {
@@ -356,6 +361,16 @@ func removeSoloEmbed(root *xhtml.Node, ctx Context, text string) {
 	})
 }
 
+// Token preparation and rendering must interpret nested attachment content alike.
+func sanitizedAttachmentContent(value string) (string, error) {
+	content, err := parse(value)
+	if err != nil {
+		return "", err
+	}
+	sanitizeDOM(content, "action")
+	return serialize(content), nil
+}
+
 func replaceAttachments(root *xhtml.Node, ctx Context, asPlain bool, depth int) error {
 	var failure error
 	walk(root, func(n *xhtml.Node) {
@@ -363,13 +378,11 @@ func replaceAttachments(root *xhtml.Node, ctx Context, asPlain bool, depth int) 
 			return
 		}
 		if value := attr(n, "content"); value != "" {
-			content, err := parse(value)
+			sanitized, err := sanitizedAttachmentContent(value)
 			if err != nil {
 				failure = err
 				return
 			}
-			sanitizeDOM(content, "action")
-			sanitized := serialize(content)
 			removeAttr(n, "content")
 			if strings.TrimSpace(sanitized) != "" {
 				setAttr(n, "content", sanitized)

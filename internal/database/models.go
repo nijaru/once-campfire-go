@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -37,13 +36,7 @@ func (u User) Participant() RoomParticipant {
 }
 
 func (u User) Title() string {
-	parts := []string{}
-	for _, value := range []string{u.Name, u.Bio} {
-		if strings.TrimSpace(value) != "" {
-			parts = append(parts, value)
-		}
-	}
-	return strings.Join(parts, " – ")
+	return (UserDisplay{Name: u.Name, Bio: u.Bio}).Title()
 }
 
 type Room struct {

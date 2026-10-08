@@ -16,6 +16,10 @@ import (
 )
 
 func (s *Server) mention(u database.User) richtext.Mention {
+	return s.displayMention(database.UserDisplay{ID: u.ID, Name: u.Name, Bio: u.Bio, UpdatedAt: u.UpdatedAt})
+}
+
+func (s *Server) displayMention(u database.UserDisplay) richtext.Mention {
 	title := u.Name
 	if strings.TrimSpace(u.Bio) != "" {
 		title += " – " + u.Bio
