@@ -113,7 +113,7 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 			}
 		}
 	} else {
-		users, err = s.DB.Users(r.Context(), 0, false)
+		users, err = s.DB.ActiveUsers(r.Context(), 0)
 	}
 	if err != nil {
 		s.fail(w, err)
@@ -121,7 +121,7 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 	}
 	selected := map[int64]bool{u.ID: true}
 	if room.ID != 0 && kind != "Rooms::Direct" {
-		members, err := s.DB.Users(r.Context(), room.ID, false)
+		members, err := s.DB.ActiveUsers(r.Context(), room.ID)
 		if err != nil {
 			s.fail(w, err)
 			return

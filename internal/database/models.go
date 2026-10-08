@@ -86,23 +86,8 @@ func (d *DB) UserByEmail(ctx context.Context, email string) (User, error) {
 	)
 }
 
-func (d *DB) Rooms(
-	ctx context.Context,
-	user int64,
-) ([]Room, error) {
-	return d.rooms(ctx, user, true)
-}
-
-func (d *DB) AllRooms(ctx context.Context, user int64) ([]Room, error) {
-	return d.rooms(ctx, user, false)
-}
-
-func (d *DB) rooms(ctx context.Context, user int64, visible bool) ([]Room, error) {
-	query := "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,r.updated_at FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE m.user_id=?"
-	if visible {
-		query += " AND m.involvement!='invisible'"
-	}
-	rows, err := d.Read.QueryContext(ctx, query+" ORDER BY lower(r.name)", user)
+func (d *DB) Rooms(ctx context.Context, user int64) ([]Room, error) {
+	rows, err := d.Read.QueryContext(ctx, "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,r.updated_at FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE m.user_id=? AND m.involvement!='invisible' ORDER BY lower(r.name)", user)
 	if err != nil {
 		return nil, err
 	}

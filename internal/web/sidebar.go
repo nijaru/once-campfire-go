@@ -21,7 +21,7 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
 		return nil
 	}
-	members, err := s.DB.Users(ctx, room.ID, false)
+	members, err := s.DB.ActiveUsers(ctx, room.ID)
 	if err != nil {
 		return err
 	}

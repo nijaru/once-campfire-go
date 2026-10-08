@@ -86,7 +86,7 @@ func (d *DB) LoginHelpContact(ctx context.Context) (UserContact, error) {
 	return contact, err
 }
 
-func (d *DB) Users(ctx context.Context, room int64, botsOnly bool) ([]User, error) {
+func (d *DB) ActiveUsers(ctx context.Context, room int64) ([]User, error) {
 	query := "SELECT " + userColumns + " FROM users u "
 	args := []any{}
 	if room != 0 {
@@ -94,9 +94,6 @@ func (d *DB) Users(ctx context.Context, room int64, botsOnly bool) ([]User, erro
 		args = append(args, room)
 	}
 	query += "WHERE u.status=0 "
-	if botsOnly {
-		query += "AND u.role=2 "
-	}
 	rows, err := d.Read.QueryContext(ctx, query+"ORDER BY lower(u.name)", args...)
 	if err != nil {
 		return nil, err

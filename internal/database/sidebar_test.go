@@ -25,6 +25,10 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	original, err := d.Rooms(ctx, viewer.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var ids []int64
 	for i := 1; i <= 24; i++ {
 		id := viewer.ID + int64(i)
@@ -131,8 +135,9 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	all, err := d.AllRooms(ctx, viewer.ID)
-	if err != nil || len(profile) != len(all) {
+	all := append([]Room{self}, directs...)
+	all = append(all, original...)
+	if len(profile) != len(all) {
 		t.Fatalf("profile lost memberships: %v %v", profile, err)
 	}
 	for i, room := range profile {

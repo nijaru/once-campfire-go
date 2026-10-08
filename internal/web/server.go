@@ -48,6 +48,7 @@ type Server struct {
 	MessageQueries      *application.MessageQueries
 	ContentQueries      *application.ContentQueries
 	PageQueries         *application.PageQueries
+	BotQueries          *application.BotQueries
 	NotificationQueries *application.NotificationQueries
 	Searches            *application.Searches
 	RoomCommands        *application.Rooms
@@ -67,10 +68,6 @@ type attempt struct {
 	Count int
 	Start time.Time
 }
-type botView struct {
-	User  database.User
-	Rooms []database.Room
-}
 type page struct {
 	// An already prepared immutable message list; rendering never loads records.
 	messageBody *responsebody.Part
@@ -83,7 +80,8 @@ type page struct {
 	Placeholders                 []database.RoomParticipant
 	NextPage                     int64
 	Administrators               []database.User
-	Bots                         []botView
+	Bots                         []presentation.BotView
+	Bot                          database.BotIdentity
 	Platform                     useragent.Platform
 	Frame                        bool
 	SidebarRooms                 []presentation.RoomView
@@ -170,6 +168,7 @@ func New(
 	s.initJobs()
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.PageQueries = &application.PageQueries{DB: db}
+	s.BotQueries = &application.BotQueries{DB: db}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
 	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}

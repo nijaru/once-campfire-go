@@ -374,34 +374,12 @@ func (s *Server) bots(w http.ResponseWriter, r *http.Request, u database.User) {
 	if !administrator(w, u) {
 		return
 	}
-	bots, err := s.DB.Users(r.Context(), 0, true)
+	bots, err := s.BotQueries.Catalog(r.Context())
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	p := page{Title: "Bots", User: u, Users: bots}
-	for _, bot := range bots {
-		rooms, err := s.DB.AllRooms(r.Context(), bot.ID)
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-		for i, room := range rooms {
-			view, err := s.PageQueries.DisplayRoom(r.Context(), room, bot.Participant())
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
-			rooms[i] = view.Room
-		}
-		shared := rooms[:0]
-		for _, room := range rooms {
-			if room.Type != "Rooms::Direct" {
-				shared = append(shared, room)
-			}
-		}
-		p.Bots = append(p.Bots, botView{bot, shared})
-	}
+	p := page{Title: "Bots", User: u, Bots: bots}
 	s.respondPage(w, r, "bots", 200, p)
 }
 
@@ -409,42 +387,25 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 	if !administrator(w, u) {
 		return
 	}
-	bot := database.User{Role: 2}
-	webhook := ""
-	if id := pathInt(r, "bot"); id != 0 {
-		var err error
-		bot, err = s.DB.User(r.Context(), id)
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-		if bot.Role != 2 || bot.Status != 0 {
-			http.NotFound(w, r)
-			return
-		}
-		err = s.DB.Read.QueryRowContext(r.Context(), "SELECT url FROM webhooks WHERE user_id=?", id).
-			Scan(&webhook)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			s.fail(w, err)
-			return
-		}
+	data, err := s.BotQueries.Form(r.Context(), pathInt(r, "bot"))
+	if errors.Is(err, application.ErrNotBot) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		s.fail(w, err)
+		return
 	}
 	avatarURL := ""
-	if bot.ID != 0 {
-		blob, e := s.DB.AttachedBlob(r.Context(), "User", bot.ID, "avatar")
-		if e == nil {
-			avatarURL = storage.BlobURL(s.Storage.Verifier, blob)
-		} else if !errors.Is(e, sql.ErrNoRows) {
-			s.fail(w, e)
-			return
-		}
+	if data.Avatar != nil {
+		avatarURL = storage.BlobURL(s.Storage.Verifier, *data.Avatar)
 	}
 	s.respondPage(
 		w,
 		r,
 		"bot-form",
 		200,
-		page{AvatarURL: avatarURL, Title: "Bot settings", User: u, Subject: bot, Webhook: webhook},
+		page{AvatarURL: avatarURL, Title: "Bot settings", User: u, Bot: data.Bot, Webhook: data.Webhook},
 	)
 }
 
