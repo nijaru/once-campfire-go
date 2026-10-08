@@ -49,6 +49,7 @@ type Server struct {
 	ContentQueries      *application.ContentQueries
 	PageQueries         *application.PageQueries
 	BotQueries          *application.BotQueries
+	AccountQueries      *application.AccountQueries
 	NotificationQueries *application.NotificationQueries
 	Searches            *application.Searches
 	RoomCommands        *application.Rooms
@@ -79,7 +80,8 @@ type page struct {
 	Invitation                   bool
 	Placeholders                 []database.RoomParticipant
 	NextPage                     int64
-	Administrators               []database.User
+	Administrators               []database.AccountMember
+	AccountUsers                 []database.AccountMember
 	Bots                         []presentation.BotView
 	Bot                          database.BotIdentity
 	Platform                     useragent.Platform
@@ -169,6 +171,7 @@ func New(
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.PageQueries = &application.PageQueries{DB: db}
 	s.BotQueries = &application.BotQueries{DB: db}
+	s.AccountQueries = &application.AccountQueries{DB: db}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
 	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}

@@ -65,51 +65,36 @@ func administrator(w http.ResponseWriter, u database.User) bool {
 	return true
 }
 
-func accountPage(raw string, count int) (int64, int64) {
+func accountPageNumber(raw string) int64 {
 	var number int64
 	fmt.Sscan(raw, &number)
-	number = max(1, min(number, 1_000_000_000))
-	last := int64(max(1, (count+499)/500))
-	next := number + 1
-	if number == last {
-		next = 0
-	}
-	return number, next
+	return number
 }
 
 func (s *Server) accountForm(w http.ResponseWriter, r *http.Request, u database.User) {
-	users, err := s.DB.AccountUsers(r.Context(), u.Role == 1)
+	data, err := s.AccountQueries.Settings(r.Context(), u.Role, accountPageNumber(r.Form.Get("page")))
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	_, next := accountPage(r.Form.Get("page"), len(users))
-	p := page{Title: "Account settings", User: u, NextPage: next}
-	for _, user := range users {
-		if user.Role == 1 {
-			p.Administrators = append(p.Administrators, user)
-		} else {
-			p.Users = append(p.Users, user)
-		}
-	}
-	s.respondPage(w, r, "account", 200, p)
+	s.respondPage(w, r, "account", 200, page{
+		Title: "Account settings", User: u, NextPage: data.NextPage,
+		Administrators: data.Administrators, AccountUsers: data.Users,
+	})
 }
 
 func (s *Server) accountUsers(w http.ResponseWriter, r *http.Request, u database.User) {
 	if respondFormat(w, r, "turbo_stream") == "" {
 		return
 	}
-	users, err := s.DB.AccountUsers(r.Context(), false)
+	data, err := s.AccountQueries.Members(r.Context(), accountPageNumber(r.Form.Get("page")))
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	number, next := accountPage(r.Form.Get("page"), len(users))
-	start := min(int((number-1)*500), len(users))
-	body, err := s.Presentation.Markup(
-		"account-users-stream",
-		page{User: u, Users: users[start:min(start+500, len(users))], NextPage: next},
-	)
+	body, err := s.Presentation.Markup("account-users-stream", page{
+		User: u, AccountUsers: data.Users, NextPage: data.NextPage,
+	})
 	if err != nil {
 		s.fail(w, err)
 		return

@@ -124,19 +124,35 @@ func (d *DB) BannedIP(ctx context.Context, ip string) (bool, error) {
 
 func (u User) BotKey() string { return fmt.Sprintf("%d-%s", u.ID, u.BotToken) }
 
-func (d *DB) AccountUsers(ctx context.Context, includeBanned bool) ([]User, error) {
+// AccountMember includes display state and the role/status used by management
+// controls, but never credentials or private contact information.
+type AccountMember struct {
+	UserDisplay
+	Role, Status int
+}
+
+func (d *DB) AccountUsers(ctx context.Context, includeBanned bool) ([]AccountMember, error) {
 	status := "u.status=0"
 	if includeBanned {
 		status = "u.status IN (0,2)"
 	}
 	rows, err := d.Read.QueryContext(
 		ctx,
-		"SELECT "+userColumns+" FROM users u WHERE "+status+" AND u.role != 2 ORDER BY lower(u.name)",
+		"SELECT u.id,u.name,coalesce(u.bio,''),u.updated_at,u.role,u.status FROM users u WHERE "+status+" AND u.role != 2 ORDER BY lower(u.name)",
 	)
 	if err != nil {
 		return nil, err
 	}
-	return usersRows(rows)
+	defer rows.Close()
+	var users []AccountMember
+	for rows.Next() {
+		var user AccountMember
+		if err := rows.Scan(&user.ID, &user.Name, &user.Bio, timestamp{&user.UpdatedAt}, &user.Role, &user.Status); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, rows.Err()
 }
 
 func (d *DB) RoomMembers(ctx context.Context, room int64) ([]User, error) {
