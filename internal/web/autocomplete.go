@@ -2,13 +2,13 @@ package web
 
 import (
 	"fmt"
-	"github.com/basecamp/once-campfire-go/internal/httpcompat"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/httpcompat"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 )
 
@@ -72,7 +72,7 @@ func (s *Server) autocomplete(w http.ResponseWriter, r *http.Request, u database
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	for _, user := range users[offset:end] {
 		m := s.mention(user)
-		markup, err := s.markup("prompt-item", struct {
+		markup, err := s.Presentation.Markup("prompt-item", struct {
 			Mention richtext.Mention
 			HTML    template.HTML
 		}{m, template.HTML(richtext.MentionHTML(m))})

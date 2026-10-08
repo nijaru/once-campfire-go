@@ -143,7 +143,7 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	proxy := strings.Replace(app.Storage.BlobURL(b), "/redirect/", "/proxy/", 1)
+	proxy := strings.Replace(storage.BlobURL(app.Storage.Verifier, b), "/redirect/", "/proxy/", 1)
 	response, _ = perform(t, server, "GET", proxy, "", nil, nil)
 	if response.StatusCode != 404 || response.Header.Get("Cache-Control") != "no-cache" {
 		t.Fatalf("unwritten upload cached: %s %v", response.Status, response.Header)
@@ -160,7 +160,7 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	if response.StatusCode != 204 {
 		t.Fatal("upload", response.Status)
 	}
-	response, _ = perform(t, server, "GET", app.Storage.BlobURL(b), "", nil, nil)
+	response, _ = perform(t, server, "GET", storage.BlobURL(app.Storage.Verifier, b), "", nil, nil)
 	if response.StatusCode != 302 {
 		t.Fatal("blob redirect", response.Status)
 	}
@@ -176,7 +176,7 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	) {
 		t.Fatal(response.Header)
 	}
-	altered := strings.Replace(app.Storage.BlobURL(b), result.SignedID, result.SignedID+"bad", 1)
+	altered := strings.Replace(storage.BlobURL(app.Storage.Verifier, b), result.SignedID, result.SignedID+"bad", 1)
 	response, _ = perform(t, server, "GET", altered, "", nil, nil)
 	if response.StatusCode != 404 {
 		t.Fatal("tampered signature accepted", response.Status)
@@ -389,7 +389,7 @@ func TestMessageImageUploadAndVariant(t *testing.T) {
 		t.Fatal(err)
 	}
 	variation := storage.Resize(1200, 800, "")
-	preview, err := app.Storage.RepresentationURL(blob, variation)
+	preview, err := storage.RepresentationURL(app.Storage.Verifier, blob, variation)
 	if err != nil {
 		t.Fatal(err)
 	}

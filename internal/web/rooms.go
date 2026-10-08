@@ -14,6 +14,7 @@ import (
 
 	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
@@ -351,7 +352,7 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 					rails.TurboStream("remove", room.DOM("list"), ""),
 				)
 			} else if previous == "invisible" {
-				markup, err := s.markup("sidebar-shared", sidebarRoom{Room: room})
+				markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
 				if err != nil {
 					s.fail(w, err)
 					return

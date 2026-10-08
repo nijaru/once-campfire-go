@@ -98,7 +98,7 @@ func TestUploadIntegrityAndSigning(t *testing.T) {
 	if err != nil || string(data) != content {
 		t.Fatalf("stored file: %q %v", data, err)
 	}
-	found, err := s.FindSigned(ctx, s.SignedID(b))
+	found, err := s.FindSigned(ctx, SignedID(s.Verifier, b))
 	if err != nil || found.ID != b.ID {
 		t.Fatal(found, err)
 	}
@@ -211,7 +211,7 @@ func TestRepresentationURLIncludesDefaultFormat(t *testing.T) {
 	store := New(db, secrets, t.TempDir())
 	contentType := "image/jpeg"
 	blob := database.Blob{ID: 7, Filename: "photo.jpg", ContentType: &contentType}
-	path, err := store.RepresentationURL(blob, Resize(1200, 800, ""))
+	path, err := RepresentationURL(store.Verifier, blob, Resize(1200, 800, ""))
 	if err != nil {
 		t.Fatal(err)
 	}

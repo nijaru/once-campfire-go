@@ -45,7 +45,7 @@ func TestFormDirectUpload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	proxy := strings.Replace(app.Storage.BlobURL(blob), "/redirect/", "/proxy/", 1)
+	proxy := strings.Replace(storage.BlobURL(app.Storage.Verifier, blob), "/redirect/", "/proxy/", 1)
 	response, _ = perform(t, server, "GET", proxy, "", nil, nil)
 	if response.StatusCode != 404 || response.Header.Get("Cache-Control") != "no-cache" {
 		t.Fatalf("unwritten upload cached: %s %v", response.Status, response.Header)
@@ -77,7 +77,7 @@ func TestBlobProxyControllerPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	proxy := strings.Replace(
-		app.Storage.BlobURL(blob),
+		storage.BlobURL(app.Storage.Verifier, blob),
 		"/redirect/",
 		"/proxy/",
 		1,
@@ -139,7 +139,7 @@ func TestRepresentationProxyControllerPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	variation := storage.Resize(128, 128, "webp")
-	path, err := app.Storage.RepresentationURL(image, variation)
+	path, err := storage.RepresentationURL(app.Storage.Verifier, image, variation)
 	if err != nil {
 		t.Fatal(err)
 	}

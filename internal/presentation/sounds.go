@@ -1,5 +1,5 @@
 // Built-in sound catalog from reference/reference/app/models/sound.rb.
-package web
+package presentation
 
 var sounds = map[string]sound{
 	"56k":           {Image: "56k.webp", Width: 79, Height: 33},

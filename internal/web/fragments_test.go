@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
@@ -164,7 +165,7 @@ func TestMissingMessageAuthorKeepsPlaceholder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if views[0].Fragment != unrenderableMessage {
+	if views[0].Fragment != presentation.UnrenderableMessage {
 		t.Fatal("missing author did not produce placeholder", views[0])
 	}
 }

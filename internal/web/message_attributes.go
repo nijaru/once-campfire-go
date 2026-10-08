@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/basecamp/once-campfire-go/internal/rails"
-
 	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
@@ -72,7 +71,7 @@ func (s *Server) createdMessageEffects(ctx context.Context, result application.M
 	if err != nil {
 		return "", errors.Join(result.Processing, err)
 	}
-	markup, err := s.markup("message", views[0])
+	markup, err := s.Presentation.Markup("message", views[0])
 	if err != nil {
 		return "", errors.Join(result.Processing, err)
 	}
@@ -89,7 +88,7 @@ func (s *Server) updatedMessageEffects(ctx context.Context, result application.M
 	if err != nil {
 		return errors.Join(result.Processing, err)
 	}
-	markup, err := s.markup("presentation", views[0])
+	markup, err := s.Presentation.Markup("presentation", views[0])
 	if err != nil {
 		return errors.Join(result.Processing, err)
 	}

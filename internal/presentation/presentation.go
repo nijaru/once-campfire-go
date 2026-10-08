@@ -1,4 +1,4 @@
-package web
+package presentation
 
 import (
 	"bytes"
@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/basecamp/once-campfire-go/internal/database"
-
 	"github.com/basecamp/once-campfire-go/assets"
+	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 

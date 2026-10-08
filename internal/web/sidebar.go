@@ -2,102 +2,36 @@ package web
 
 import (
 	"context"
-	"strings"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
-
-type sidebarRoom struct {
-	database.Room
-	Members     []database.RoomParticipant
-	Unread      bool
-	Involvement string
-}
-
-func (r sidebarRoom) Label() string {
-	if len(r.Members) == 1 {
-		fields := strings.Fields(r.Members[0].Name)
-		if len(fields) > 0 {
-			return fields[0]
-		}
-		return ""
-	}
-	var names []string
-	for _, member := range r.Members {
-		var initials strings.Builder
-		for i, word := range strings.Fields(member.Name) {
-			if i >= 3 {
-				break
-			}
-			initials.WriteString(strings.ToUpper(string([]rune(word)[0])))
-		}
-		names = append(names, initials.String())
-	}
-	if len(names) == 2 {
-		return names[0] + "+" + names[1]
-	}
-	if len(names) > 2 {
-		return strings.Join(names[:len(names)-1], ", ") + ", and " + names[len(names)-1]
-	}
-	return strings.Join(names, "")
-}
 
 func (s *Server) displayRoom(
 	ctx context.Context,
 	room database.Room,
 	user database.User,
-) (sidebarRoom, error) {
+) (presentation.RoomView, error) {
 	var members []database.RoomParticipant
 	if room.Type == "Rooms::Direct" {
 		var err error
 		members, err = s.DB.RoomParticipants(ctx, room.ID)
 		if err != nil {
-			return sidebarRoom{}, err
+			return presentation.RoomView{}, err
 		}
 	}
-	return displayRoom(room, members, user), nil
+	return presentation.DisplayRoom(room, members, user.Participant()), nil
 }
 
-func displayRoom(
-	room database.Room,
-	members []database.RoomParticipant,
-	user database.User,
-) sidebarRoom {
-	view := sidebarRoom{Room: room}
-	if room.Type == "Rooms::Direct" {
-		var names []string
-		for _, member := range members {
-			if member.ID != user.ID {
-				view.Members = append(view.Members, member)
-				names = append(names, member.Name)
-			}
-		}
-		if len(view.Members) == 0 {
-			view.Members = []database.RoomParticipant{user.Participant()}
-			view.Name = user.Name
-		} else {
-			switch len(names) {
-			case 1:
-				view.Name = names[0]
-			case 2:
-				view.Name = names[0] + " and " + names[1]
-			default:
-				view.Name = strings.Join(names[:len(names)-1], ", ") + ", and " + names[len(names)-1]
-			}
-		}
-	}
-	return view
-}
-
-func (s *Server) sidebarRooms(ctx context.Context, user database.User) ([]sidebarRoom, error) {
+func (s *Server) sidebarRooms(ctx context.Context, user database.User) ([]presentation.RoomView, error) {
 	rooms, err := s.DB.SidebarRooms(ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}
-	var result []sidebarRoom
+	var result []presentation.RoomView
 	for _, room := range rooms {
-		view := displayRoom(room.Room, room.Members, user)
+		view := presentation.DisplayRoom(room.Room, room.Members, user.Participant())
 		view.Involvement, view.Unread = room.Involvement, room.Unread
 		result = append(result, view)
 	}
@@ -110,7 +44,7 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		action, target = "replace", room.DOM("list")
 	}
 	if room.Type == "Rooms::Open" {
-		markup, err := s.markup("sidebar-shared", sidebarRoom{Room: room})
+		markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
 		if err != nil {
 			return err
 		}
@@ -129,12 +63,12 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		}
 	}
 	for _, user := range members {
-		view := displayRoom(room, participants, user)
+		view := presentation.DisplayRoom(room, participants, user.Participant())
 		name := "sidebar-shared"
 		if room.Type == "Rooms::Direct" {
 			name, target, action = "sidebar-direct", "direct_rooms", "prepend"
 		}
-		markup, err := s.markup(name, view)
+		markup, err := s.Presentation.Markup(name, view)
 		if err != nil {
 			return err
 		}

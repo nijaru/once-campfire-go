@@ -1,16 +1,16 @@
-package web
+package presentation
 
 import (
 	"embed"
 	"encoding/base64"
 	"fmt"
-	"github.com/basecamp/once-campfire-go/internal/database"
 	"html/template"
 	"net/mail"
 	"strings"
 	"time"
 
 	"github.com/basecamp/once-campfire-go/assets"
+	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/useragent"
 )

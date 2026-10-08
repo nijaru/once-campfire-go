@@ -250,7 +250,7 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
-	markup, err := s.markup("boost", boost)
+	markup, err := s.Presentation.Markup("boost", boost)
 	if err != nil {
 		s.fail(w, err)
 		return

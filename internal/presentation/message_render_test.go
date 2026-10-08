@@ -1,4 +1,4 @@
-package web
+package presentation
 
 import (
 	"bytes"
@@ -9,33 +9,38 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 func TestMessageLayoutsMatchContextualTemplate(t *testing.T) {
-	app, _, _, _ := testApp(t)
+	secrets, err := rails.NewSecrets("test-only-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewRenderer(secrets)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for i, layout := range app.messageLayouts {
 		if len(layout) == 0 {
 			t.Fatalf("layout %d inactive: review slots and escaping after template changes", i)
 		}
 	}
-	base := messageView{
-		Message: database.Message{
-			ID: 123, RoomID: 456, CreatorID: 789, ClientID: "client-id",
-			Creator: "A & B", CreatedAt: time.Date(2026, 10, 6, 12, 30, 45, 987654321, time.UTC),
-			UpdatedAt: time.Date(2026, 10, 6, 12, 31, 0, 123456789, time.UTC),
-		},
+	base := MessageView{
+		ID: 123, RoomID: 456, CreatorID: 789, ClientID: "client-id", Creator: "A & B",
+		CreatedAt: time.Date(2026, 10, 6, 12, 30, 45, 987654321, time.UTC), UpdatedAt: time.Date(2026, 10, 6, 12, 31, 0, 123456789, time.UTC),
 		CreatorTitle: "Person <bio>", RoomName: "Room & name",
 		HTML:             template.HTML("<p>trusted &amp; sanitized</p>"),
 		Permalink:        "https://example.test/rooms/456/@123?x=1&y=2",
 		CreatorUpdatedAt: time.Date(2026, 10, 6, 11, 0, 0, 0, time.UTC),
 	}
-	check := func(t *testing.T, v messageView) {
+	check := func(t *testing.T, v MessageView) {
 		t.Helper()
-		expected, err := app.markup("message-uncached", v)
+		expected, err := app.Markup("message-uncached", v)
 		if err != nil {
 			t.Fatal(err)
 		}
-		actual, err := app.messageMarkup(v)
+		actual, err := app.MessageMarkup(v)
 		if err != nil {
 			t.Fatal(err)
 		}

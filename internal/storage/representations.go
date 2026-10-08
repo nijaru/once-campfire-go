@@ -217,24 +217,3 @@ func (s *Store) createVariant(
 	}
 	return commit.Blob, nil
 }
-
-func (s *Store) RepresentationURL(b database.Blob, v Variation) (string, error) {
-	// ActiveStorage::Blob#variation defaults the format before signing the URL.
-	if v.Get("format") == nil {
-		v = append(Variation{{Key: "format", Value: DefaultFormat(b)}}, v...)
-	}
-	key, err := s.VariationKey(v)
-	if err != nil {
-		return "", err
-	}
-	return "/rails/active_storage/representations/redirect/" + Escape(
-		s.SignedID(b),
-		false,
-	) + "/" + Escape(
-		key,
-		false,
-	) + "/" + Escape(
-		Filename(b.Filename),
-		true,
-	), nil
-}

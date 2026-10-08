@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 	"github.com/basecamp/once-campfire-go/internal/useragent"
 )
@@ -41,7 +42,7 @@ type layoutShellPage struct {
 	Origin, Stream, VAPIDPublicKey  string
 	Notice, Error, LoadedAt         string
 	CustomStyles, MessagesHTML      template.HTML
-	Messages                        []messageView
+	Messages                        []presentation.MessageView
 	Frame, Chat, Reload, Invitation bool
 }
 

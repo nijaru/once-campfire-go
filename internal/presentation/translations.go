@@ -1,5 +1,5 @@
 // Translation copy from reference/reference/app/helpers/translations_helper.rb.
-package web
+package presentation
 
 var translations = map[string][][2]string{
 	"email_address":                 {{"🇺🇸", "Enter your email address"}, {"🇪🇸", "Introduce tu correo electrónico"}, {"🇫🇷", "Entrez votre adresse courriel"}, {"🇮🇳", "अपना ईमेल पता दर्ज करें"}, {"🇩🇪", "Geben Sie Ihre E-Mail-Adresse ein"}, {"🇧🇷", "Insira seu endereço de email"}, {"🇯🇵", "メールアドレスを入力してください"}},

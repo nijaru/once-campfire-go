@@ -25,7 +25,7 @@ func TestRoomShellPreservesBytesAndRequestData(t *testing.T) {
 	check := func(t *testing.T, p page) {
 		t.Helper()
 		var expected bytes.Buffer
-		if err := app.templates.ExecuteTemplate(&expected, "room", p); err != nil {
+		if err := app.Presentation.ExecuteTemplate(&expected, "room", p); err != nil {
 			t.Fatal(err)
 		}
 		parts, err := app.roomParts(p, responsebody.NewPart([]byte(p.MessagesHTML)))

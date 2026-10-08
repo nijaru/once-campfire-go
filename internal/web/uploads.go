@@ -130,7 +130,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 			URL     string            `json:"url"`
 			Headers map[string]string `json:"headers"`
 		} `json:"direct_upload"`
-	}{Blob: b, SignedID: s.Storage.SignedID(b)}
+	}{Blob: b, SignedID: storage.SignedID(s.Storage.Verifier, b)}
 	if created, err := time.Parse("2006-01-02 15:04:05.999999", b.CreatedAt); err == nil {
 		response.Blob.CreatedAt = created.UTC().Format("2006-01-02T15:04:05.000Z")
 	}

@@ -1,23 +1,19 @@
 package web
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/basecamp/once-campfire-go/internal/rails"
-
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/presentation"
+	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
-	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
 func (s *Server) registerMessageRoutes() {
@@ -71,9 +67,9 @@ func (s *Server) findMessage(
 func (s *Server) messageViews(
 	ctx context.Context,
 	messages []database.Message,
-) ([]messageView, error) {
-	views := viewMessages(messages)
-	if err := s.hydrateMessageViews(ctx, views); err != nil {
+) ([]presentation.MessageView, error) {
+	views := presentation.ViewMessages(messages)
+	if err := s.hydrateMessageViews(ctx, messages, views); err != nil {
 		return nil, err
 	}
 	return views, nil
@@ -85,11 +81,11 @@ func (s *Server) messagePageViews(
 	ctx context.Context,
 	name string,
 	records []database.Message,
-) ([]messageView, error) {
+) ([]presentation.MessageView, error) {
 	if name != "edit-message" && name != "boosts-index" && name != "new-boost" {
 		return s.messageViews(ctx, records)
 	}
-	views := viewMessages(records)
+	views := presentation.ViewMessages(records)
 	var creators map[int64]database.UserDisplay
 	if name != "new-boost" {
 		ids := make([]int64, len(records))
@@ -139,100 +135,59 @@ func (s *Server) messagePageViews(
 	return views, nil
 }
 
-// Prepare only fragment misses. Associations and mention targets are materialized
-// together; presentation and signing run after the read snapshot is released.
-type messagePreparation struct {
-	records   []database.Message
-	documents map[int]richtext.Document
-	targets   map[string]presentation.MentionTarget
-	mentioned []int64
-}
-
-func prepareMessageViews(views []messageView) messagePreparation {
-	var records []database.Message
-	documents := make(map[int]richtext.Document)
-	targets := make(map[string]presentation.MentionTarget)
-	var mentioned []int64
+// Complete owned message inputs before invoking the pure presenter.
+func (s *Server) hydrateMessageViews(ctx context.Context, records []database.Message, views []presentation.MessageView) error {
+	var missing []database.Message
+	var positions []int
 	for i := range views {
-		if views[i].Fragment != "" {
-			continue
-		}
-		records = append(records, views[i].Message)
-		doc := richtext.Prepare(views[i].Body)
-		documents[i] = doc
-		for _, token := range doc.Attachables() {
-			if _, ok := targets[token]; ok {
-				continue
-			}
-			target := presentation.MentionTargetFor(token)
-			targets[token] = target
-			if target.ID != 0 {
-				mentioned = append(mentioned, target.ID)
-			}
+		if views[i].Fragment == "" {
+			missing = append(missing, records[i])
+			positions = append(positions, i)
 		}
 	}
-	return messagePreparation{records: records, documents: documents, targets: targets, mentioned: mentioned}
-}
-
-func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) error {
-	prepared := prepareMessageViews(views)
-	data, users, err := s.DB.MessageDisplays(ctx, prepared.records, prepared.mentioned)
+	prepared := presentation.PrepareMessages(missing)
+	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
 	if err != nil {
 		return err
 	}
-	return s.presentMessageViews(ctx, views, prepared, data, users)
-}
-
-func (s *Server) presentMessageViews(ctx context.Context, views []messageView, prepared messagePreparation, data map[int64]database.MessageDisplay, users map[int64]database.UserDisplay) error {
-	rich := s.resolvedRichContext(ctx, prepared.targets, users)
-	for i := range views {
-		if views[i].Fragment != "" {
-			continue
-		}
-		detail := data[views[i].ID]
-		if detail.Author == nil {
-			views[i].Fragment = unrenderableMessage
-			continue
-		}
-		creator := detail.Author
-		views[i].Creator = creator.Name
-		views[i].CreatorTitle = creator.Title()
-		views[i].CreatorUpdatedAt = creator.UpdatedAt
-		views[i].Permalink = messagePermalink(ctx, views[i].RoomID, views[i].ID)
-		views[i].RoomName = displayRoom(detail.Room, detail.Participants, database.User{}).Name
-		result, err := prepared.documents[i].Display(rich)
-		if err != nil {
-			return err
-		}
-		views[i].HTML = template.HTML(result.Presentation)
-		views[i].AllEmoji = allEmoji(result.Plain)
-		if sound := soundHTML(result.Plain); sound != "" {
-			views[i].HTML = template.HTML(sound)
-		}
-		views[i].Boosts = detail.Boosts
-		if detail.Attachment != nil {
-			if err := s.prepareMessageAttachment(&views[i], *detail.Attachment); err != nil {
-				return err
-			}
-		}
-		key := s.fragmentKey(ctx, messageCacheKey(views[i].Message.Reference()))
-		if html, ok := s.fragments.get(key); cacheFragments(ctx) && ok {
-			views[i].Fragment = html
-		} else {
-			body, err := s.messageMarkup(views[i])
-			if err != nil {
-				return err
-			}
-			views[i].Fragment = template.HTML(body)
-			if cacheFragments(ctx) {
-				views[i].Fragment = s.fragments.put(key, views[i].Fragment)
-			}
-		}
+	presented, err := s.presentMessages(ctx, prepared, data, users)
+	if err != nil {
+		return err
+	}
+	for i, view := range presented {
+		views[positions[i]] = view
 	}
 	return nil
 }
 
-func (s *Server) messageAttachment(ctx context.Context, view *messageView) error {
+func (s *Server) presentationFacts(ctx context.Context) presentation.Facts {
+	facts := presentation.Facts{Now: s.DB.Now()}
+	if info := requestMetadata(ctx); info != nil {
+		facts.Host, facts.Origin = info.host, info.origin
+	}
+	return facts
+}
+
+func (s *Server) presentMessages(ctx context.Context, prepared presentation.PreparedMessages, data map[int64]database.MessageDisplay, users map[int64]database.UserDisplay) ([]presentation.MessageView, error) {
+	views, err := s.Presentation.Messages(s.presentationFacts(ctx), prepared, data, users)
+	if err != nil {
+		return nil, err
+	}
+	for i := range views {
+		if data[views[i].ID].Author == nil {
+			continue
+		}
+		key := s.fragmentKey(ctx, messageCacheKey(prepared.Records[i].Reference()))
+		if html, ok := s.fragments.get(key); cacheFragments(ctx) && ok {
+			views[i].Fragment = html
+		} else if cacheFragments(ctx) {
+			views[i].Fragment = s.fragments.put(key, views[i].Fragment)
+		}
+	}
+	return views, nil
+}
+
+func (s *Server) messageAttachment(ctx context.Context, view *presentation.MessageView) error {
 	blob, err := s.DB.AttachedBlob(ctx, "Message", view.ID, "attachment")
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
@@ -240,47 +195,7 @@ func (s *Server) messageAttachment(ctx context.Context, view *messageView) error
 	if err != nil {
 		return err
 	}
-	return s.prepareMessageAttachment(view, blob)
-}
-
-func (s *Server) prepareMessageAttachment(view *messageView, blob database.Blob) error {
-	view.Attachment = &blob
-	view.BlobURL = s.Storage.BlobURL(blob)
-	view.DownloadURL = view.BlobURL + "?disposition=attachment"
-	view.Image = storage.Variable(blob.Type())
-	if view.Image || storage.Previewable(blob.Type()) {
-		variation := storage.Resize(1200, 800, "")
-		if storage.Previewable(blob.Type()) {
-			variation = storage.Variation{
-				{Key: "format", Value: storage.Symbol("webp")},
-				{Key: "resize_to_limit", Value: []any{int64(1200), int64(800)}},
-			}
-		}
-		var err error
-		view.PreviewURL, err = s.Storage.RepresentationURL(blob, variation)
-		if err != nil {
-			return err
-		}
-	}
-	view.HTML = template.HTML(attachmentHTML(blob, view.BlobURL, view.DownloadURL, view.PreviewURL))
-	return nil
-}
-
-func (s *Server) markup(name string, data any) (string, error) {
-	var b bytes.Buffer
-	err := s.templates.ExecuteTemplate(&b, name, data)
-	return b.String(), err
-}
-
-func messagePermalink(ctx context.Context, room, message int64) string {
-	var origin string
-	if info := requestMetadata(ctx); info != nil {
-		origin = info.origin
-	}
-	if origin == "" {
-		origin = "http://example.org"
-	}
-	return fmt.Sprintf("%s/rooms/%d/@%d", origin, room, message)
+	return s.Presentation.MessageAttachment(view, blob)
 }
 
 func (s *Server) publish(room int64, markup string) {
@@ -394,7 +309,7 @@ func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	markup, err := s.markup("boost", boost)
+	markup, err := s.Presentation.Markup("boost", boost)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -447,7 +362,7 @@ func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.
 			return
 		}
 		for _, m := range views {
-			markup, err := s.markup("message", m)
+			markup, err := s.Presentation.Markup("message", m)
 			if err != nil {
 				s.fail(w, err)
 				return

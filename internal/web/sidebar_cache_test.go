@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 )
 
 func TestSidebarPartsMatchTemplates(t *testing.T) {
@@ -15,7 +16,7 @@ func TestSidebarPartsMatchTemplates(t *testing.T) {
 		User: user, Screen: "sidebar", CanCreateRooms: true,
 		RoomsStream: "rooms", UserRoomsStream: "user", VAPIDPublicKey: "push-key",
 		Account: database.Account{ID: 1, UpdatedAt: time.Unix(1700000000, 0)},
-		SidebarRooms: []sidebarRoom{
+		SidebarRooms: []presentation.RoomView{
 			{Room: database.Room{ID: 1, Name: "Chat", Type: "Rooms::Open"}},
 		},
 	}
@@ -52,7 +53,7 @@ func TestSidebarPartsMatchTemplates(t *testing.T) {
 					p := original
 					p.Frame = frame
 					change.change(&p)
-					fragment, err := app.markup("sidebar-frame", p)
+					fragment, err := app.Presentation.Markup("sidebar-frame", p)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -61,7 +62,7 @@ func TestSidebarPartsMatchTemplates(t *testing.T) {
 						SidebarHTML template.HTML
 					}{p, template.HTML(fragment)}
 					var want bytes.Buffer
-					if err := app.templates.ExecuteTemplate(&want, "sidebar", input); err != nil {
+					if err := app.Presentation.ExecuteTemplate(&want, "sidebar", input); err != nil {
 						t.Fatal(err)
 					}
 					for range 2 {
@@ -94,7 +95,7 @@ func TestSidebarCacheTracksRenderedChanges(t *testing.T) {
 	makePage := func() page {
 		return page{
 			User: user, CanCreateRooms: true, RoomsStream: "rooms", UserRoomsStream: "user",
-			SidebarRooms: []sidebarRoom{
+			SidebarRooms: []presentation.RoomView{
 				{Room: database.Room{ID: 1, Name: "Chat", Type: "Rooms::Open"}},
 				{
 					Room:    database.Room{ID: 2, Type: "Rooms::Direct"},
@@ -106,7 +107,7 @@ func TestSidebarCacheTracksRenderedChanges(t *testing.T) {
 	}
 	render := func(p page) string {
 		var b bytes.Buffer
-		if err := app.templates.ExecuteTemplate(&b, "sidebar-frame", p); err != nil {
+		if err := app.Presentation.ExecuteTemplate(&b, "sidebar-frame", p); err != nil {
 			t.Fatal(err)
 		}
 		return b.String()

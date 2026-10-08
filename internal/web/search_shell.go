@@ -39,7 +39,7 @@ func (s *Server) searchParts(p page, messages responsebody.Part) ([]responsebody
 		input.MessagesHTML = template.HTML(marker)
 		b := borrowBuffer()
 		defer releaseBuffer(b)
-		if err := s.templates.ExecuteTemplate(b, "search", input); err != nil {
+		if err := s.Presentation.ExecuteTemplate(b, "search", input); err != nil {
 			return nil, err
 		}
 		rendered := b.String()

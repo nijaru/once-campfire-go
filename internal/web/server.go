@@ -23,6 +23,7 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/integrations"
 	"github.com/basecamp/once-campfire-go/internal/jobs"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 	"github.com/basecamp/once-campfire-go/internal/storage"
@@ -52,8 +53,7 @@ type Server struct {
 	Secrets         *rails.Secrets
 	Secure          bool
 	mux             *router
-	templates       *template.Template
-	messageLayouts  messageLayouts
+	Presentation    *presentation.Renderer
 	attemptsMu      sync.Mutex
 	attempts        map[string]attempt
 	dummyHash       []byte
@@ -86,7 +86,7 @@ type page struct {
 	Bots                         []botView
 	Platform                     useragent.Platform
 	Frame                        bool
-	SidebarRooms                 []sidebarRoom
+	SidebarRooms                 []presentation.RoomView
 	RoomsStream, UserRoomsStream string
 	AvatarAttached               bool
 	AvatarURL                    string
@@ -118,27 +118,11 @@ type page struct {
 	User                         database.User
 	Room                         database.Room
 	Rooms                        []database.Room
-	Messages                     []messageView
+	Messages                     []presentation.MessageView
 	Setup                        bool
 	Query                        string
 	SearchResultCount            int
 }
-type messageView struct {
-	AllEmoji                         bool
-	Fragment                         template.HTML
-	Attachment                       *database.Blob
-	BlobURL, DownloadURL, PreviewURL string
-	Image                            bool
-	database.Message
-	Editable         string
-	HTML             template.HTML
-	Permalink        string
-	CreatorTitle     string
-	CreatorUpdatedAt time.Time
-	RoomName         string
-	Boosts           []database.Boost
-}
-
 func New(
 	db *database.DB,
 	secrets *rails.Secrets,
@@ -148,7 +132,7 @@ func New(
 	// Same cost-12 dummy digest as reference/crates/db/src/models/user.rs.
 	// Unknown-user login still pays bcrypt; startup need not create a new hash.
 	hash := []byte("$2a$12$FiKmSp4UhLvSB4Sd/ZUjQunyKP6.NjDRHdr5LnKUVk.BUn4Mq12WS")
-	t, layouts, err := parseTemplates(secrets)
+	presenter, err := presentation.NewRenderer(secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -164,17 +148,16 @@ func New(
 		return nil, fmt.Errorf("invalid CAMPFIRE_RESPONSE_CACHE_MB: %w", err)
 	}
 	s := &Server{
-		fragments:      newFragmentCache(cacheMB << 20),
-		responses:      newResponseCache(responseBytes),
-		Cable:          cable.New(db, secrets),
-		DB:             db,
-		Secrets:        secrets,
-		Secure:         secure,
-		mux:            &router{},
-		templates:      t,
-		messageLayouts: layouts,
-		attempts:       map[string]attempt{},
-		dummyHash:      hash,
+		fragments:    newFragmentCache(cacheMB << 20),
+		responses:    newResponseCache(responseBytes),
+		Cable:        cable.New(db, secrets),
+		DB:           db,
+		Secrets:      secrets,
+		Secure:       secure,
+		mux:          &router{},
+		Presentation: presenter,
+		attempts:     map[string]attempt{},
+		dummyHash:    hash,
 	}
 	storageRoot := "storage"
 	if len(storagePaths) > 0 {
@@ -509,7 +492,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	}
 	b := borrowBuffer()
 	defer releaseBuffer(b)
-	if err := s.templates.ExecuteTemplate(b, name, p); err != nil {
+	if err := s.Presentation.ExecuteTemplate(b, name, p); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -812,15 +795,6 @@ func roomID(r *http.Request) int64 {
 	id, _ := strconv.ParseInt(value, 10, 64)
 	return id
 }
-
-func viewMessages(messages []database.Message) []messageView {
-	result := make([]messageView, 0, len(messages))
-	for _, m := range messages {
-		result = append(result, messageView{Message: m})
-	}
-	return result
-}
-
 func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
 	if err != nil {

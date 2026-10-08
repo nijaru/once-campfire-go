@@ -70,11 +70,11 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 				}
 				var expected, actual bytes.Buffer
 				p := page{User: user, Origin: "https://forms.test", Messages: before}
-				if err := app.templates.ExecuteTemplate(&expected, name, p); err != nil {
+				if err := app.Presentation.ExecuteTemplate(&expected, name, p); err != nil {
 					t.Fatal(err)
 				}
 				p.Messages = after
-				if err := app.templates.ExecuteTemplate(&actual, name, p); err != nil {
+				if err := app.Presentation.ExecuteTemplate(&actual, name, p); err != nil {
 					t.Fatal(err)
 				}
 				if actual.String() != expected.String() {

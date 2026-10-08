@@ -60,14 +60,6 @@ func (s *Store) Path(key string) (string, error) {
 	return filepath.Join(s.Root, key[:2], key[2:4], key), nil
 }
 
-func (s *Store) SignedID(b database.Blob) string {
-	token, err := s.Verifier.Generate(b.ID, "blob_id", time.Time{})
-	if err != nil {
-		panic(err)
-	}
-	return token
-}
-
 func (s *Store) FindSigned(ctx context.Context, token string) (database.Blob, error) {
 	var id int64
 	if err := s.Verifier.Verify(token, "blob_id", s.DB.Now(), &id); err != nil {
@@ -207,16 +199,6 @@ func (s *Store) UploadURL(b database.Blob) (string, error) {
 		s.DB.Now().Add(5*time.Minute),
 	)
 	return "/rails/active_storage/disk/" + Escape(token, false), err
-}
-
-func (s *Store) BlobURL(b database.Blob) string {
-	return "/rails/active_storage/blobs/redirect/" + Escape(
-		s.SignedID(b),
-		false,
-	) + "/" + Escape(
-		Filename(b.Filename),
-		true,
-	)
 }
 
 func Filename(name string) string {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -105,7 +106,7 @@ func (s *Server) accountUsers(w http.ResponseWriter, r *http.Request, u database
 	}
 	number, next := accountPage(r.Form.Get("page"), len(users))
 	start := min(int((number-1)*500), len(users))
-	body, err := s.markup(
+	body, err := s.Presentation.Markup(
 		"account-users-stream",
 		page{User: u, Users: users[start:min(start+500, len(users))], NextPage: next},
 	)
@@ -459,7 +460,7 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 	if bot.ID != 0 {
 		blob, e := s.DB.AttachedBlob(r.Context(), "User", bot.ID, "avatar")
 		if e == nil {
-			avatarURL = s.Storage.BlobURL(blob)
+			avatarURL = storage.BlobURL(s.Storage.Verifier, blob)
 		} else if !errors.Is(e, sql.ErrNoRows) {
 			s.fail(w, e)
 			return

@@ -1,4 +1,4 @@
-package web
+package presentation
 
 import (
 	"crypto/rand"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
-
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
@@ -57,7 +56,7 @@ func compileMessageLayouts(original *template.Template, source []byte) (messageL
 		if _, err = t.Parse(compiledSource); err != nil {
 			return layouts, err
 		}
-		v := messageView{AllEmoji: i&1 != 0}
+		v := MessageView{AllEmoji: i&1 != 0}
 		if i&2 != 0 {
 			v.Attachment = &database.Blob{}
 		}
@@ -112,16 +111,16 @@ func avatarPath(secrets *rails.Secrets, id int64, updated time.Time) string {
 	return path
 }
 
-func (s *Server) messageMarkup(v messageView) (string, error) {
+func (s *Renderer) MessageMarkup(v MessageView) (string, error) {
 	if len(v.Boosts) > 0 || len(s.messageLayouts[0]) == 0 {
-		return s.markup("message-uncached", v)
+		return s.Markup("message-uncached", v)
 	}
 	values := [16]string{
 		strconv.FormatInt(v.ID, 10), strconv.FormatInt(v.RoomID, 10), strconv.FormatInt(v.CreatorID, 10),
 		messageEscaper.Replace(v.ClientID), messageEscaper.Replace(v.CreatorTitle),
 		messageEscaper.Replace(v.Creator), messageEscaper.Replace(v.RoomName),
 		strconv.FormatInt(v.CreatedAt.UnixMilli(), 10), strconv.FormatInt(v.UpdatedAt.UnixMilli(), 10),
-		v.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"), avatarPath(s.Secrets, v.CreatorID, v.CreatorUpdatedAt),
+		v.CreatedAt.UTC().Format("2006-01-02T15:04:05.000Z"), avatarPath(s.secrets, v.CreatorID, v.CreatorUpdatedAt),
 		messageEscaper.Replace(v.Permalink), string(v.HTML),
 	}
 	index := 0

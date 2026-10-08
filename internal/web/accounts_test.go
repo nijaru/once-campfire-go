@@ -27,7 +27,7 @@ func TestAccountLogoURLsTrackReplacementAndDeletion(t *testing.T) {
 		}
 		path := "/account/logo?v=" + account.UpdatedAt.UTC().Format("20060102150405")
 		for _, name := range []string{"join", "account", "room-invitation"} {
-			body, err := app.markup(name, page{Account: account, User: database.User{Role: 0}})
+			body, err := app.Presentation.Markup(name, page{Account: account, User: database.User{Role: 0}})
 			if err != nil {
 				t.Fatal(err)
 			}

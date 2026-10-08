@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
@@ -148,17 +149,15 @@ func messageReferences(records []database.Message) []database.MessageReference {
 	return refs
 }
 
-func (s *Server) messageItems(ctx context.Context, messages []database.Message) ([]messageView, error) {
-	views := viewMessages(messages)
+func (s *Server) messageItems(ctx context.Context, messages []database.Message) ([]presentation.MessageView, error) {
+	views := presentation.ViewMessages(messages)
 	for i, m := range messages {
 		if html, ok := s.fragments.get(s.fragmentKey(ctx, messageCacheKey(m.Reference()))); cacheFragments(ctx) && ok {
 			views[i].Fragment = html
 		}
 	}
-	if err := s.hydrateMessageViews(ctx, views); err != nil {
+	if err := s.hydrateMessageViews(ctx, messages, views); err != nil {
 		return nil, err
 	}
 	return views, nil
 }
-
-const unrenderableMessage template.HTML = `<div class="message message--formatted message--failed center"><div class="message__body"><div class="message__body-content txt-align-center">Failed to load message content</div></div></div>`

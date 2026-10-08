@@ -28,7 +28,7 @@ func (s *Server) roomParts(p page, messages responsebody.Part) ([]responsebody.P
 		input.MessagesHTML, input.LoadedAt = template.HTML(messageMarker), loadedMarker
 		b := borrowBuffer()
 		defer releaseBuffer(b)
-		if err := s.templates.ExecuteTemplate(b, "room", input); err != nil {
+		if err := s.Presentation.ExecuteTemplate(b, "room", input); err != nil {
 			return nil, err
 		}
 		rendered := b.String()

@@ -24,7 +24,7 @@ func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
 	frameKey := sidebarCacheKey(p)
 	frame, ok := s.fragments.entry(frameKey)
 	if !ok {
-		html, err := s.markup("sidebar-frame", p)
+		html, err := s.Presentation.Markup("sidebar-frame", p)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,7 @@ func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
 		input.SidebarHTML = template.HTML(marker)
 		b := borrowBuffer()
 		defer releaseBuffer(b)
-		if err := s.templates.ExecuteTemplate(b, "sidebar", input); err != nil {
+		if err := s.Presentation.ExecuteTemplate(b, "sidebar", input); err != nil {
 			return nil, err
 		}
 		rendered := b.String()

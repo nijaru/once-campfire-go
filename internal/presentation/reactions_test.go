@@ -1,4 +1,4 @@
-package web
+package presentation
 
 import (
 	"bytes"
@@ -7,10 +7,18 @@ import (
 	"testing"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 func TestPreparedReactionBodiesKeepFormBytesAndEscaping(t *testing.T) {
-	app, _, _, _ := testApp(t)
+	secrets, err := rails.NewSecrets("test-only-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewRenderer(secrets)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// The former dynamic loop is an independent byte/escaping reference. IDs
 	// belong to each form; only the fixed inner contents can be pre-rendered.
 	legacy := template.Must(template.New("legacy").Funcs(template.FuncMap{
@@ -26,7 +34,7 @@ func TestPreparedReactionBodiesKeepFormBytesAndEscaping(t *testing.T) {
 		if err := legacy.Execute(&expected, message); err != nil {
 			t.Fatal(err)
 		}
-		if err := app.templates.ExecuteTemplate(&actual, "message-actions", messageView{Message: message}); err != nil {
+		if err := app.ExecuteTemplate(&actual, "message-actions", ViewMessages([]database.Message{message})[0]); err != nil {
 			t.Fatal(err)
 		}
 		_, forms, found := strings.Cut(actual.String(), `<div class="quick-boosts">`)

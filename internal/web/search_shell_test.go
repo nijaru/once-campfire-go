@@ -93,7 +93,7 @@ func TestSearchShellPreservesBytesIdentityAndOwnership(t *testing.T) {
 	check := func(t *testing.T, p page) []responsebody.Part {
 		t.Helper()
 		var expected, actual bytes.Buffer
-		if err := app.templates.ExecuteTemplate(&expected, "search", p); err != nil {
+		if err := app.Presentation.ExecuteTemplate(&expected, "search", p); err != nil {
 			t.Fatal(err)
 		}
 		parts, err := app.searchParts(p, responsebody.NewPart([]byte(p.MessagesHTML)))
@@ -112,7 +112,7 @@ func TestSearchShellPreservesBytesIdentityAndOwnership(t *testing.T) {
 		const marker = "\x00test-marker\x00"
 		p.MessagesHTML = template.HTML(marker)
 		expected.Reset()
-		if err := app.templates.ExecuteTemplate(&expected, "search", p); err != nil {
+		if err := app.Presentation.ExecuteTemplate(&expected, "search", p); err != nil {
 			t.Fatal(err)
 		}
 		before := httptest.NewRecorder()

@@ -7,6 +7,7 @@ import (
 	"html/template"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
@@ -97,9 +98,8 @@ func (s *Server) readMessageList(ctx context.Context, read *database.MessageRead
 	if err != nil {
 		return responsebody.Part{}, err
 	}
-	views := viewMessages(records)
-	prepared := prepareMessageViews(views)
-	data, users, err := read.Displays(ctx, prepared.records, prepared.mentioned)
+	prepared := presentation.PrepareMessages(records)
+	data, users, err := read.Displays(ctx, prepared.Records, prepared.Mentioned)
 	if err != nil {
 		return responsebody.Part{}, err
 	}
@@ -107,7 +107,8 @@ func (s *Server) readMessageList(ctx context.Context, read *database.MessageRead
 		return responsebody.Part{}, err
 	}
 	ctx = s.checkMessageObservation(ctx)
-	if err = s.presentMessageViews(ctx, views, prepared, data, users); err != nil {
+	views, err := s.presentMessages(ctx, prepared, data, users)
+	if err != nil {
 		return responsebody.Part{}, err
 	}
 	for i, view := range views {

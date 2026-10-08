@@ -183,7 +183,7 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 		t.Fatal(err)
 	}
 	var original bytes.Buffer
-	if err := app.templates.ExecuteTemplate(&original, "messages", page{Messages: views}); err != nil {
+	if err := app.Presentation.ExecuteTemplate(&original, "messages", page{Messages: views}); err != nil {
 		t.Fatal(err)
 	}
 	fragment, err := app.messageList(ctx, list)
