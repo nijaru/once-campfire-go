@@ -64,6 +64,7 @@ type Server struct {
 	Secure              bool
 	mux                 *router
 	Presentation        *presentation.Renderer
+	closeOnce           sync.Once
 	intakeMu            sync.Mutex
 	closing             bool
 	handlers            sync.WaitGroup
@@ -1004,14 +1005,21 @@ func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.U
 	s.Cable.Serve(w, r, u, token)
 }
 func (s *Server) Close() {
-	s.intakeMu.Lock()
-	s.closing = true
-	s.intakeMu.Unlock()
-	// Upgraded handlers must be stopped before joining HTTP commands. Both can
-	// use persistence or admit dependent work, so drain jobs only after joining.
-	s.Cable.Close()
-	s.handlers.Wait()
-	s.Jobs.Close(10 * time.Second)
+	s.closeOnce.Do(func() {
+		s.intakeMu.Lock()
+		s.closing = true
+		s.intakeMu.Unlock()
+		// Upgraded handlers must stop before joining commands. Both can admit
+		// dependent work; persistence remains live through final purge retries.
+		s.Cable.Close()
+		s.handlers.Wait()
+		s.Jobs.Close(10 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := s.Storage.RetryPurges(ctx); err != nil {
+			slog.Error("shutdown purge continuation failed", "error", err)
+		}
+	})
 }
 
 func appVersion() string {

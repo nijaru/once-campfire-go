@@ -52,18 +52,26 @@ func (s *Attachments) committed(a Attachment, commit database.AttachmentCommit) 
 }
 
 func (s *Attachments) Analyze(id int64) error {
-	analyze := func(ctx context.Context) error {
-		blob, err := s.DB.Blob(ctx, id)
-		if err != nil {
-			return err
-		}
-		_, err = s.Storage.Analyze(ctx, blob)
-		return err
-	}
-	if s.Jobs.Enqueue("analyze", analyze) {
+	if s.Jobs.Enqueue(analyzeTask{db: s.DB, store: s.Storage, id: id}) == jobs.Accepted {
 		return nil
 	}
 	// Profile/logo analysis remains asynchronous and best-effort. Rejection is
 	// explicit to the coordinator, not synchronous media work on the HTTP path.
 	return errors.New("blob analysis was not admitted")
+}
+
+type analyzeTask struct {
+	db    *database.DB
+	store *storage.Store
+	id    int64
+}
+
+func (analyzeTask) Queue() string { return "analyze" }
+func (task analyzeTask) Run(ctx context.Context) error {
+	blob, err := task.db.Blob(ctx, task.id)
+	if err != nil {
+		return err
+	}
+	_, err = task.store.Analyze(ctx, blob)
+	return err
 }

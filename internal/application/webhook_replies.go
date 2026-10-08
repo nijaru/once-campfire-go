@@ -35,8 +35,20 @@ func (s *WebhookReplies) Enqueue(message database.Message, room database.Room) {
 		return
 	}
 	for _, bot := range bots {
-		s.Jobs.Enqueue("webhook", func(ctx context.Context) error { return s.Deliver(ctx, bot, message.ID) })
+		if admission := s.Jobs.Enqueue(webhookTask{replies: s, botID: bot, messageID: message.ID}); admission != jobs.Accepted {
+			slog.Warn("webhook delivery not admitted", "admission", admission)
+		}
 	}
+}
+
+type webhookTask struct {
+	replies          *WebhookReplies
+	botID, messageID int64
+}
+
+func (webhookTask) Queue() string { return "webhook" }
+func (task webhookTask) Run(ctx context.Context) error {
+	return task.replies.Deliver(ctx, task.botID, task.messageID)
 }
 
 func (s *WebhookReplies) Deliver(ctx context.Context, botID, messageID int64) error {

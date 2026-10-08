@@ -226,10 +226,13 @@ Define retained-cache budgets separately from active work/memory/disk admission.
 
 ### Post-commit work and cleanup
 
-Use small owned task inputs, usually identities, not captured requests, contexts,
-staged handles or subscription credentials. Make admission outcomes explicit.
-Retain independent queues and existing in-process durability; no outbox or
-exactly-once delivery requirement is introduced.
+Use small owned task inputs, usually identities, not captured requests, contexts
+or staged handles. Push delivery is the specific exception: retain its selected
+subscription credentials and prepared payload before admission, matching the
+existing delivery policy. Reloading them in a worker would change admitted work;
+an extra identity-to-payload registry would only hide the same retained snapshot.
+Make admission outcomes explicit. Retain independent bounded queues and existing
+in-process durability; no outbox or exactly-once delivery requirement is introduced.
 
 Do not make notification admission depend on successful message rendering. Critical
 cleanup must retain an owned continuation when child/background admission fails;

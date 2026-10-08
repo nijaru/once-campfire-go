@@ -144,33 +144,41 @@ func (s *Accounts) Ban(ctx context.Context, actor, id int64, ban bool) (UserStat
 	if !ban {
 		return result, nil
 	}
-	remove := func(ctx context.Context) error {
-		messages, err := s.DB.MessagesByCreator(ctx, id)
-		if err != nil {
-			return err
-		}
-		var failures error
-		for _, message := range messages {
-			result, err := s.Messages.RemoveBanned(ctx, message.ID)
-			if errors.Is(err, sql.ErrNoRows) {
-				continue
-			}
-			if err != nil {
-				failures = errors.Join(failures, err)
-				continue
-			}
-			publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-			s.Cable.Publish(publishCtx, result.Commit.RoomID, rails.TurboStream("remove", "message_"+result.Commit.ClientID, ""))
-			cancel()
-			failures = errors.Join(failures, result.Processing)
-		}
-		return failures
-	}
-	if s.Jobs.Enqueue("ban", remove) {
+	remove := banTask{accounts: s, userID: id}
+	if s.Jobs.Enqueue(remove) == jobs.Accepted {
 		return result, nil
 	}
 	fallback, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result.Processing = remove(fallback)
+	result.Processing = remove.Run(fallback)
 	return result, nil
+}
+
+type banTask struct {
+	accounts *Accounts
+	userID   int64
+}
+
+func (banTask) Queue() string { return "ban" }
+func (task banTask) Run(ctx context.Context) error {
+	messages, err := task.accounts.DB.MessagesByCreator(ctx, task.userID)
+	if err != nil {
+		return err
+	}
+	var failures error
+	for _, message := range messages {
+		result, err := task.accounts.Messages.RemoveBanned(ctx, message.ID)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			failures = errors.Join(failures, err)
+			continue
+		}
+		publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		task.accounts.Cable.Publish(publishCtx, result.Commit.RoomID, rails.TurboStream("remove", "message_"+result.Commit.ClientID, ""))
+		cancel()
+		failures = errors.Join(failures, result.Processing)
+	}
+	return failures
 }

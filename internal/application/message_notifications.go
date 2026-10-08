@@ -44,13 +44,26 @@ func (s *MessageNotifications) Created(message database.Message, room database.R
 		return
 	}
 	for _, delivery := range deliveries {
-		subscription, payload := delivery.Subscription, delivery.Payload
-		s.Jobs.Enqueue("push", func(ctx context.Context) error {
-			err := s.Push.Send(ctx, subscription.Endpoint, subscription.Key, subscription.Auth, payload)
-			if errors.Is(err, integrations.ErrPushGone) || errors.Is(err, integrations.ErrPushPoint) {
-				return s.DB.DeletePushSubscription(ctx, subscription.UserID, subscription.ID)
-			}
-			return err
-		})
+		if admission := s.Jobs.Enqueue(pushTask{notifications: s, delivery: delivery}); admission != jobs.Accepted {
+			slog.Warn("push delivery not admitted", "admission", admission)
+		}
 	}
+}
+
+// The selected credentials and payload are an owned provider operation, not
+// reloadable IDs: refetching here would change the pre-admission push policy.
+type pushTask struct {
+	notifications *MessageNotifications
+	delivery      PushDelivery
+}
+
+func (pushTask) Queue() string { return "push" }
+func (task pushTask) Run(ctx context.Context) error {
+	s := task.notifications
+	subscription := task.delivery.Subscription
+	err := s.Push.Send(ctx, subscription.Endpoint, subscription.Key, subscription.Auth, task.delivery.Payload)
+	if errors.Is(err, integrations.ErrPushGone) || errors.Is(err, integrations.ErrPushPoint) {
+		return s.DB.DeletePushSubscription(ctx, subscription.UserID, subscription.ID)
+	}
+	return err
 }

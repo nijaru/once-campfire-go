@@ -91,18 +91,10 @@ func (s *Messages) Update(ctx context.Context, actor, id int64, body *string, at
 	}
 	result.Processing = s.Cleanup.Detached(commit.Detached)
 	if upload != nil {
-		id := commit.AttachmentID
-		analyze := func(ctx context.Context) error {
-			blob, err := s.DB.Blob(ctx, id)
-			if err != nil {
-				return err
-			}
-			_, err = s.Storage.Analyze(ctx, blob)
-			return err
-		}
-		if !s.Jobs.Enqueue("analyze", analyze) {
+		analyze := analyzeTask{db: s.DB, store: s.Storage, id: commit.AttachmentID}
+		if s.Jobs.Enqueue(analyze) != jobs.Accepted {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			result.Processing = errors.Join(result.Processing, analyze(ctx))
+			result.Processing = errors.Join(result.Processing, analyze.Run(ctx))
 			cancel()
 		}
 	}

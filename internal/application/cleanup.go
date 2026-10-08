@@ -21,17 +21,26 @@ func (s *Cleanup) Detached(ids []int64) error {
 		return nil
 	}
 	ids = slices.Clone(ids)
-	purge := func(ctx context.Context) error {
-		var failures error
-		for _, id := range ids {
-			failures = errors.Join(failures, s.Storage.Purge(ctx, id))
-		}
-		return failures
-	}
-	if s.Jobs.Enqueue("purge", purge) {
+	s.Storage.RetainPurges(ids)
+	purge := purgeTask{store: s.Storage, ids: ids}
+	if s.Jobs.Enqueue(purge) == jobs.Accepted {
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return purge(ctx)
+	return purge.Run(ctx)
+}
+
+type purgeTask struct {
+	store *storage.Store
+	ids   []int64
+}
+
+func (purgeTask) Queue() string { return "purge" }
+func (task purgeTask) Run(ctx context.Context) error {
+	var failures error
+	for _, id := range task.ids {
+		failures = errors.Join(failures, task.store.Purge(ctx, id))
+	}
+	return failures
 }

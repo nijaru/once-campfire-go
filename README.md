@@ -226,8 +226,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
 
 As in Rust, background queues are bounded and in-process: a crash or forced exit can lose queued
 jobs. Shutdown stops intake and joins HTTP commands, sockets, presence cleanup and workers before
-closing SQLite. Workers are cancelled after a ten-second queue-drain grace. The CLI allows thirty
-seconds overall; if work cannot finish, it exits with status 1 rather than closing shared resources
+closing SQLite. Workers are cancelled after a ten-second queue-drain grace; retained purge
+continuations then receive a five-second retry window. The CLI allows thirty seconds overall;
+if work cannot finish, it exits with status 1 rather than closing shared resources
 under surviving work. Native libvips processing cannot always be preempted. See
 [the implementation record](plans/go-conversion.md) for coverage and validation scope.
 
