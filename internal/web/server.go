@@ -39,7 +39,9 @@ const (
 type Server struct {
 	Fragments           *presentation.Fragments
 	responses           *responseCache
-	Webhooks            *integrations.WebhookClient
+	MessageEffects      *application.MessageEffects
+	MessagePublications *application.MessagePublications
+	WebhookReplies      *application.WebhookReplies
 	Jobs                *jobs.Runner
 	Push                *integrations.PushSender
 	Unfurler            *integrations.Unfurler
@@ -169,7 +171,6 @@ func New(
 	s.Storage = storage.New(db, secrets, storageRoot)
 	s.registerStorageRoutes()
 	s.Unfurler = integrations.NewUnfurler()
-	s.Webhooks = integrations.NewWebhookClient()
 	s.initJobs()
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.PageQueries = &application.PageQueries{DB: db}
@@ -181,6 +182,11 @@ func New(
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}
 	s.Searches = &application.Searches{DB: db, Messages: s.MessageQueries}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
+	publications := &application.MessagePublications{Queries: s.MessageQueries, Cable: s.Cable}
+	notifications := &application.MessageNotifications{DB: db, Queries: s.NotificationQueries, Cable: s.Cable, Push: s.Push, Jobs: s.Jobs}
+	s.MessagePublications = publications
+	s.WebhookReplies = &application.WebhookReplies{Queries: s.NotificationQueries, Client: integrations.NewWebhookClient(), Storage: s.Storage, Commands: s.MessageCommands, Notifications: notifications, Publications: publications, Jobs: s.Jobs}
+	s.MessageEffects = &application.MessageEffects{Notifications: notifications, Webhooks: s.WebhookReplies, Publications: publications}
 	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
 	attachments := &application.Attachments{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
 	s.AccountCommands = &application.Accounts{DB: db, Attachments: attachments, Messages: s.MessageCommands, Cable: s.Cable, Jobs: s.Jobs}
@@ -911,7 +917,7 @@ func (s *Server) createMessage(w http.ResponseWriter, r *http.Request, u databas
 		return
 	}
 
-	output, err := s.createdMessageEffects(r.Context(), result, false)
+	output, err := s.MessageEffects.Created(r.Context(), s.presentationFacts(r.Context()), result)
 	if err != nil {
 		s.fail(w, err)
 		return

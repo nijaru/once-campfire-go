@@ -1,17 +1,14 @@
 package web
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 	"uuid"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
@@ -172,42 +169,4 @@ func (s *Server) testPushNotification(w http.ResponseWriter, r *http.Request, u 
 		return
 	}
 	http.Redirect(w, r, s.origin(r)+pushPath, 302)
-}
-
-func (s *Server) messageCreated(message database.Message, room database.Room) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	members, err := s.DB.RoomMemberIDs(ctx, room.ID)
-	if err != nil {
-		slog.Error("unread notification failed", "error", err)
-	} else {
-		for _, id := range members {
-			s.Cable.PublishStream(ctx, fmt.Sprintf("user_%d_unreads", id), map[string]any{"roomId": room.ID})
-		}
-	}
-	if s.Push.VAPID == nil {
-		return
-	}
-	deliveries, err := s.NotificationQueries.Push(ctx, s.presentationFacts(ctx), message, room)
-	if err != nil {
-		slog.Error("push preparation failed", "error", err)
-		return
-	}
-	for _, delivery := range deliveries {
-		subscription, payload := delivery.Subscription, delivery.Payload
-		s.Jobs.Enqueue("push", func(ctx context.Context) error {
-			err := s.Push.Send(
-				ctx,
-				subscription.Endpoint,
-				subscription.Key,
-				subscription.Auth,
-				payload,
-			)
-			if errors.Is(err, integrations.ErrPushGone) ||
-				errors.Is(err, integrations.ErrPushPoint) {
-				return s.DB.DeletePushSubscription(ctx, subscription.UserID, subscription.ID)
-			}
-			return err
-		})
-	}
 }

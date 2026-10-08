@@ -130,7 +130,7 @@ func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u databas
 		return
 	}
 	m = result.Commit.Message
-	if err = s.updatedMessageEffects(r.Context(), result); err != nil {
+	if err = s.MessagePublications.Updated(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
 		s.fail(w, err)
 		return
 	}

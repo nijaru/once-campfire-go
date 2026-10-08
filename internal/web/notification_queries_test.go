@@ -78,7 +78,7 @@ func TestWebhookPreparationKeepsMentionedAndAdmittedBots(t *testing.T) {
 	if err != nil || len(recipients) != 0 {
 		t.Fatalf("new admission accepted inactive non-bot: %v %v", recipients, err)
 	}
-	if err = app.deliverWebhook(ctx, bot.ID, message.ID); err != nil {
+	if err = app.WebhookReplies.Deliver(ctx, bot.ID, message.ID); err != nil {
 		t.Fatal(err)
 	}
 	payload := <-received
@@ -88,7 +88,7 @@ func TestWebhookPreparationKeepsMentionedAndAdmittedBots(t *testing.T) {
 	if _, err = app.DB.Write.ExecContext(ctx, "UPDATE action_text_rich_texts SET body=NULL WHERE record_type='Message' AND record_id=?", message.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err = app.deliverWebhook(ctx, bot.ID, message.ID); err != nil {
+	if err = app.WebhookReplies.Deliver(ctx, bot.ID, message.ID); err != nil {
 		t.Fatal(err)
 	}
 	payload = <-received

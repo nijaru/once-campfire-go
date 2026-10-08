@@ -143,7 +143,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			s.fail(w, err)
 			return true
 		}
-		if _, err = s.createdMessageEffects(r.Context(), result, false); err != nil {
+		if _, err = s.MessageEffects.Created(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
 			s.fail(w, err)
 			return true
 		}
@@ -167,7 +167,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 		message = result.Commit.Message
-		if err = s.updatedMessageEffects(r.Context(), result); err != nil {
+		if err = s.MessagePublications.Updated(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
 			s.fail(w, err)
 			return true
 		}
