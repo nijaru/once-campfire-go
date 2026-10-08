@@ -10,10 +10,12 @@ import (
 
 type requestInfoKey struct{}
 
-// One request-owned context value replaces separate host/origin values. Parsing
-// stays lazy for non-browser endpoints, and derived contexts share the result.
+// Ingress fixes transport facts once. Derived contexts share those facts and
+// the request-owned routing, database observation, and lazy browser parsing.
 type requestInfo struct {
 	host, origin    string
+	target, ip      string
+	ipError         error
 	response        *responseRound
 	databaseVersion uint64
 	routing         *recognizedRoute

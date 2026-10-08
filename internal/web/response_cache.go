@@ -134,7 +134,7 @@ func (s *Server) responseHit(r *http.Request) *cachedResponse {
 		return nil
 	}
 	key, _ := json.Marshal([]any{
-		info.host, info.origin, r.RequestURI, r.URL.RequestURI(), r.Form, round.user,
+		info.host, info.origin, info.target, r.URL.RequestURI(), r.Form, round.user,
 		r.Header.Values(
 			"Cookie",
 		), r.Header.Values("Accept"), r.Header.Values("Content-Type"), r.Header.Values("Turbo-Frame"),

@@ -23,7 +23,10 @@ func TestMessageQueryDisablesStaleFragmentObservation(t *testing.T) {
 	query := func(ctx context.Context) *httptest.ResponseRecorder {
 		t.Helper()
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest("GET", "/searches?q=queryneedle", nil).WithContext(ctx)
+		r := app.normalizeRequest(httptest.NewRequest("GET", "/searches?q=queryneedle", nil).WithContext(ctx))
+		if info := requestMetadata(ctx); info != nil {
+			requestMetadata(r.Context()).databaseVersion = info.databaseVersion
+		}
 		writer, r := app.withBrowserSession(w, r)
 		app.search(writer, r, user)
 		return w

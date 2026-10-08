@@ -185,13 +185,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handlers.Add(1)
 	s.intakeMu.Unlock()
 	defer s.handlers.Done()
-	r = r.WithContext(
-		context.WithValue(
-			r.Context(),
-			requestInfoKey{},
-			&requestInfo{host: r.Host, origin: s.origin(r)},
-		),
-	)
+	r = s.normalizeRequest(r)
 	if assets.Serve(w, r) {
 		return
 	}
@@ -207,7 +201,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			sw.WriteHeader(200)
 		}
 	}()
-	if _, err := requestRemoteIP(r); err != nil {
+	if requestMetadata(r.Context()).ipError != nil {
 		http.Error(w, "IP spoofing attack", 500)
 		return
 	}

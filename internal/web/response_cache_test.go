@@ -383,13 +383,7 @@ func TestResponseCacheDoesNotAdmitAConcurrentCommit(t *testing.T) {
 	app, _, cookie, user := testApp(t)
 	request := httptest.NewRequest("GET", "http://cache.test/rooms/1", nil)
 	request.AddCookie(cookie)
-	request = request.WithContext(
-		context.WithValue(
-			request.Context(),
-			requestInfoKey{},
-			&requestInfo{host: request.Host, origin: app.origin(request)},
-		),
-	)
+	request = app.normalizeRequest(request)
 	writer := httptest.NewRecorder()
 	buffer := &responseBuffer{ResponseWriter: writer, server: app.Server}
 	session, request := app.withBrowserSession(buffer, request)

@@ -25,7 +25,7 @@ func TestAccountMutationRechecksCapturedAdministrator(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
-	writer, request := app.withBrowserSession(w, r)
+	writer, request := app.withBrowserSession(w, app.normalizeRequest(r))
 	app.updateAccount(writer, request, captured)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("stale administrator mutated account: %d", w.Code)

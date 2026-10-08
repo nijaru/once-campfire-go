@@ -55,7 +55,7 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/searches?q=snapshotneedle", nil)
-	writer, r := app.withBrowserSession(w, r)
+	writer, r := app.withBrowserSession(w, app.normalizeRequest(r))
 	app.respondPage(writer, r, "search", 200, page{User: user, Query: "snapshotneedle", SearchResultCount: 1, messageBody: &retained})
 	if w.Code != 200 || !bytes.Contains(w.Body.Bytes(), body(retained)) {
 		t.Fatal("captured search body was lost after eviction/edit")
