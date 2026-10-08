@@ -35,14 +35,5 @@ func (d *DB) RoomMemberDisplays(ctx context.Context, room int64) ([]UserDisplay,
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var members []UserDisplay
-	for rows.Next() {
-		var member UserDisplay
-		if err := rows.Scan(&member.ID, &member.Name, &member.Bio, timestamp{&member.UpdatedAt}); err != nil {
-			return nil, err
-		}
-		members = append(members, member)
-	}
-	return members, rows.Err()
+	return displayRows(rows)
 }

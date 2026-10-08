@@ -182,7 +182,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 			return
 		}
 		p := page{
-			Title: "My settings", User: u, Transfer: s.origin(r) + s.transferPath(u),
+			Title: "My settings", User: u, Transfer: s.origin(r) + s.transferPath(u.ID),
 			AvatarAttached: data.AvatarAttached, Memberships: data.Memberships,
 			DirectMemberships: data.DirectMemberships,
 		}
@@ -233,7 +233,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 }
 
 func (s *Server) showUser(w http.ResponseWriter, r *http.Request, u database.User) {
-	subject, err := s.DB.User(r.Context(), pathInt(r, "user"))
+	subject, err := s.DB.UserProfile(r.Context(), pathInt(r, "user"))
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -247,7 +247,7 @@ func (s *Server) showUser(w http.ResponseWriter, r *http.Request, u database.Use
 			Title:    subject.Name,
 			User:     u,
 			Subject:  subject,
-			Transfer: s.origin(r) + s.transferPath(subject),
+			Transfer: s.origin(r) + s.transferPath(subject.ID),
 		},
 	)
 }
@@ -508,10 +508,10 @@ func (s *Server) transfer(w http.ResponseWriter, r *http.Request) {
 }
 
 // Transfer links expire after the same four-hour window as User#transfer_id.
-func (s *Server) transferPath(u database.User) string {
+func (s *Server) transferPath(id int64) string {
 	return "/session/transfers/" + s.Secrets.SignedID(
 		"User",
-		u.ID,
+		id,
 		"transfer",
 		s.DB.Now().Add(4*time.Hour),
 	)

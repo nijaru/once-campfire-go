@@ -61,19 +61,6 @@ func (d *DB) User(ctx context.Context, id int64) (User, error) {
 	)
 }
 
-func usersRows(rows *sql.Rows) ([]User, error) {
-	defer rows.Close()
-	users := []User{}
-	for rows.Next() {
-		var u User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Role, &u.Status, &u.Bio, timestamp{&u.UpdatedAt}, &u.BotToken); err != nil {
-			return nil, err
-		}
-		users = append(users, u)
-	}
-	return users, rows.Err()
-}
-
 // UserContact is the complete login-help projection; no credentials are read.
 type UserContact struct {
 	ID          int64

@@ -5,6 +5,33 @@ import (
 	"database/sql"
 )
 
+// UserProfile retains contact and management controls that the public profile
+// legitimately renders, but never password digests or bot API credentials.
+type UserProfile struct {
+	AccountMember
+	Email string
+}
+
+func (d *DB) UserProfile(ctx context.Context, id int64) (UserProfile, error) {
+	var user UserProfile
+	err := d.Read.QueryRowContext(ctx, "SELECT id,name,coalesce(bio,''),updated_at,role,status,coalesce(email_address,'') FROM users WHERE id=?", id).
+		Scan(&user.ID, &user.Name, &user.Bio, timestamp{&user.UpdatedAt}, &user.Role, &user.Status, &user.Email)
+	return user, err
+}
+
+func displayRows(rows *sql.Rows) ([]UserDisplay, error) {
+	defer rows.Close()
+	var users []UserDisplay
+	for rows.Next() {
+		var user UserDisplay
+		if err := rows.Scan(&user.ID, &user.Name, &user.Bio, timestamp{&user.UpdatedAt}); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, rows.Err()
+}
+
 func (d *DB) UserDisplays(ctx context.Context, ids []int64) (map[int64]UserDisplay, error) {
 	unique := make(map[int64]bool, len(ids))
 	for _, id := range ids {

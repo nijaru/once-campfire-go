@@ -106,7 +106,7 @@ type page struct {
 	VAPIDPublicKey               string
 	Subscriptions                []database.PushSubscription
 	RecentSearches               []string
-	Subject                      database.User
+	Subject                      database.UserProfile
 	JoinCode, Webhook, Transfer  string
 	RoomUsers                    []database.RoomChoice
 	CanAdminister                bool
@@ -175,7 +175,7 @@ func New(
 	s.PageQueries = &application.PageQueries{DB: db}
 	s.BotQueries = &application.BotQueries{DB: db}
 	s.RoomQueries = &application.RoomQueries{DB: db}
-	s.AccountQueries = &application.AccountQueries{DB: db}
+	s.AccountQueries = &application.AccountQueries{DB: db, Secrets: secrets}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
 	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}

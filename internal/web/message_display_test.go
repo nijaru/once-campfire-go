@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 )
 
 // An unreadable mention record is not malformed submitted HTML. Rendering used
@@ -17,7 +18,7 @@ func TestMessageMentionReadFailureDoesNotRenderSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := fmt.Sprintf(`<action-text-attachment sgid="%s"></action-text-attachment>`, app.mention(target.User).SGID)
+	body := fmt.Sprintf(`<action-text-attachment sgid="%s"></action-text-attachment>`, presentation.Mention(app.Secrets, database.UserDisplay{ID: target.ID}).SGID)
 	rooms, err := app.DB.Rooms(ctx, owner.ID)
 	if err != nil {
 		t.Fatal(err)
