@@ -41,7 +41,7 @@ func TestFormDirectUpload(t *testing.T) {
 	if err := json.Unmarshal(data, &allocation); err != nil {
 		t.Fatal(err)
 	}
-	blob, err := app.Storage.Blob(context.Background(), allocation.ID)
+	blob, err := app.DB.Blob(context.Background(), allocation.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

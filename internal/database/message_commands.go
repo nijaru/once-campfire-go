@@ -19,7 +19,7 @@ type MessageInput struct {
 	ClientID   string
 	Body       *string
 	Attachment *int64
-	Upload     BlobStager
+	Upload     *Blob
 }
 
 // MessageCommit contains the record and room observed by the successful mutation.
@@ -29,6 +29,7 @@ type MessageCommit struct {
 	Room         Room
 	Detached     []int64
 	AttachmentID int64
+	Uploaded     *Blob
 }
 
 func (d *DB) CreateMessage(ctx context.Context, user, room int64, input MessageInput) (MessageCommit, error) {
@@ -42,9 +43,6 @@ func (d *DB) CreateWebhookReply(ctx context.Context, user, room int64, input Mes
 }
 
 func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageInput, checkMembership bool) (MessageCommit, error) {
-	if input.Upload != nil {
-		defer input.Upload.Discard()
-	}
 	if input.ClientID == "" {
 		input.ClientID = uuid.NewV4().String()
 	}
@@ -73,11 +71,12 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 		if err := tx.QueryRowContext(ctx, "SELECT name FROM users WHERE id=?", user).Scan(&result.Creator); err != nil {
 			return err
 		}
-		blob, err := messageUpload(ctx, tx, input)
+		blob, uploaded, err := d.messageUpload(ctx, tx, input)
 		if err != nil {
 			return err
 		}
 		result.AttachmentID = blob
+		result.Uploaded = uploaded
 		stamp := Stamp(now)
 		r, err := tx.ExecContext(ctx, "INSERT INTO messages(client_message_id,creator_id,room_id,created_at,updated_at) VALUES (?,?,?,?,?)", result.ClientID, user, room, stamp, stamp)
 		if err != nil {
@@ -119,16 +118,10 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 	if err != nil {
 		return MessageCommit{}, err
 	}
-	if input.Upload != nil {
-		input.Upload.Keep()
-	}
 	return result, nil
 }
 
 func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInput) (MessageCommit, error) {
-	if input.Upload != nil {
-		defer input.Upload.Discard()
-	}
 	if input.Body != nil {
 		body := richtext.Canonical(*input.Body)
 		input.Body = &body
@@ -169,11 +162,12 @@ func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInp
 		}
 		attachment := input.Attachment
 		if input.Upload != nil {
-			blob, err := input.Upload.Insert(ctx, tx)
+			blob, err := d.insertBlob(ctx, tx, *input.Upload)
 			if err != nil {
 				return err
 			}
-			attachment = &blob
+			result.Uploaded = &blob
+			attachment = &blob.ID
 		}
 		if attachment != nil {
 			result.Detached, err = AttachmentBlobIDs(ctx, tx, "record_type='Message' AND record_id=? AND name='attachment'", id)
@@ -210,9 +204,6 @@ func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInp
 	})
 	if err != nil {
 		return MessageCommit{}, err
-	}
-	if input.Upload != nil {
-		input.Upload.Keep()
 	}
 	return result, nil
 }
@@ -267,14 +258,18 @@ func (d *DB) deleteMessage(ctx context.Context, user, id int64, checkPermission 
 	return result, nil
 }
 
-func messageUpload(ctx context.Context, tx *sql.Tx, input MessageInput) (int64, error) {
+func (d *DB) messageUpload(ctx context.Context, tx *sql.Tx, input MessageInput) (int64, *Blob, error) {
 	if input.Upload != nil {
-		return input.Upload.Insert(ctx, tx)
+		blob, err := d.insertBlob(ctx, tx, *input.Upload)
+		if err != nil {
+			return 0, nil, err
+		}
+		return blob.ID, &blob, nil
 	}
 	if input.Attachment != nil {
-		return *input.Attachment, nil
+		return *input.Attachment, nil, nil
 	}
-	return 0, nil
+	return 0, nil, nil
 }
 
 func messageSearchText(ctx context.Context, tx *sql.Tx, message Message) (string, error) {

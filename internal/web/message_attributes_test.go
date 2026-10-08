@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
@@ -118,7 +119,7 @@ func TestMessageAttachmentUpdatePreservesBodyAndIndexes(t *testing.T) {
 	if err != nil || updated.Body != "preserved" {
 		t.Fatalf("body changed: %+v %v", updated, err)
 	}
-	blob, err := app.Storage.Attached(ctx, "Message", message.ID, "attachment")
+	blob, err := app.DB.AttachedBlob(ctx, "Message", message.ID, "attachment")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +136,7 @@ func TestMessageAttachmentUpdatePreservesBodyAndIndexes(t *testing.T) {
 	if response.StatusCode != 302 {
 		t.Fatalf("remove attachment: %s %s", response.Status, data)
 	}
-	if _, err = app.Storage.Attached(ctx, "Message", message.ID, "attachment"); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = app.DB.AttachedBlob(ctx, "Message", message.ID, "attachment"); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatal(err)
 	}
 	hits, err = app.DB.SearchReferences(ctx, user.ID, "report")
@@ -143,7 +144,7 @@ func TestMessageAttachmentUpdatePreservesBodyAndIndexes(t *testing.T) {
 		t.Fatalf("stale search: %+v %v", hits, err)
 	}
 	app.Close()
-	if _, err = app.Storage.Blob(ctx, blob.ID); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = app.DB.Blob(ctx, blob.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("orphan blob: %v", err)
 	}
 }
@@ -223,7 +224,7 @@ func TestStagedUploadRollbackAndAbsentBody(t *testing.T) {
 	if err = app.DB.Read.QueryRowContext(ctx, "SELECT count(*) FROM active_storage_blobs WHERE key=?", staged.Blob.Key).Scan(&count); err != nil || count != 0 {
 		t.Fatal("premature blob row", count, err)
 	}
-	if _, err = app.DB.CreateMessage(ctx, user.ID, 999999, database.MessageInput{ClientID: "", Body: nil, Upload: staged}); err == nil {
+	if _, err = app.MessageCommands.Create(ctx, user.ID, 999999, "", nil, staged); err == nil {
 		t.Fatal("invalid room accepted")
 	}
 	if _, err = os.Stat(path); !errors.Is(err, os.ErrNotExist) {
@@ -234,11 +235,11 @@ func TestStagedUploadRollbackAndAbsentBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, database.MessageInput{ClientID: "", Body: nil, Upload: staged})
+	message, err := app.MessageCommands.Create(ctx, user.ID, rooms[0].ID, "", nil, staged)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = app.DB.Read.QueryRowContext(ctx, "SELECT count(*) FROM action_text_rich_texts WHERE record_type='Message' AND record_id=?", message.ID).Scan(&count); err != nil || count != 0 {
+	if err = app.DB.Read.QueryRowContext(ctx, "SELECT count(*) FROM action_text_rich_texts WHERE record_type='Message' AND record_id=?", message.Commit.ID).Scan(&count); err != nil || count != 0 {
 		t.Fatal("absent body became rich text", count, err)
 	}
 	path, _ = app.Storage.Path(staged.Blob.Key)
@@ -259,7 +260,8 @@ func TestProfileUploadRollsBackRecordAndFile(t *testing.T) {
 	if _, err = app.DB.Write.ExecContext(ctx, `CREATE TRIGGER reject_avatar BEFORE INSERT ON active_storage_attachments BEGIN SELECT RAISE(ABORT, 'test failure'); END`); err != nil {
 		t.Fatal(err)
 	}
-	if err = app.DB.UpdateUser(ctx, user.ID, map[string]string{"name": "Changed"}, nil, staged); err == nil {
+	name := "Changed"
+	if _, err = app.AccountCommands.UpdateUser(ctx, user.ID, user.ID, database.UserChanges{Name: &name}, application.Attachment{File: staged}); err == nil {
 		t.Fatal("attachment failure ignored")
 	}
 	unchanged, err := app.DB.User(ctx, user.ID)

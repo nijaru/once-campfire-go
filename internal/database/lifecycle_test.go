@@ -15,11 +15,11 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	member, err := d.CreateUser(ctx, "Member", "member@test", "digest", "", 0, nil)
+	member, err := d.CreateUser(ctx, owner.ID, UserInput{Name: "Member", Email: "member@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}
-	outsider, err := d.CreateUser(ctx, "Outsider", "outsider@test", "digest", "", 0, nil)
+	outsider, err := d.CreateUser(ctx, owner.ID, UserInput{Name: "Outsider", Email: "outsider@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	member, err := d.CreateUser(ctx, "Member", "member@test", "digest", "", 0, nil)
+	member, err := d.CreateUser(ctx, owner.ID, UserInput{Name: "Member", Email: "member@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = d.DeactivateUser(ctx, member.ID); err != nil {
+	if err = d.DeactivateUser(ctx, owner.ID, member.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.SessionUser(ctx, token); !errors.Is(err, sql.ErrNoRows) {

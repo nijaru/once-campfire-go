@@ -10,12 +10,14 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 func TestRoomMutationRechecksCapturedAdministrator(t *testing.T) {
 	app, _, _, captured := testApp(t)
 	ctx := context.Background()
-	creator, err := app.DB.CreateUser(ctx, "Creator", "creator@test", "digest", "", 0, nil)
+	creator, err := app.DB.CreateUser(ctx, captured.ID, database.UserInput{Name: "Creator", Email: "creator@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,15 +67,7 @@ func TestDirectRoomSettingsRetainInactiveParticipants(t *testing.T) {
 		t.Run(status, func(t *testing.T) {
 			app, server, cookie, owner := testApp(t)
 			ctx := context.Background()
-			member, err := app.DB.CreateUser(
-				ctx,
-				"Retained Participant",
-				"participant@test",
-				"unused",
-				"",
-				0,
-				nil,
-			)
+			member, err := app.DB.CreateUser(ctx, owner.ID, database.UserInput{Name: "Retained Participant", Email: "participant@test", Password: "unused", Bio: "", Role: 0, Webhook: nil})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -83,9 +77,9 @@ func TestDirectRoomSettingsRetainInactiveParticipants(t *testing.T) {
 			}
 			switch status {
 			case "deactivated":
-				err = app.DB.DeactivateUser(ctx, member.ID)
+				err = app.DB.DeactivateUser(ctx, owner.ID, member.ID)
 			case "banned":
-				err = app.DB.BanUser(ctx, member.ID, true)
+				err = app.DB.BanUser(ctx, owner.ID, member.ID, true)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -323,7 +317,7 @@ func TestRoomUpdatesRejectMissingRoot(t *testing.T) {
 func TestRoomUpdatesRedirectWhenMembershipIsMissing(t *testing.T) {
 	app, server, cookie, owner := testApp(t)
 	ctx := context.Background()
-	member, err := app.DB.CreateUser(ctx, "Member", "member@test", "digest", "", 0, nil)
+	member, err := app.DB.CreateUser(ctx, owner.ID, database.UserInput{Name: "Member", Email: "member@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}

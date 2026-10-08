@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -95,7 +94,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 		return
 	}
 	contentType, hasType := scalar("content_type")
-	b := storage.Blob{
+	b := database.Blob{
 		Filename: filename,
 		Checksum: checksum,
 		ByteSize: size,
@@ -114,7 +113,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 	b.ID = 0
 	b.Key = ""
 	b.ServiceName = "local"
-	b, err = s.Storage.Create(r.Context(), b)
+	b, err = s.DB.CreateBlob(r.Context(), b)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -125,7 +124,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 		return
 	}
 	response := struct {
-		storage.Blob
+		database.Blob
 		SignedID     string `json:"signed_id"`
 		DirectUpload struct {
 			URL     string            `json:"url"`
@@ -370,13 +369,4 @@ func (s *Server) optionalUpload(r *http.Request, field string) (*storage.Staged,
 		return nil, nil
 	}
 	return s.stageAttachment(r, field)
-}
-
-func (s *Server) analyzeUpload(upload *storage.Staged) {
-	if upload != nil {
-		s.Jobs.Enqueue("analyze", func(ctx context.Context) error {
-			_, err := s.Storage.Analyze(ctx, upload.Blob)
-			return err
-		})
-	}
 }

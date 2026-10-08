@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/basecamp/once-campfire-go/internal/database"
+
 	"github.com/basecamp/once-campfire-go/internal/front"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
@@ -178,7 +180,7 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
 func TestResponseCacheRechecksIdentityAndReachability(t *testing.T) {
 	app, _, cookie, user := testApp(t)
 	ctx := context.Background()
-	member, err := app.DB.CreateUser(ctx, "Cache member", "cache-member@test", "digest", "", 0, nil)
+	member, err := app.DB.CreateUser(ctx, user.ID, database.UserInput{Name: "Cache member", Email: "cache-member@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}

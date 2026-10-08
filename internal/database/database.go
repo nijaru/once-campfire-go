@@ -38,13 +38,10 @@ var migrations = []string{
 
 // A single writer prevents pool starvation while WAL readers proceed independently.
 type DB struct {
-	ResetConnections    func(int64)
-	PurgeBlobs          func([]int64)
-	RemoveBannedContent func(int64)
-	Read                *readPool
-	Write               *sql.DB
-	Now                 func() time.Time
-	version             *versionObserver
+	Read    *readPool
+	Write   *sql.DB
+	Now     func() time.Time
+	version *versionObserver
 }
 
 func Open(path string, readers int) (*DB, error) {

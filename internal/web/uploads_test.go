@@ -55,7 +55,7 @@ func testApp(t *testing.T) (*Server, *httptest.Server, *http.Cookie, database.Us
 	}
 	server := httptest.NewServer(app)
 	t.Cleanup(server.Close)
-	return app, server, &http.Cookie{Name: "session_token", Value: rails.EscapeCookie(signed)}, user
+	return app, server, &http.Cookie{Name: "session_token", Value: rails.EscapeCookie(signed)}, user.User
 }
 func perform(
 	t *testing.T,
@@ -139,7 +139,7 @@ func TestDirectUploadAndSignedDownloads(t *testing.T) {
 	if err := json.Unmarshal(data, &result); err != nil {
 		t.Fatal(err)
 	}
-	b, err := app.Storage.Blob(context.Background(), result.ID)
+	b, err := app.DB.Blob(context.Background(), result.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestDirectUploadMetadataRoundtrip(t *testing.T) {
 			if !reflect.DeepEqual(result.Metadata, tc.want) {
 				t.Fatal("response metadata differs from the expected structure")
 			}
-			blob, err := app.Storage.Blob(context.Background(), result.ID)
+			blob, err := app.DB.Blob(context.Background(), result.ID)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -384,7 +384,7 @@ func TestMessageImageUploadAndVariant(t *testing.T) {
 	if err != nil || len(messages) != 1 {
 		t.Fatal(messages, err)
 	}
-	blob, err := app.Storage.Attached(context.Background(), "Message", messages[0].ID, "attachment")
+	blob, err := app.DB.AttachedBlob(context.Background(), "Message", messages[0].ID, "attachment")
 	if err != nil {
 		t.Fatal(err)
 	}

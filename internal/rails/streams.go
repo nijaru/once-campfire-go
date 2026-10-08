@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html"
 	"strconv"
 	"strings"
 )
@@ -80,6 +81,23 @@ func StreamRoom(name string) (string, int64, error) {
 		return "", 0, ErrInvalid
 	}
 	return parts[3], id, nil
+}
+
+func TurboStream(action, target, markup string) string {
+	if action == "remove" {
+		return fmt.Sprintf(
+			`<turbo-stream action="remove" target="%s"></turbo-stream>`,
+			html.EscapeString(target),
+		)
+	}
+	attr := ""
+	if action == "replace" && strings.HasPrefix(target, "presentation_message_") ||
+		action == "append" && strings.HasPrefix(target, "boosts_message_") {
+		attr = ` maintain_scroll="true"`
+	}
+	return `<turbo-stream action="` + action + `" target="` + html.EscapeString(
+		target,
+	) + `"` + attr + `><template>` + markup + `</template></turbo-stream>`
 }
 
 func UserRoomsStream(id int64) string {

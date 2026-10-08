@@ -36,7 +36,8 @@ func (s *Messages) Reply(ctx context.Context, bot, room int64, body *string, upl
 func (s *Messages) create(ctx context.Context, actor, room int64, client string, body *string, upload *storage.Staged, reply bool) (MessageResult, error) {
 	input := database.MessageInput{ClientID: client, Body: body}
 	if upload != nil {
-		input.Upload = upload
+		defer upload.Discard()
+		input.Upload = &upload.Blob
 	}
 	var commit database.MessageCommit
 	var err error
@@ -50,6 +51,7 @@ func (s *Messages) create(ctx context.Context, actor, room int64, client string,
 	}
 	result := MessageResult{Commit: commit}
 	if upload != nil {
+		upload.Commit(*commit.Uploaded)
 		// This committed obligation stays joined to the command, but a posting
 		// disconnect must not abandon it. Media subprocesses retain their bounds.
 		_, result.Processing = s.Storage.ProcessAttachment(context.WithoutCancel(ctx), upload.Blob)
@@ -76,18 +78,22 @@ func (s *Messages) RemoveBanned(ctx context.Context, id int64) (MessageResult, e
 func (s *Messages) Update(ctx context.Context, actor, id int64, body *string, attachment *int64, upload *storage.Staged) (MessageResult, error) {
 	input := database.MessageInput{Body: body, Attachment: attachment}
 	if upload != nil {
-		input.Upload = upload
+		defer upload.Discard()
+		input.Upload = &upload.Blob
 	}
 	commit, err := s.DB.UpdateMessage(ctx, actor, id, input)
 	if err != nil {
 		return MessageResult{}, err
 	}
 	result := MessageResult{Commit: commit}
+	if upload != nil {
+		upload.Commit(*commit.Uploaded)
+	}
 	result.Processing = s.Cleanup.Detached(commit.Detached)
 	if upload != nil {
 		id := commit.AttachmentID
 		analyze := func(ctx context.Context) error {
-			blob, err := s.Storage.Blob(ctx, id)
+			blob, err := s.DB.Blob(ctx, id)
 			if err != nil {
 				return err
 			}

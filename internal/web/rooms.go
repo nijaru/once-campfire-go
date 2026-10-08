@@ -318,7 +318,7 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
 	defer cancel()
-	s.Cable.PublishStream(ctx, "rooms", stream("remove", result.Commit.Room.DOM("list"), ""))
+	s.Cable.PublishStream(ctx, "rooms", rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""))
 	if result.Processing != nil {
 		s.fail(w, result.Processing)
 		return
@@ -348,7 +348,7 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 				s.Cable.PublishStream(
 					r.Context(),
 					rails.UserRoomsStream(u.ID),
-					stream("remove", room.DOM("list"), ""),
+					rails.TurboStream("remove", room.DOM("list"), ""),
 				)
 			} else if previous == "invisible" {
 				markup, err := s.markup("sidebar-shared", sidebarRoom{Room: room})
@@ -356,7 +356,7 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 					s.fail(w, err)
 					return
 				}
-				s.Cable.PublishStream(r.Context(), rails.UserRoomsStream(u.ID), stream("prepend", "shared_rooms", markup))
+				s.Cable.PublishStream(r.Context(), rails.UserRoomsStream(u.ID), rails.TurboStream("prepend", "shared_rooms", markup))
 			}
 		}
 		http.Redirect(w, r, fmt.Sprintf("/rooms/%d/involvement", room.ID), 302)

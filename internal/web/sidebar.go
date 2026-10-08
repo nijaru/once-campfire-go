@@ -114,7 +114,7 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		if err != nil {
 			return err
 		}
-		s.Cable.PublishStream(ctx, "rooms", stream(action, target, markup))
+		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
 		return nil
 	}
 	members, err := s.DB.Users(ctx, room.ID, false)
@@ -138,7 +138,7 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		if err != nil {
 			return err
 		}
-		s.Cable.PublishStream(ctx, rails.UserRoomsStream(user.ID), stream(action, target, markup))
+		s.Cable.PublishStream(ctx, rails.UserRoomsStream(user.ID), rails.TurboStream(action, target, markup))
 	}
 	return nil
 }

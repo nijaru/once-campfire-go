@@ -7,12 +7,14 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 func TestMentionAutocompleteAndRendering(t *testing.T) {
 	app, server, cookie, owner := testApp(t)
 	ctx := context.Background()
-	_, err := app.DB.CreateUser(ctx, "Other <person>", "other@test", "digest", "", 0, nil)
+	_, err := app.DB.CreateUser(ctx, owner.ID, database.UserInput{Name: "Other <person>", Email: "other@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,9 +59,9 @@ func TestMentionAutocompleteAndRendering(t *testing.T) {
 	}
 }
 func TestManifestAndServiceWorker(t *testing.T) {
-	app, server, _, _ := testApp(t)
+	app, server, _, owner := testApp(t)
 	name := `A "quoted" \\ name`
-	if err := app.DB.UpdateAccount(context.Background(), &name, nil, nil, false); err != nil {
+	if _, err := app.DB.UpdateAccount(context.Background(), owner.ID, database.AccountInput{Name: &name}); err != nil {
 		t.Fatal(err)
 	}
 	response, raw := perform(t, server, "GET", "/webmanifest.json", "", nil, nil)

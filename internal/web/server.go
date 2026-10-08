@@ -45,6 +45,8 @@ type Server struct {
 	Storage         *storage.Store
 	MessageCommands *application.Messages
 	RoomCommands    *application.Rooms
+	AccountCommands *application.Accounts
+	SessionCommands *application.Sessions
 	Cable           *cable.Hub
 	DB              *database.DB
 	Secrets         *rails.Secrets
@@ -124,7 +126,7 @@ type page struct {
 type messageView struct {
 	AllEmoji                         bool
 	Fragment                         template.HTML
-	Attachment                       *storage.Blob
+	Attachment                       *database.Blob
 	BlobURL, DownloadURL, PreviewURL string
 	Image                            bool
 	database.Message
@@ -179,7 +181,6 @@ func New(
 		storageRoot = storagePaths[0]
 	}
 	s.Storage = storage.New(db, secrets, storageRoot)
-	s.DB.ResetConnections = s.Cable.Reconnect
 	s.registerStorageRoutes()
 	s.Unfurler = integrations.NewUnfurler()
 	s.Webhooks = integrations.NewWebhookClient()
@@ -187,7 +188,9 @@ func New(
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
 	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
-	s.initCleanup()
+	attachments := &application.Attachments{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
+	s.AccountCommands = &application.Accounts{DB: db, Attachments: attachments, Messages: s.MessageCommands, Cable: s.Cable, Jobs: s.Jobs}
+	s.SessionCommands = &application.Sessions{DB: db, Cable: s.Cable}
 	s.mux.HandleFunc("POST /unfurl_link", s.auth(s.unfurl))
 	s.registerPWARoutes()
 	s.mux.HandleFunc("GET /qr_code/{code}", s.browserCheck(s.qrCode))
@@ -694,12 +697,12 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 	if upload != nil {
 		defer upload.Discard()
 	}
-	u, err := s.DB.Setup(
+	result, err := s.AccountCommands.Setup(
 		r.Context(),
 		r.Form.Get("user[name]"),
 		r.Form.Get("user[email_address]"),
 		string(digest),
-		pendingBlob(upload),
+		application.Attachment{File: upload},
 	)
 	if errors.Is(err, database.ErrForbidden) {
 		http.Redirect(w, r, "/", 302)
@@ -723,12 +726,12 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.analyzeUpload(upload)
-	s.startSession(w, r, u)
+	logAccountProcessing(result.Processing)
+	s.startSession(w, r, result.Commit.User)
 }
 
 func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u database.User) {
-	token, err := s.DB.StartSession(r.Context(), u.ID, r.UserAgent(), remoteIP(r))
+	token, err := s.SessionCommands.Start(r.Context(), u.ID, r.UserAgent(), remoteIP(r))
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -756,16 +759,9 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	if _, err = s.DB.Write.ExecContext(r.Context(), "DELETE FROM sessions WHERE token=? AND user_id=?", token, u.ID); err != nil {
+	if err = s.SessionCommands.End(r.Context(), u.ID, token, r.Form.Get("push_subscription_endpoint")); err != nil {
 		s.fail(w, err)
 		return
-	}
-	s.Cable.Disconnect(u.ID)
-	if endpoint := r.Form.Get("push_subscription_endpoint"); endpoint != "" {
-		if _, err := s.DB.Write.ExecContext(r.Context(), "DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?", u.ID, endpoint); err != nil {
-			s.fail(w, err)
-			return
-		}
 	}
 	browserState(r).reset()
 	http.SetCookie(

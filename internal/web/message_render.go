@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/basecamp/once-campfire-go/internal/database"
+
 	"github.com/basecamp/once-campfire-go/internal/rails"
-	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
 // Adapted from Nick Potts' template-slot renderer in upstream PR #6:
@@ -58,7 +59,7 @@ func compileMessageLayouts(original *template.Template, source []byte) (messageL
 		}
 		v := messageView{AllEmoji: i&1 != 0}
 		if i&2 != 0 {
-			v.Attachment = &storage.Blob{}
+			v.Attachment = &database.Blob{}
 		}
 		var b strings.Builder
 		if err := t.ExecuteTemplate(&b, "message-uncached", v); err != nil {

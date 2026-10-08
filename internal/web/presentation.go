@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/basecamp/once-campfire-go/internal/database"
+
 	"github.com/basecamp/once-campfire-go/assets"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
@@ -22,7 +24,7 @@ func rubyFloat(n float64) string {
 	}
 	return s
 }
-func attachmentDimensions(b storage.Blob) (width, height, half, ratio string) {
+func attachmentDimensions(b database.Blob) (width, height, half, ratio string) {
 	var metadata map[string]any
 	d := json.NewDecoder(bytes.NewReader(b.Metadata))
 	d.UseNumber()
@@ -59,7 +61,7 @@ func attachmentDimensions(b storage.Blob) (width, height, half, ratio string) {
 	ratio = rubyFloat(wf / hf)
 	return
 }
-func attachmentHTML(b storage.Blob, blobURL, downloadURL, previewURL string) string {
+func attachmentHTML(b database.Blob, blobURL, downloadURL, previewURL string) string {
 	blob, download, preview := escape(blobURL), escape(downloadURL), escape(previewURL)
 	if storage.Previewable(b.Type()) || storage.Variable(b.Type()) {
 		width, height, half, ratio := attachmentDimensions(b)

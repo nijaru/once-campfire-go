@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/basecamp/once-campfire-go/internal/rails"
+
 	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/storage"
@@ -74,7 +76,7 @@ func (s *Server) createdMessageEffects(ctx context.Context, result application.M
 	if err != nil {
 		return "", errors.Join(result.Processing, err)
 	}
-	output := stream("append", commit.Room.DOM("messages"), markup)
+	output := rails.TurboStream("append", commit.Room.DOM("messages"), markup)
 	s.publish(commit.Room.ID, output)
 	return output, result.Processing
 }
@@ -91,13 +93,6 @@ func (s *Server) updatedMessageEffects(ctx context.Context, result application.M
 	if err != nil {
 		return errors.Join(result.Processing, err)
 	}
-	s.publish(message.RoomID, stream("replace", "presentation_message_"+message.ClientID, markup))
+	s.publish(message.RoomID, rails.TurboStream("replace", "presentation_message_"+message.ClientID, markup))
 	return result.Processing
-}
-
-func pendingBlob(staged *storage.Staged) database.BlobStager {
-	if staged == nil {
-		return nil
-	}
-	return staged
 }

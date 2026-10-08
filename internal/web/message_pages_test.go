@@ -9,7 +9,6 @@ import (
 
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
-	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
 func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
@@ -44,11 +43,11 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 				}
 			}
 			if contentType != "" {
-				blob, err := app.Storage.Create(ctx, storage.Blob{Filename: "file & name", ContentType: &contentType, ByteSize: 1})
+				blob, err := app.DB.CreateBlob(ctx, database.Blob{Filename: "file & name", ContentType: &contentType, ByteSize: 1})
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := app.Storage.Attach(ctx, blob, "Message", m.ID, "attachment"); err != nil {
+				if _, err := app.DB.UpdateMessage(ctx, user.ID, m.ID, database.MessageInput{Attachment: &blob.ID}); err != nil {
 					t.Fatal(err)
 				}
 			}

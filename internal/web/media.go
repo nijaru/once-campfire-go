@@ -121,7 +121,7 @@ func (s *Server) serveVariant(
 	size int64,
 	format string,
 ) bool {
-	b, err := s.Storage.Attached(r.Context(), kind, id, name)
+	b, err := s.DB.AttachedBlob(r.Context(), kind, id, name)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false
 	}
@@ -185,10 +185,12 @@ func (s *Server) logo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteAvatar(w http.ResponseWriter, r *http.Request, u database.User) {
-	if err := s.Storage.Detach(r.Context(), "User", u.ID, "avatar"); err != nil {
+	result, err := s.AccountCommands.DeleteAvatar(r.Context(), u.ID)
+	if err != nil {
 		s.fail(w, err)
 		return
 	}
+	logAccountProcessing(result.Processing)
 	http.Redirect(w, r, "/users/me/profile", 302)
 }
 
@@ -196,14 +198,11 @@ func (s *Server) deleteLogo(w http.ResponseWriter, r *http.Request, u database.U
 	if !administrator(w, u) {
 		return
 	}
-	a, err := s.DB.Account(r.Context())
+	result, err := s.AccountCommands.DeleteLogo(r.Context(), u.ID)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	if err = s.Storage.Detach(r.Context(), "Account", a.ID, "logo"); err != nil {
-		s.fail(w, err)
-		return
-	}
+	logAccountProcessing(result.Processing)
 	http.Redirect(w, r, "/account/edit", 302)
 }

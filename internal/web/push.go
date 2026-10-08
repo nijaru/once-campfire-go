@@ -239,7 +239,7 @@ func (s *Server) messageCreated(message database.Message, room database.Room) {
 		return
 	}
 	body := s.plainText(ctx, message.Body)
-	if attachment, err := s.Storage.Attached(ctx, "Message", message.ID, "attachment"); err == nil &&
+	if attachment, err := s.DB.AttachedBlob(ctx, "Message", message.ID, "attachment"); err == nil &&
 		attachment.ID != 0 &&
 		strings.TrimSpace(body) == "" {
 		body = attachment.Filename

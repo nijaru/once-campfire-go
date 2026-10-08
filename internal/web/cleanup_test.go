@@ -13,7 +13,7 @@ import (
 func TestBanPurgesMessagesAndUnsharedFiles(t *testing.T) {
 	app, _, _, owner := testApp(t)
 	ctx := context.Background()
-	user, err := app.DB.CreateUser(ctx, "Banned", "banned@test", "digest", "", 0, nil)
+	user, err := app.DB.CreateUser(ctx, owner.ID, database.UserInput{Name: "Banned", Email: "banned@test", Password: "digest", Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestBanPurgesMessagesAndUnsharedFiles(t *testing.T) {
 	if _, err = app.DB.StartSession(ctx, user.ID, "browser", "203.0.113.10"); err != nil {
 		t.Fatal(err)
 	}
-	if err = app.DB.BanUser(ctx, user.ID, true); err != nil {
+	if _, err = app.AccountCommands.Ban(ctx, owner.ID, user.ID, true); err != nil {
 		t.Fatal(err)
 	}
 	app.Jobs.Close(5 * time.Second)

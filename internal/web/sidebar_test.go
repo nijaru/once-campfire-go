@@ -92,7 +92,7 @@ func TestSidebarDocumentAndFrameKeepLayoutFresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	styles := "body{--sidebar-fresh:1}"
-	if err := app.DB.UpdateAccount(context.Background(), nil, &styles, nil, false); err != nil {
+	if _, err := app.DB.Write.ExecContext(context.Background(), "UPDATE accounts SET custom_styles=?,updated_at=?", styles, database.Stamp(app.DB.Now())); err != nil {
 		t.Fatal(err)
 	}
 	document := get(false)

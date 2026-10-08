@@ -93,72 +93,6 @@ func (d *DB) UserByEmail(ctx context.Context, email string) (User, error) {
 	)
 }
 
-func (d *DB) Setup(
-	ctx context.Context,
-	name, email, passwordDigest string,
-	uploads ...BlobStager,
-) (User, error) {
-	var u User
-	if strings.TrimSpace(name) == "" || strings.TrimSpace(email) == "" || passwordDigest == "" {
-		return u, ErrValidation
-	}
-	err := d.recordWithUpload(ctx, "User", &u.ID, uploads, func(tx *sql.Tx) error {
-		now := Stamp(d.Now())
-		var n int
-		if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM accounts").Scan(&n); err != nil {
-			return err
-		}
-		if n != 0 {
-			return ErrForbidden
-		}
-		if _, err := tx.ExecContext(ctx, "INSERT INTO accounts(name,join_code,settings,created_at,updated_at) VALUES (?,?,?,?,?)", "Campfire", Token(), "{}", now, now); err != nil {
-			return err
-		}
-		r, err := tx.ExecContext(
-			ctx,
-			"INSERT INTO users(name,email_address,password_digest,role,status,created_at,updated_at) VALUES (?,?,?,1,0,?,?)",
-			name,
-			email,
-			passwordDigest,
-			now,
-			now,
-		)
-		if err != nil {
-			return err
-		}
-		id, err := r.LastInsertId()
-		if err != nil {
-			return err
-		}
-		r, err = tx.ExecContext(
-			ctx,
-			"INSERT INTO rooms(name,type,creator_id,created_at,updated_at) VALUES (?,'Rooms::Open',?,?,?)",
-			"All Talk",
-			id,
-			now,
-			now,
-		)
-		if err != nil {
-			return err
-		}
-		room, err := r.LastInsertId()
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(
-			ctx,
-			"INSERT INTO memberships(room_id,user_id,created_at,updated_at) VALUES (?,?,?,?)",
-			room,
-			id,
-			now,
-			now,
-		)
-		u = User{ID: id, Name: name, Email: email, Role: 1}
-		return err
-	})
-	return u, err
-}
-
 func (d *DB) Rooms(
 	ctx context.Context,
 	user int64,
@@ -233,14 +167,6 @@ func (d *DB) Messages(ctx context.Context, room, before int64) ([]Message, error
 		messages[i], messages[j] = messages[j], messages[i]
 	}
 	return messages, err
-}
-
-// BlobStager keeps file copying outside the SQLite writer while committing the blob
-// and its owning record together. Record uploads are migrated separately.
-type BlobStager interface {
-	Insert(context.Context, *sql.Tx) (int64, error)
-	Keep()
-	Discard()
 }
 
 // AuthorizedSessions checks a publication's distinct sessions in one snapshot.

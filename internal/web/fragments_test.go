@@ -2,10 +2,12 @@ package web
 
 import (
 	"context"
-	"github.com/basecamp/once-campfire-go/internal/database"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 func TestMessageVersionMatchesStampIdentity(t *testing.T) {
@@ -124,7 +126,7 @@ func TestStreamScrollBehavior(t *testing.T) {
 		{"append", "boosts_message_uuid", true},
 		{"remove", "boost_1", false},
 	} {
-		actual := strings.Contains(stream(test.action, test.target, "content"), `maintain_scroll="true"`)
+		actual := strings.Contains(rails.TurboStream(test.action, test.target, "content"), `maintain_scroll="true"`)
 		if actual != test.keep {
 			t.Fatalf("%s %s: keep scroll=%v", test.action, test.target, actual)
 		}

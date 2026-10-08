@@ -22,7 +22,7 @@ import (
 // the default and no version or byte comparison is skipped.
 func TestMediaOutputBytes(t *testing.T) {
 	type vectorBlob struct {
-		Blob
+		database.Blob
 		Metadata string `json:"metadata"`
 	}
 	type output struct {
@@ -70,7 +70,7 @@ func TestMediaOutputBytes(t *testing.T) {
 	secrets, _ := rails.NewSecrets("media-vectors")
 	store := New(db, secrets, root)
 	ctx := context.Background()
-	check := func(t *testing.T, blob Blob, want vectorBlob, expectedFile string) {
+	check := func(t *testing.T, blob database.Blob, want vectorBlob, expectedFile string) {
 		t.Helper()
 		path, err := store.Path(blob.Key)
 		if err != nil {

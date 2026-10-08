@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 // Block the processing boundary, not SQLite or the behavior being coordinated.
@@ -23,27 +25,27 @@ func TestDerivativeFlightCancellation(t *testing.T) {
 				started, release := make(chan struct{}), make(chan struct{})
 				var available atomic.Bool
 				var created atomic.Int32
-				lookup := func(context.Context) (Blob, error) {
+				lookup := func(context.Context) (database.Blob, error) {
 					if available.Load() {
-						return Blob{ID: 7}, nil
+						return database.Blob{ID: 7}, nil
 					}
-					return Blob{}, sql.ErrNoRows
+					return database.Blob{}, sql.ErrNoRows
 				}
-				create := func(ctx context.Context) (Blob, error) {
+				create := func(ctx context.Context) (database.Blob, error) {
 					if created.Add(1) == 1 {
 						close(started)
 					}
 					select {
 					case <-ctx.Done():
-						return Blob{}, ctx.Err()
+						return database.Blob{}, ctx.Err()
 					case <-release:
 						available.Store(true)
-						return Blob{ID: 7}, nil
+						return database.Blob{ID: 7}, nil
 					}
 				}
 				type result struct {
 					name string
-					blob Blob
+					blob database.Blob
 					err  error
 				}
 				results := make(chan result, 2)

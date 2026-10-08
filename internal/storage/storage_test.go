@@ -68,9 +68,9 @@ func TestUploadIntegrityAndSigning(t *testing.T) {
 	content := "an uploaded file"
 	sum := md5.Sum([]byte(content))
 	ct := "text/plain"
-	b, err := s.Create(
+	b, err := s.DB.CreateBlob(
 		ctx,
-		Blob{
+		database.Blob{
 			Filename:    "notes.txt",
 			ContentType: &ct,
 			ByteSize:    int64(len(content)),
@@ -154,7 +154,7 @@ func TestTrackedVariantIsReusable(t *testing.T) {
 		t.Fatal(err)
 	}
 	variation := Resize(128, 128, "webp")
-	results := make(chan Blob, 2)
+	results := make(chan database.Blob, 2)
 	failures := make(chan error, 2)
 	// Separate stores and SQLite connections cannot share derivative flights.
 	otherDB, err := database.Open(filepath.Join(root, "test.sqlite3"), 4)
@@ -210,7 +210,7 @@ func TestRepresentationURLIncludesDefaultFormat(t *testing.T) {
 	}
 	store := New(db, secrets, t.TempDir())
 	contentType := "image/jpeg"
-	blob := Blob{ID: 7, Filename: "photo.jpg", ContentType: &contentType}
+	blob := database.Blob{ID: 7, Filename: "photo.jpg", ContentType: &contentType}
 	path, err := store.RepresentationURL(blob, Resize(1200, 800, ""))
 	if err != nil {
 		t.Fatal(err)

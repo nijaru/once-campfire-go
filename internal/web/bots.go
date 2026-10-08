@@ -212,7 +212,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			return true
 		}
 		message = result.Commit.Message
-		s.publish(message.RoomID, stream("remove", "message_"+message.ClientID, ""))
+		s.publish(message.RoomID, rails.TurboStream("remove", "message_"+message.ClientID, ""))
 		if result.Processing != nil {
 			s.fail(w, result.Processing)
 			return true
@@ -233,7 +233,7 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 			s.fail(w, err)
 			return
 		}
-		s.publish(room.ID, stream("remove", fmt.Sprintf("boost_%d", id), ""))
+		s.publish(room.ID, rails.TurboStream("remove", fmt.Sprintf("boost_%d", id), ""))
 		w.WriteHeader(204)
 		return
 	}
@@ -255,7 +255,7 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
-	s.publish(room.ID, stream("append", "boosts_message_"+message.ClientID, markup))
+	s.publish(room.ID, rails.TurboStream("append", "boosts_message_"+message.ClientID, markup))
 	writeJSON(w, 201, struct {
 		ID        int64    `json:"id"`
 		Content   string   `json:"content"`
@@ -309,7 +309,7 @@ func (s *Server) messageJSON(r *http.Request, m database.Message) (messageJSON, 
 	result.Body.HTML = rich.BodyHTML
 	result.Room.ID = m.RoomID
 	if strings.TrimSpace(plain) == "" {
-		if b, err := s.Storage.Attached(r.Context(), "Message", m.ID, "attachment"); err == nil {
+		if b, err := s.DB.AttachedBlob(r.Context(), "Message", m.ID, "attachment"); err == nil {
 			result.Body.Plain = storage.Filename(b.Filename)
 		}
 	}

@@ -6,12 +6,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"html"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/rails"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
@@ -193,7 +194,7 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
 }
 
 func (s *Server) messageAttachment(ctx context.Context, view *messageView) error {
-	blob, err := s.Storage.Attached(ctx, "Message", view.ID, "attachment")
+	blob, err := s.DB.AttachedBlob(ctx, "Message", view.ID, "attachment")
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
@@ -236,23 +237,6 @@ func messagePermalink(ctx context.Context, room, message int64) string {
 		origin = "http://example.org"
 	}
 	return fmt.Sprintf("%s/rooms/%d/@%d", origin, room, message)
-}
-
-func stream(action, target, markup string) string {
-	if action == "remove" {
-		return fmt.Sprintf(
-			`<turbo-stream action="remove" target="%s"></turbo-stream>`,
-			template.HTMLEscapeString(target),
-		)
-	}
-	attr := ""
-	if action == "replace" && strings.HasPrefix(target, "presentation_message_") ||
-		action == "append" && strings.HasPrefix(target, "boosts_message_") {
-		attr = ` maintain_scroll="true"`
-	}
-	return `<turbo-stream action="` + action + `" target="` + html.EscapeString(
-		target,
-	) + `"` + attr + `><template>` + markup + `</template></turbo-stream>`
 }
 
 func (s *Server) publish(room int64, markup string) {
@@ -326,7 +310,7 @@ func (s *Server) deleteMessage(w http.ResponseWriter, r *http.Request, u databas
 		return
 	}
 	m = result.Commit.Message
-	markup := stream("remove", "message_"+m.ClientID, "")
+	markup := rails.TurboStream("remove", "message_"+m.ClientID, "")
 	s.publish(m.RoomID, markup)
 	if result.Processing != nil {
 		s.fail(w, result.Processing)
@@ -371,7 +355,7 @@ func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.publish(m.RoomID, stream("append", "boosts_message_"+m.ClientID, markup))
+	s.publish(m.RoomID, rails.TurboStream("append", "boosts_message_"+m.ClientID, markup))
 	http.Redirect(w, r, fmt.Sprintf("/messages/%d/boosts", m.ID), 302)
 }
 
@@ -386,7 +370,7 @@ func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	markup := stream("remove", fmt.Sprintf("boost_%d", id), "")
+	markup := rails.TurboStream("remove", fmt.Sprintf("boost_%d", id), "")
 	s.publish(m.RoomID, markup)
 	w.WriteHeader(204)
 }
@@ -428,7 +412,7 @@ func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.
 			if group.action == "replace" {
 				target = "message_" + m.ClientID
 			}
-			result.WriteString(stream(group.action, target, markup))
+			result.WriteString(rails.TurboStream(group.action, target, markup))
 		}
 	}
 	writeStream(w, result.String())

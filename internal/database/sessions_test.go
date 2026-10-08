@@ -9,6 +9,25 @@ import (
 	"time"
 )
 
+func TestSessionCreationRejectsInactiveUser(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	u, err := d.Setup(ctx, "User", "user@test", "digest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = d.Write.ExecContext(ctx, "UPDATE users SET status=2 WHERE id=?", u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if token, err := d.StartSession(ctx, u.ID, "browser", "203.0.113.10"); !errors.Is(err, sql.ErrNoRows) || token != "" {
+		t.Fatalf("inactive session created: %q %v", token, err)
+	}
+	var count int
+	if err = d.Read.QueryRowContext(ctx, "SELECT count(*) FROM sessions").Scan(&count); err != nil || count != 0 {
+		t.Fatal(count, err)
+	}
+}
+
 func TestAuthenticationRefreshesActivityOnce(t *testing.T) {
 	d := testDB(t)
 	ctx := context.Background()
@@ -22,7 +41,7 @@ func TestAuthenticationRefreshesActivityOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	u, err = d.User(ctx, u.ID)
+	u.User, err = d.User(ctx, u.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +50,7 @@ func TestAuthenticationRefreshesActivityOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, refreshed, err := d.AuthenticateSession(ctx, token, "new", "127.0.0.2")
-	if err != nil || got != u || refreshed {
+	if err != nil || got != u.User || refreshed {
 		t.Fatal(got, refreshed, err)
 	}
 	after, err := d.ResponseVersion(ctx)

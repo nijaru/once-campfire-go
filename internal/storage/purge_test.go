@@ -26,7 +26,7 @@ func TestPurgeRetainsFrontierAndFileIdentityAfterUnlinkFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	store := New(db, secrets, root)
-	stage := func(name string) Blob {
+	stage := func(name string) database.Blob {
 		t.Helper()
 		b, err := store.Stage(ctx, name, "text/plain", strings.NewReader(name))
 		if err != nil {
@@ -79,8 +79,8 @@ func TestPurgeRetainsFrontierAndFileIdentityAfterUnlinkFailure(t *testing.T) {
 	if err = store.Purge(ctx, source.ID); err == nil {
 		t.Fatal("unlink obstruction was not reported")
 	}
-	for _, b := range []Blob{source, variant} {
-		if _, err = store.Blob(ctx, b.ID); !errors.Is(err, sql.ErrNoRows) {
+	for _, b := range []database.Blob{source, variant} {
+		if _, err = store.DB.Blob(ctx, b.ID); !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("removed blob %s remains: %v", b.Filename, err)
 		}
 	}
@@ -88,7 +88,7 @@ func TestPurgeRetainsFrontierAndFileIdentityAfterUnlinkFailure(t *testing.T) {
 	if _, err = os.Stat(variantPath); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("independent variant was not unlinked: %v", err)
 	}
-	if _, err = store.Blob(ctx, shared.ID); err != nil {
+	if _, err = store.DB.Blob(ctx, shared.ID); err != nil {
 		t.Fatalf("shared preview was removed: %v", err)
 	}
 	sharedPath, _ := store.Path(shared.Key)

@@ -20,32 +20,32 @@ var ffmpegAvailable = sync.OnceValue(
 )
 
 func Previewable(ct string) bool { return strings.HasPrefix(ct, "video") && ffmpegAvailable() }
-func (s *Store) PreviewImage(ctx context.Context, b Blob) (Blob, error) {
-	if image, err := s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image"); !errors.Is(
+func (s *Store) PreviewImage(ctx context.Context, b database.Blob) (database.Blob, error) {
+	if image, err := s.DB.AttachedBlob(ctx, "ActiveStorage::Blob", b.ID, "preview_image"); !errors.Is(
 		err,
 		sql.ErrNoRows,
 	) {
 		return image, err
 	}
 	return s.derivative(ctx, derivativeKey{blob: b.ID},
-		func(ctx context.Context) (Blob, error) {
-			return s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image")
+		func(ctx context.Context) (database.Blob, error) {
+			return s.DB.AttachedBlob(ctx, "ActiveStorage::Blob", b.ID, "preview_image")
 		},
-		func(ctx context.Context) (Blob, error) { return s.createPreviewImage(ctx, b) })
+		func(ctx context.Context) (database.Blob, error) { return s.createPreviewImage(ctx, b) })
 }
 
-func (s *Store) createPreviewImage(ctx context.Context, b Blob) (Blob, error) {
+func (s *Store) createPreviewImage(ctx context.Context, b database.Blob) (database.Blob, error) {
 	if !Previewable(b.Type()) {
-		return Blob{}, errors.New("unpreviewable blob")
+		return database.Blob{}, errors.New("unpreviewable blob")
 	}
 	input, err := s.checkedFile(ctx, b)
 	if err != nil {
-		return Blob{}, err
+		return database.Blob{}, err
 	}
 	select {
 	case mediaSlots <- struct{}{}:
 	case <-ctx.Done():
-		return Blob{}, ctx.Err()
+		return database.Blob{}, ctx.Err()
 	}
 	processCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	command := exec.CommandContext(
@@ -67,60 +67,33 @@ func (s *Store) createPreviewImage(ctx context.Context, b Blob) (Blob, error) {
 	cancel()
 	<-mediaSlots
 	if err != nil {
-		return Blob{}, fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
+		return database.Blob{}, fmt.Errorf("ffmpeg: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	name := strings.TrimSuffix(Filename(b.Filename), filepath.Ext(b.Filename)) + ".jpg"
 	image, err := s.StageFile(ctx, name, "image/jpeg", bytes.NewReader(raw))
 	if err != nil {
-		return Blob{}, err
+		return database.Blob{}, err
 	}
 	defer image.Discard()
 	image.Blob, err = s.analyzeMetadata(ctx, image.Blob)
 	if err != nil {
-		return Blob{}, err
+		return database.Blob{}, err
 	}
-	won := false
-	err = s.DB.Transaction(ctx, func(tx *sql.Tx) error {
-		var count int
-		if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM active_storage_attachments WHERE record_type='ActiveStorage::Blob' AND record_id=? AND name='preview_image'", b.ID).Scan(&count); err != nil {
-			return err
-		}
-		if count > 0 {
-			return nil
-		}
-		var sourceID int64
-		if err := tx.QueryRowContext(ctx, "SELECT id FROM active_storage_blobs WHERE id=?", b.ID).Scan(&sourceID); err != nil {
-			return err
-		}
-		blobID, err := image.Insert(ctx, tx)
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(
-			ctx,
-			"INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'ActiveStorage::Blob',?,'preview_image',?)",
-			blobID,
-			sourceID,
-			database.Stamp(s.DB.Now()),
-		)
-		won = err == nil
-		return err
-	})
+	commit, err := s.DB.LinkPreview(ctx, b.ID, image.Blob)
 	if err != nil {
-		return Blob{}, err
+		return database.Blob{}, err
 	}
-	if !won {
-		return s.Attached(ctx, "ActiveStorage::Blob", b.ID, "preview_image")
+	if commit.Created {
+		image.Commit(commit.Blob)
 	}
-	image.Keep()
-	return image.Blob, nil
+	return commit.Blob, nil
 }
 
-func (s *Store) Representation(ctx context.Context, b Blob, v Variation) (Blob, error) {
+func (s *Store) Representation(ctx context.Context, b database.Blob, v Variation) (database.Blob, error) {
 	if Previewable(b.Type()) {
 		image, err := s.PreviewImage(ctx, b)
 		if err != nil {
-			return Blob{}, err
+			return database.Blob{}, err
 		}
 		if len(v) == 0 {
 			return image, nil
@@ -130,10 +103,10 @@ func (s *Store) Representation(ctx context.Context, b Blob, v Variation) (Blob, 
 	if Variable(b.Type()) {
 		return s.Variant(ctx, b, v)
 	}
-	return Blob{}, errors.New("unrepresentable blob")
+	return database.Blob{}, errors.New("unrepresentable blob")
 }
 
-func (s *Store) ProcessAttachment(ctx context.Context, b Blob) (Blob, error) {
+func (s *Store) ProcessAttachment(ctx context.Context, b database.Blob) (database.Blob, error) {
 	b, err := s.Analyze(ctx, b)
 	if err != nil {
 		return b, err

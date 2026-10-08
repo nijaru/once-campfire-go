@@ -22,7 +22,8 @@ func TestEncryptedLoginReturnAndSessionRefresh(t *testing.T) {
 	app, server, _, user := testApp(t)
 	ctx := context.Background()
 	digest, _ := bcrypt.GenerateFromPassword([]byte("correct horse"), bcrypt.MinCost)
-	if err := app.DB.UpdateUser(ctx, user.ID, map[string]string{"password_digest": string(digest)}, nil); err != nil {
+	passwordDigest := string(digest)
+	if _, err := app.DB.UpdateUser(ctx, user.ID, user.ID, database.UserChanges{Password: &passwordDigest}); err != nil {
 		t.Fatal(err)
 	}
 	jar, _ := cookiejar.New(nil)
@@ -115,20 +116,12 @@ func TestEncryptedLoginReturnAndSessionRefresh(t *testing.T) {
 }
 
 func TestSignedInLoginCanChangeUser(t *testing.T) {
-	app, server, cookie, _ := testApp(t)
+	app, server, cookie, owner := testApp(t)
 	digest, err := bcrypt.GenerateFromPassword([]byte("other password"), bcrypt.MinCost)
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, err := app.DB.CreateUser(
-		context.Background(),
-		"Other",
-		"other@example.test",
-		string(digest),
-		"",
-		0,
-		nil,
-	)
+	other, err := app.DB.CreateUser(context.Background(), owner.ID, database.UserInput{Name: "Other", Email: "other@example.test", Password: string(digest), Bio: "", Role: 0, Webhook: nil})
 	if err != nil {
 		t.Fatal(err)
 	}

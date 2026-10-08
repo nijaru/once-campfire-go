@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -44,6 +46,14 @@ func (s *Server) registerAccountRoutes() {
 	s.mux.HandleFunc("GET /session/transfers/{token}", s.browserCheck(s.transfer))
 	s.mux.HandleFunc("PATCH /session/transfers/{token}", s.browserCheck(s.transfer))
 	s.mux.HandleFunc("PUT /session/transfers/{token}", s.browserCheck(s.transfer))
+}
+
+// Account/profile effects are asynchronous in the reference. Preserve the
+// committed redirect response while reporting processing/admission failures.
+func logAccountProcessing(err error) {
+	if err != nil {
+		slog.Error("account post-commit processing failed", "error", err)
+	}
 }
 
 func administrator(w http.ResponseWriter, u database.User) bool {
@@ -133,11 +143,17 @@ func (s *Server) updateAccount(w http.ResponseWriter, r *http.Request, u databas
 		s.fail(w, err)
 		return
 	}
-	if err = s.DB.UpdateAccount(r.Context(), name, nil, restrict, false, recordAttachment(r, "account[logo]", upload, false)); err != nil {
+	logo, err := recordAttachment(r, "account[logo]", upload, false)
+	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	s.analyzeUpload(upload)
+	result, err := s.AccountCommands.UpdateAccount(r.Context(), u.ID, database.AccountInput{Name: name, Restrict: restrict}, logo)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	logAccountProcessing(result.Processing)
 	s.flash(r, "notice", "✓")
 	http.Redirect(w, r, "/account/edit", 302)
 }
@@ -146,7 +162,7 @@ func (s *Server) resetJoinCode(w http.ResponseWriter, r *http.Request, u databas
 	if !administrator(w, u) {
 		return
 	}
-	if err := s.DB.UpdateAccount(r.Context(), nil, nil, nil, true); err != nil {
+	if _, err := s.AccountCommands.UpdateAccount(r.Context(), u.ID, database.AccountInput{ResetJoin: true}, application.Attachment{}); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -163,7 +179,7 @@ func (s *Server) customStyles(w http.ResponseWriter, r *http.Request, u database
 	}
 	if r.Form.Has("account[custom_styles]") {
 		value := r.Form.Get("account[custom_styles]")
-		if err := s.DB.UpdateAccount(r.Context(), nil, &value, nil, false); err != nil {
+		if _, err := s.AccountCommands.UpdateAccount(r.Context(), u.ID, database.AccountInput{Styles: &value}, application.Attachment{}); err != nil {
 			s.fail(w, err)
 			return
 		}
@@ -185,7 +201,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 			Rooms:    rooms,
 			Transfer: s.origin(r) + s.transferPath(u),
 		}
-		_, err = s.Storage.Attached(r.Context(), "User", u.ID, "avatar")
+		_, err = s.DB.AttachedBlob(r.Context(), "User", u.ID, "avatar")
 		p.AvatarAttached = err == nil
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			s.fail(w, err)
@@ -214,10 +230,14 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 		s.render(w, r, "profile", 200, p)
 		return
 	}
-	attrs := map[string]string{}
-	for _, key := range []string{"name", "email_address", "bio"} {
-		if r.Form.Has("user["+key+"]") && !nullParam(r, "user["+key+"]") {
-			attrs[key] = r.Form.Get("user[" + key + "]")
+	attrs := database.UserChanges{}
+	for _, field := range []struct {
+		key    string
+		target **string
+	}{{"name", &attrs.Name}, {"email_address", &attrs.Email}, {"bio", &attrs.Bio}} {
+		if r.Form.Has("user["+field.key+"]") && !nullParam(r, "user["+field.key+"]") {
+			value := r.Form.Get("user[" + field.key + "]")
+			*field.target = &value
 		}
 	}
 	if password := r.Form.Get("user[password]"); password != "" {
@@ -226,18 +246,25 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 			http.Error(w, "Invalid password", 422)
 			return
 		}
-		attrs["password_digest"] = string(digest)
+		value := string(digest)
+		attrs.Password = &value
 	}
 	upload, err := s.optionalUpload(r, "user[avatar]")
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	if err = s.DB.UpdateUser(r.Context(), u.ID, attrs, nil, recordAttachment(r, "user[avatar]", upload, true)); err != nil {
+	avatar, err := recordAttachment(r, "user[avatar]", upload, true)
+	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	s.analyzeUpload(upload)
+	result, err := s.AccountCommands.UpdateUser(r.Context(), u.ID, u.ID, attrs, avatar)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	logAccountProcessing(result.Processing)
 	notice := "✓"
 	if upload != nil || r.Form.Has("user[avatar]") && !nullParam(r, "user[avatar]") {
 		notice = "It may take up to 30 minutes to change everywhere."
@@ -281,14 +308,13 @@ func (s *Server) manageUser(w http.ResponseWriter, r *http.Request, u database.U
 		return
 	}
 	if r.Method == "DELETE" {
-		err = s.DB.DeactivateUser(r.Context(), id)
-		s.Cable.Disconnect(id)
+		err = s.AccountCommands.Deactivate(r.Context(), u.ID, id)
 	} else {
-		role := "0"
+		role := 0
 		if r.Form.Get("user[role]") == "administrator" {
-			role = "1"
+			role = 1
 		}
-		err = s.DB.UpdateUser(r.Context(), id, map[string]string{"role": role}, nil)
+		_, err = s.AccountCommands.UpdateUser(r.Context(), u.ID, id, database.UserChanges{Role: &role}, application.Attachment{})
 	}
 	if err != nil {
 		s.fail(w, err)
@@ -306,11 +332,12 @@ func (s *Server) banUser(w http.ResponseWriter, r *http.Request, u database.User
 		s.fail(w, err)
 		return
 	}
-	if err := s.DB.BanUser(r.Context(), id, r.Method == "POST"); err != nil {
+	result, err := s.AccountCommands.Ban(r.Context(), u.ID, id, r.Method == "POST")
+	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	s.Cable.Disconnect(id)
+	logAccountProcessing(result.Processing)
 	http.Redirect(w, r, fmt.Sprintf("/users/%d", id), 302)
 }
 
@@ -356,16 +383,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	user, err := s.DB.CreateUser(
-		r.Context(),
-		r.Form.Get("user[name]"),
-		email,
-		string(digest),
-		"",
-		0,
-		nil,
-		pendingBlob(upload),
-	)
+	result, err := s.AccountCommands.Join(r.Context(), r.PathValue("code"), remoteIP(r), database.UserInput{Name: r.Form.Get("user[name]"), Email: email, Password: string(digest)}, application.Attachment{File: upload})
 	if err != nil {
 		if existing, e := s.DB.UserByEmail(r.Context(), email); e == nil && existing.ID != 0 {
 			http.Redirect(w, r, "/session/new?email_address="+url.QueryEscape(email), 302)
@@ -374,8 +392,8 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.analyzeUpload(upload)
-	s.startSession(w, r, user)
+	logAccountProcessing(result.Processing)
+	s.startSession(w, r, result.Commit.User)
 }
 
 func (s *Server) bots(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -439,7 +457,7 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 	}
 	avatarURL := ""
 	if bot.ID != 0 {
-		blob, e := s.Storage.Attached(r.Context(), "User", bot.ID, "avatar")
+		blob, e := s.DB.AttachedBlob(r.Context(), "User", bot.ID, "avatar")
 		if e == nil {
 			avatarURL = s.Storage.BlobURL(blob)
 		} else if !errors.Is(e, sql.ErrNoRows) {
@@ -472,16 +490,14 @@ func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User
 		defer upload.Discard()
 	}
 	if id == 0 {
-		_, err = s.DB.CreateUser(
-			r.Context(),
-			name,
-			"",
-			"",
-			"",
-			2,
-			&webhook,
-			recordAttachment(r, "user[avatar]", upload, false),
-		)
+		avatar, e := recordAttachment(r, "user[avatar]", upload, false)
+		if e != nil {
+			s.fail(w, e)
+			return
+		}
+		result, e := s.AccountCommands.CreateUser(r.Context(), u.ID, database.UserInput{Name: name, Role: 2, Webhook: &webhook}, avatar)
+		err = e
+		logAccountProcessing(result.Processing)
 	} else {
 		bot, e := s.DB.User(r.Context(), id)
 		if e != nil {
@@ -493,26 +509,32 @@ func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User
 			return
 		}
 		if r.Method == "DELETE" {
-			err = s.DB.DeactivateUser(r.Context(), id)
-			s.Cable.Disconnect(id)
+			err = s.AccountCommands.DeactivateBot(r.Context(), u.ID, id)
 		} else {
-			err = s.DB.UpdateUser(r.Context(), id, botChanges(r), botWebhook(r), recordAttachment(r, "user[avatar]", upload, false))
+			avatar, e := recordAttachment(r, "user[avatar]", upload, false)
+			if e != nil {
+				s.fail(w, e)
+				return
+			}
+			input := botChanges(r)
+			input.Webhook = botWebhook(r)
+			result, e := s.AccountCommands.UpdateBot(r.Context(), u.ID, id, input, avatar)
+			err = e
+			logAccountProcessing(result.Processing)
 		}
 	}
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	if r.Method != "DELETE" {
-		s.analyzeUpload(upload)
-	}
 	http.Redirect(w, r, "/account/bots", 302)
 }
 
-func botChanges(r *http.Request) map[string]string {
-	fields := map[string]string{}
+func botChanges(r *http.Request) database.UserChanges {
+	fields := database.UserChanges{}
 	if r.Form.Has("user[name]") {
-		fields["name"] = r.Form.Get("user[name]")
+		value := r.Form.Get("user[name]")
+		fields.Name = &value
 	}
 	return fields
 }
@@ -539,7 +561,8 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
 		http.NotFound(w, r)
 		return
 	}
-	if err = s.DB.UpdateUser(r.Context(), id, map[string]string{"bot_token": database.RandomToken(12)}, nil); err != nil {
+	value := database.RandomToken(12)
+	if _, err = s.AccountCommands.UpdateBot(r.Context(), u.ID, id, database.UserChanges{BotToken: &value}, application.Attachment{}); err != nil {
 		s.fail(w, err)
 		return
 	}

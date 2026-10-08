@@ -74,7 +74,7 @@ func (s *Server) deliverWebhook(ctx context.Context, botID, messageID int64) err
 	}
 	plain := s.plainText(ctx, message.Body)
 	if strings.TrimSpace(plain) == "" {
-		if blob, e := s.Storage.Attached(ctx, "Message", message.ID, "attachment"); e == nil {
+		if blob, e := s.DB.AttachedBlob(ctx, "Message", message.ID, "attachment"); e == nil {
 			plain = blob.Filename
 		}
 	}

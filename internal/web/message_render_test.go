@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
-	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
 func TestMessageLayoutsMatchContextualTemplate(t *testing.T) {
@@ -68,7 +67,7 @@ func TestMessageLayoutsMatchContextualTemplate(t *testing.T) {
 				v.ClientID, v.Creator, v.CreatorTitle, v.RoomName = value, value, value, value
 				v.Permalink = value
 				if branch&2 != 0 {
-					v.Attachment = &storage.Blob{Filename: value}
+					v.Attachment = &database.Blob{Filename: value}
 					v.BlobURL, v.DownloadURL = value, value
 				}
 				check(t, v)

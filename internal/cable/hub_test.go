@@ -54,7 +54,7 @@ func TestRoomAuthorizationAndDelivery(t *testing.T) {
 	hub := New(db, secrets)
 	defer hub.Close()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u := user
+		u := user.User
 		if r.URL.Path == "/stranger" {
 			u.ID = stranger
 		}

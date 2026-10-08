@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"sync"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 // A blank digest identifies a preview; variant digests are always nonempty.
@@ -31,12 +33,12 @@ type derivativeFlights struct {
 func (s *Store) derivative(
 	ctx context.Context,
 	key derivativeKey,
-	lookup func(context.Context) (Blob, error),
-	create func(context.Context) (Blob, error),
-) (Blob, error) {
+	lookup func(context.Context) (database.Blob, error),
+	create func(context.Context) (database.Blob, error),
+) (database.Blob, error) {
 	for {
 		if err := ctx.Err(); err != nil {
-			return Blob{}, err
+			return database.Blob{}, err
 		}
 		if existing, err := lookup(ctx); !errors.Is(err, sql.ErrNoRows) {
 			return existing, err
@@ -47,14 +49,14 @@ func (s *Store) derivative(
 			flights.mu.Unlock()
 			select {
 			case <-ctx.Done():
-				return Blob{}, ctx.Err()
+				return database.Blob{}, ctx.Err()
 			case <-flight.done:
 			}
 			if err := ctx.Err(); err != nil {
-				return Blob{}, err
+				return database.Blob{}, err
 			}
 			if flight.err != nil && !flight.cancelled {
-				return Blob{}, flight.err
+				return database.Blob{}, flight.err
 			}
 			continue
 		}
@@ -71,7 +73,7 @@ func (s *Store) derivative(
 		flights.active[key] = flight
 		flights.mu.Unlock()
 
-		return func() (blob Blob, err error) {
+		return func() (blob database.Blob, err error) {
 			finished := false
 			defer func() {
 				flights.mu.Lock()

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -39,8 +40,31 @@ func (d *DB) AuthenticateSession(ctx context.Context, token, agent, ip string) (
 
 func (d *DB) StartSession(ctx context.Context, user int64, agent, ip string) (string, error) {
 	token, now := Token(), Stamp(d.Now())
-	_, err := d.Write.ExecContext(ctx,
-		"INSERT INTO sessions(token,user_id,user_agent,ip_address,last_active_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?)",
-		token, user, agent, ip, now, now, now)
-	return token, err
+	result, err := d.Write.ExecContext(ctx,
+		"INSERT INTO sessions(token,user_id,user_agent,ip_address,last_active_at,created_at,updated_at) SELECT ?,id,?,?,?,?,? FROM users WHERE id=? AND status=0",
+		token, agent, ip, now, now, now, user)
+	if err != nil {
+		return "", err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return "", err
+	}
+	if n == 0 {
+		return "", sql.ErrNoRows
+	}
+	return token, nil
+}
+
+func (d *DB) RevokeSession(ctx context.Context, user int64, token, endpoint string) error {
+	return d.Transaction(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM sessions WHERE token=? AND user_id=?", token, user); err != nil {
+			return err
+		}
+		if endpoint != "" {
+			_, err := tx.ExecContext(ctx, "DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?", user, endpoint)
+			return err
+		}
+		return nil
+	})
 }

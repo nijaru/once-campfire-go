@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 func TestCommittedMessageNotifiesWhenPresentationFails(t *testing.T) {
@@ -24,7 +26,7 @@ func TestCommittedMessageNotifiesWhenPresentationFails(t *testing.T) {
 	}))
 	defer webhook.Close()
 	endpoint := webhook.URL
-	bot, err := app.DB.CreateUser(ctx, "Bot", "", "", "", 2, &endpoint)
+	bot, err := app.DB.CreateUser(ctx, user.ID, database.UserInput{Name: "Bot", Email: "", Password: "", Bio: "", Role: 2, Webhook: &endpoint})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +86,7 @@ func TestBotWebhookReply(t *testing.T) {
 			)
 			defer webhook.Close()
 			endpoint := webhook.URL
-			bot, err := app.DB.CreateUser(ctx, "Reply Bot", "", "", "", 2, &endpoint)
+			bot, err := app.DB.CreateUser(ctx, user.ID, database.UserInput{Name: "Reply Bot", Email: "", Password: "", Bio: "", Role: 2, Webhook: &endpoint})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -113,7 +115,7 @@ func TestBotWebhookReply(t *testing.T) {
 				t.Fatalf("reply creator/calls: %d %d", messages[1].CreatorID, calls.Load())
 			}
 			if attachment {
-				blob, err := app.Storage.Attached(ctx, "Message", messages[1].ID, "attachment")
+				blob, err := app.DB.AttachedBlob(ctx, "Message", messages[1].ID, "attachment")
 				if err != nil || blob.Filename != "attachment.json" {
 					t.Fatalf("attachment: %v %v", blob, err)
 				}
