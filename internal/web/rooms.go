@@ -10,7 +10,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
@@ -209,6 +211,9 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 	kind := namespaceKind(r)
 	id := roomID(r)
 	updating := id != 0
+	var saved database.Room
+	// Preflight preserves protocol error ordering. Mutation authority is checked
+	// again against current state inside the command transaction.
 	if id == 0 {
 		if err := s.canCreateRoom(r.Context(), u, kind); err != nil {
 			s.fail(w, err)
@@ -223,12 +228,13 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 				return
 			}
 		}
-		room, err := s.DB.CreateRoom(r.Context(), u.ID, kind, name, roomUsers(r))
+		room, err := s.RoomCommands.Create(r.Context(), u.ID, kind, name, roomUsers(r))
 		if err != nil {
 			s.fail(w, err)
 			return
 		}
 		id = room.ID
+		saved = room
 	} else {
 		room, err := s.DB.Room(r.Context(), u.ID, id)
 		if err != nil {
@@ -248,17 +254,20 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err = s.DB.UpdateRoom(r.Context(), id, kind, name, roomUsers(r)); err != nil {
-			s.fail(w, err)
+		result, err := s.RoomCommands.Update(r.Context(), u.ID, id, kind, name, roomUsers(r))
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				s.roomLookupFailure(w, r, err)
+			} else {
+				s.fail(w, err)
+			}
 			return
 		}
+		saved = result.Commit.Room
 	}
-	room, err := s.DB.FindRoom(r.Context(), id)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	if err = s.broadcastRoom(r.Context(), room, updating); err != nil {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+	defer cancel()
+	if err := s.broadcastRoom(ctx, saved, updating); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -293,11 +302,27 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
 		s.fail(w, database.ErrForbidden)
 		return
 	}
-	if err = s.DB.DeleteRoom(r.Context(), room.ID); err != nil {
-		s.fail(w, err)
+	var result application.RoomResult
+	if directNamespace {
+		result, err = s.RoomCommands.DeleteDirect(r.Context(), u.ID, room.ID)
+	} else {
+		result, err = s.RoomCommands.Delete(r.Context(), u.ID, room.ID)
+	}
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.roomLookupFailure(w, r, err)
+		} else {
+			s.fail(w, err)
+		}
 		return
 	}
-	s.Cable.PublishStream(r.Context(), "rooms", stream("remove", room.DOM("list"), ""))
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+	defer cancel()
+	s.Cable.PublishStream(ctx, "rooms", stream("remove", result.Commit.Room.DOM("list"), ""))
+	if result.Processing != nil {
+		s.fail(w, result.Processing)
+		return
+	}
 	http.Redirect(w, r, "/", 302)
 }
 

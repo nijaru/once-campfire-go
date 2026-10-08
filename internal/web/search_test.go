@@ -16,11 +16,11 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	app, _, _, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	first, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "snapshot-first", "<p>snapshotneedle</p>", "snapshotneedle")
+	first, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("snapshot-first", "<p>snapshotneedle</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "snapshot-second", "<p>snapshotneedle</p>", "snapshotneedle")
+	second, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("snapshot-second", "<p>snapshotneedle</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A real commit between reference selection and resolving the message body.
-	if _, err := app.DB.UpdateMessage(ctx, user.ID, first.ID, "<p>differentword</p>", "differentword"); err != nil {
+	if _, err := app.DB.UpdateMessage(ctx, user.ID, first.ID, messageInput("", "<p>differentword</p>")); err != nil {
 		t.Fatal(err)
 	}
 	body := func(part responsebody.Part) []byte {
@@ -58,7 +58,7 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	}
 	// Eviction and a newer edit must not turn a captured Part into hydration.
 	app.fragments = newFragmentCache(0)
-	if err := app.DB.DeleteMessage(ctx, user.ID, second.ID); err != nil {
+	if _, err := app.DB.DeleteMessage(ctx, user.ID, second.ID); err != nil {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
@@ -81,11 +81,11 @@ func TestSearchShowsFreshResultCount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "count-first", "<p>countneedle</p>", "countneedle")
+	first, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("count-first", "<p>countneedle</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "count-second", "<p>countneedle</p>", "countneedle"); err != nil {
+	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("count-second", "<p>countneedle</p>")); err != nil {
 		t.Fatal(err)
 	}
 	counter := regexp.MustCompile(`(?s)class="searches__query[^"\n]*".*?<span class="flex-item-no-shrink">([0-9]+)</span>`)
@@ -105,7 +105,7 @@ func TestSearchShowsFreshResultCount(t *testing.T) {
 	check("countneedle", 2) // A message-list cache hit must retain the count too.
 	app.fragments = newFragmentCache(0)
 	check("countneedle", 2) // Disabled retention uses the complete query directly.
-	if err := app.DB.DeleteMessage(ctx, user.ID, first.ID); err != nil {
+	if _, err := app.DB.DeleteMessage(ctx, user.ID, first.ID); err != nil {
 		t.Fatal(err)
 	}
 	check("countneedle", 1)

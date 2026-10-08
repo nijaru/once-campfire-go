@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/assets"
+	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/cable"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/integrations"
@@ -35,23 +36,25 @@ const (
 )
 
 type Server struct {
-	fragments      *fragmentCache
-	responses      *responseCache
-	Webhooks       *integrations.WebhookClient
-	Jobs           *jobs.Runner
-	Push           *integrations.PushSender
-	Unfurler       *integrations.Unfurler
-	Storage        *storage.Store
-	Cable          *cable.Hub
-	DB             *database.DB
-	Secrets        *rails.Secrets
-	Secure         bool
-	mux            *router
-	templates      *template.Template
-	messageLayouts messageLayouts
-	attemptsMu     sync.Mutex
-	attempts       map[string]attempt
-	dummyHash      []byte
+	fragments       *fragmentCache
+	responses       *responseCache
+	Webhooks        *integrations.WebhookClient
+	Jobs            *jobs.Runner
+	Push            *integrations.PushSender
+	Unfurler        *integrations.Unfurler
+	Storage         *storage.Store
+	MessageCommands *application.Messages
+	RoomCommands    *application.Rooms
+	Cable           *cable.Hub
+	DB              *database.DB
+	Secrets         *rails.Secrets
+	Secure          bool
+	mux             *router
+	templates       *template.Template
+	messageLayouts  messageLayouts
+	attemptsMu      sync.Mutex
+	attempts        map[string]attempt
+	dummyHash       []byte
 }
 type attempt struct {
 	Count int
@@ -181,6 +184,10 @@ func New(
 	s.Unfurler = integrations.NewUnfurler()
 	s.Webhooks = integrations.NewWebhookClient()
 	s.initJobs()
+	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
+	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
+	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
+	s.initCleanup()
 	s.mux.HandleFunc("POST /unfurl_link", s.auth(s.unfurl))
 	s.registerPWARoutes()
 	s.mux.HandleFunc("GET /qr_code/{code}", s.browserCheck(s.qrCode))
@@ -925,45 +932,26 @@ func (s *Server) createMessage(w http.ResponseWriter, r *http.Request, u databas
 		value := r.Form.Get("message[body]")
 		body = &value
 	}
-	m, err := s.saveNewMessage(
+	result, err := s.MessageCommands.Create(
 		r.Context(),
 		u.ID,
 		roomID(r),
 		r.Form.Get("message[client_message_id]"),
 		body,
 		staged,
-		false,
 	)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
 
-	b := borrowBuffer()
-	defer releaseBuffer(b)
-	views, err := s.messageViews(r.Context(), []database.Message{m})
+	output, err := s.createdMessageEffects(r.Context(), result, false)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	if err = s.templates.ExecuteTemplate(b, "messages", page{Messages: views}); err != nil {
-		s.fail(w, err)
-		return
-	}
-	room, err := s.DB.Room(r.Context(), u.ID, m.RoomID)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	stream := stream("append", room.DOM("messages"), b.String())
-	// Delivery follows commit and outlives a disconnected posting request.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	s.Cable.Publish(ctx, m.RoomID, stream)
-	cancel()
-	s.messageCreated(m, room)
-	s.enqueueWebhooks(m, room)
 	if respondFormat(w, r, "turbo_stream") != "" {
-		writeStream(w, stream)
+		writeStream(w, output)
 	}
 }
 

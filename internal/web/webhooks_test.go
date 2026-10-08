@@ -14,6 +14,43 @@ import (
 	"time"
 )
 
+func TestCommittedMessageNotifiesWhenPresentationFails(t *testing.T) {
+	app, server, cookie, user := testApp(t)
+	ctx := context.Background()
+	var calls atomic.Int32
+	webhook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(204)
+	}))
+	defer webhook.Close()
+	endpoint := webhook.URL
+	bot, err := app.DB.CreateUser(ctx, "Bot", "", "", "", 2, &endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	room, err := app.DB.CreateRoom(ctx, user.ID, "Rooms::Direct", nil, []int64{bot.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The write and webhook payload do not depend on boosts, but message display
+	// does. Break that real read boundary rather than mocking the effects.
+	if _, err = app.DB.Write.ExecContext(ctx, "DROP TABLE boosts"); err != nil {
+		t.Fatal(err)
+	}
+	response, _ := perform(t, server, "POST", fmt.Sprintf("/rooms/%d/messages", room.ID), "application/x-www-form-urlencoded", strings.NewReader(url.Values{"message[body]": {"committedneedle"}}.Encode()), cookie)
+	if response.StatusCode != 500 {
+		t.Fatalf("expected rendering failure: %s", response.Status)
+	}
+	app.Jobs.Close(5 * time.Second)
+	if calls.Load() != 1 {
+		t.Fatalf("committed notification suppressed: %d deliveries", calls.Load())
+	}
+	messages, err := app.DB.Messages(ctx, room.ID, 0)
+	if err != nil || len(messages) != 1 || messages[0].Body != "committedneedle" {
+		t.Fatalf("committed message: %+v %v", messages, err)
+	}
+}
+
 func TestBotWebhookReply(t *testing.T) {
 	for _, attachment := range []bool{false, true} {
 		t.Run(fmt.Sprintf("attachment=%t", attachment), func(t *testing.T) {

@@ -74,14 +74,7 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
 	app, _, cookie, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	_, err := app.DB.CreateMessage(
-		ctx,
-		user.ID,
-		rooms[0].ID,
-		"cache-body",
-		"<p>whole response cached literal csrf-token stays text</p>",
-		"whole response cached literal csrf-token stays text",
-	)
+	_, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("cache-body", "<p>whole response cached literal csrf-token stays text</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +286,7 @@ func TestResponseCacheForeignRevocationRemovesSearchAndSidebarContent(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := app.DB.CreateMessage(ctx, user.ID, room.ID, "revocation-cache", "<p>kiwi Private search content</p>", "kiwi Private search content"); err != nil {
+	if _, err := app.DB.CreateMessage(ctx, user.ID, room.ID, messageInput("revocation-cache", "<p>kiwi Private search content</p>")); err != nil {
 		t.Fatal(err)
 	}
 	examples := []struct{ path, private string }{
@@ -458,7 +451,7 @@ func TestResponseCacheForeignFragmentEditsWithoutTimestamps(t *testing.T) {
 	app, _, cookie, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "foreign-cache", "<p>Original foreign body</p>", "Original foreign body"); err != nil {
+	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("foreign-cache", "<p>Original foreign body</p>")); err != nil {
 		t.Fatal(err)
 	}
 	var id, creator int64
@@ -539,7 +532,7 @@ func TestNestedMessageCachePreservesRequestHostFiltering(t *testing.T) {
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
 	body := `<action-text-attachment content-type="application/vnd.actiontext.opengraph-embed" href="https://same.example/story" filename="Story"></action-text-attachment>`
-	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "host-filter", body, "Story"); err != nil {
+	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("host-filter", body)); err != nil {
 		t.Fatal(err)
 	}
 	for _, endpoint := range []string{fmt.Sprintf("/rooms/%d", rooms[0].ID), fmt.Sprintf("/rooms/%d/messages", rooms[0].ID)} {

@@ -19,12 +19,17 @@ func (s *Server) initCleanup() {
 				return err
 			}
 			for _, message := range messages {
-				if err = s.DB.RemoveBannedMessage(ctx, message.ID); errors.Is(err, sql.ErrNoRows) {
+				result, err := s.MessageCommands.RemoveBanned(ctx, message.ID)
+				if errors.Is(err, sql.ErrNoRows) {
 					continue
 				} else if err != nil {
 					return err
 				}
+				message = result.Commit.Message
 				s.publish(message.RoomID, stream("remove", "message_"+message.ClientID, ""))
+				if result.Processing != nil {
+					return result.Processing
+				}
 			}
 			return nil
 		})

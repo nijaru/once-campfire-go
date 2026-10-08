@@ -8,6 +8,66 @@ import (
 	"time"
 )
 
+func TestMessageUpdateReturnsCommittedRecordWithoutReader(t *testing.T) {
+	d := testDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	user, err := d.Setup(ctx, "User", "user@test", "digest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rooms, err := d.Rooms(ctx, user.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	message, err := d.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("", "before"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A successful command must not need another pooled read to reconstruct its
+	// result. Pin every reader, observe the commit through the writer, then cancel.
+	for range d.Read.Stats().MaxOpenConnections {
+		conn, err := d.Read.Conn(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer conn.Close()
+	}
+	type result struct {
+		message Message
+		err     error
+	}
+	done := make(chan result, 1)
+	go func() {
+		m, err := d.UpdateMessage(ctx, user.ID, message.ID, messageInput("", "after"))
+		done <- result{m.Message, err}
+	}()
+	ticker := time.NewTicker(time.Millisecond)
+	defer ticker.Stop()
+	for {
+		var body string
+		if err := d.Write.QueryRowContext(ctx, "SELECT body FROM action_text_rich_texts WHERE record_type='Message' AND record_id=?", message.ID).Scan(&body); err != nil {
+			cancel()
+			<-done
+			t.Fatal(err)
+		}
+		if body == "after" {
+			break
+		}
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			<-done
+			t.Fatal("command did not commit", ctx.Err())
+		}
+	}
+	cancel()
+	got := <-done
+	if got.err != nil || got.message.ID != message.ID || got.message.Body != "after" {
+		t.Fatalf("committed result: %+v %v", got.message, got.err)
+	}
+}
+
 func TestMessageReferencesMatchPagination(t *testing.T) {
 	d := testDB(t)
 	ctx := context.Background()
@@ -24,11 +84,11 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 	var records []Message
 	for i := 0; i < 46; i++ {
 		d.Now = func() time.Time { return base.Add(time.Duration(i) * time.Second) }
-		message, err := d.CreateMessage(ctx, user.ID, room, "", "body", "body")
+		message, err := d.CreateMessage(ctx, user.ID, room, messageInput("", "body"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		records = append(records, message)
+		records = append(records, message.Message)
 	}
 	for _, page := range []struct {
 		room, anchor int64

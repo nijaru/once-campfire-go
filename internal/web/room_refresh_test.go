@@ -19,7 +19,7 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	roomID := rooms[0].ID
-	initial, err := app.DB.CreateMessage(ctx, user.ID, roomID, "initial", "initial", "initial")
+	initial, err := app.DB.CreateMessage(ctx, user.ID, roomID, messageInput("initial", "initial"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 	}
 	// A message commits after the initial queries, but before rendering. The
 	// page must retain its queried room version, not advance to the render clock.
-	late, err := app.DB.CreateMessage(ctx, user.ID, roomID, "arrived-during-render", "late message", "late message")
+	late, err := app.DB.CreateMessage(ctx, user.ID, roomID, messageInput("arrived-during-render", "late message"))
 	if err != nil {
 		t.Fatal(err)
 	}

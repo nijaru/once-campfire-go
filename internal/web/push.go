@@ -29,7 +29,6 @@ func (s *Server) initJobs() {
 		concurrency = 2
 	}
 	s.Jobs = jobs.New(concurrency, "push", "webhook", "purge", "ban", "analyze")
-	s.initCleanup()
 	var vapid *integrations.VAPID
 	if public, private := os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY"); public != "" &&
 		private != "" {

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 func TestBanPurgesMessagesAndUnsharedFiles(t *testing.T) {
@@ -28,7 +30,7 @@ func TestBanPurgesMessagesAndUnsharedFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range []struct{ user, blob int64 }{{user.ID, exclusive.ID}, {user.ID, shared.ID}, {owner.ID, shared.ID}} {
-		if _, err = app.DB.CreateMessageWithBlob(ctx, entry.user, rooms[0].ID, "", "", "file", entry.blob); err != nil {
+		if _, err = app.DB.CreateMessage(ctx, entry.user, rooms[0].ID, database.MessageInput{Attachment: &entry.blob}); err != nil {
 			t.Fatal(err)
 		}
 	}

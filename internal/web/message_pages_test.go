@@ -18,7 +18,7 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
 	app.fragments = newFragmentCache(0)
 	for _, body := range []string{`<p>Words &amp; <b>markup</b></p>`, `<action-text-attachment sgid="invalid"></action-text-attachment>`, `🎉`} {
-		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "", body, "words")
+		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("", body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -53,14 +53,14 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 				}
 			}
 			for _, name := range []string{"edit-message", "new-boost", "boosts-index"} {
-				before, err := app.messageViews(ctx, []database.Message{m})
+				before, err := app.messageViews(ctx, []database.Message{m.Message})
 				if err != nil {
 					t.Fatal(err)
 				}
 				if name == "edit-message" {
 					before[0].Editable, _ = richtext.Editable(m.Body, app.richContext(ctx))
 				}
-				after, err := app.messagePageViews(ctx, name, []database.Message{m})
+				after, err := app.messagePageViews(ctx, name, []database.Message{m.Message})
 				if err != nil || len(after) != 1 {
 					t.Fatalf("%s: %v", name, err)
 				}
@@ -92,7 +92,7 @@ func TestMessageFormsKeepFreshBoostsAndAuthorization(t *testing.T) {
 	app, server, cookie, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "", "<p>form body</p>", "form body")
+	m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("", "<p>form body</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}

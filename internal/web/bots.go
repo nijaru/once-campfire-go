@@ -161,24 +161,16 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			value := strings.ToValidUTF8(string(raw), "�")
 			body = &value
 		}
-		message, err := s.saveNewMessage(r.Context(), user.ID, room.ID, "", body, staged, false)
+		result, err := s.MessageCommands.Create(r.Context(), user.ID, room.ID, "", body, staged)
 		if err != nil {
 			s.fail(w, err)
 			return true
 		}
-		views, err := s.messageViews(r.Context(), []database.Message{message})
-		if err != nil {
+		if _, err = s.createdMessageEffects(r.Context(), result, false); err != nil {
 			s.fail(w, err)
 			return true
 		}
-		markup, err := s.markup("message", views[0])
-		if err != nil {
-			s.fail(w, err)
-			return true
-		}
-		s.publish(room.ID, stream("append", room.DOM("messages"), markup))
-		s.messageCreated(message, room)
-		s.enqueueWebhooks(message, room)
+		message := result.Commit.Message
 		w.Header().Set("Location", fmt.Sprintf("%s/messages/%d", s.origin(r), message.ID))
 		w.WriteHeader(201)
 	case "PATCH", "PUT":
@@ -192,22 +184,16 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 		if r.Form.Has("attachment") || r.MultipartForm != nil && len(r.MultipartForm.File["attachment"]) > 0 {
 			rawBody = nil
 		}
-		message, err = s.updateMessageAttributes(r, user, message, "", "attachment", rawBody)
+		result, err := s.updateMessageAttributes(r, user, message, "", "attachment", rawBody)
 		if err != nil {
 			s.fail(w, err)
 			return true
 		}
-		views, err := s.messageViews(r.Context(), []database.Message{message})
-		if err != nil {
+		message = result.Commit.Message
+		if err = s.updatedMessageEffects(r.Context(), result); err != nil {
 			s.fail(w, err)
 			return true
 		}
-		markup, err := s.markup("presentation", views[0])
-		if err != nil {
-			s.fail(w, err)
-			return true
-		}
-		s.publish(room.ID, stream("replace", "presentation_message_"+message.ClientID, markup))
 		value, err := s.messageJSON(r, message)
 		if err != nil {
 			s.fail(w, err)
@@ -220,11 +206,17 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			s.fail(w, err)
 			return true
 		}
-		if err = s.DB.DeleteMessage(r.Context(), user.ID, message.ID); err != nil {
+		result, err := s.MessageCommands.Delete(r.Context(), user.ID, message.ID)
+		if err != nil {
 			s.fail(w, err)
 			return true
 		}
-		s.publish(room.ID, stream("remove", "message_"+message.ClientID, ""))
+		message = result.Commit.Message
+		s.publish(message.RoomID, stream("remove", "message_"+message.ClientID, ""))
+		if result.Processing != nil {
+			s.fail(w, result.Processing)
+			return true
+		}
 		w.WriteHeader(204)
 	}
 	return true

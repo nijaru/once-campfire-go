@@ -293,22 +293,16 @@ func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u databas
 	if !requireMessage(w, r) {
 		return
 	}
-	m, err = s.updateMessageAttributes(r, u, m, "message[body]", "message[attachment]", nil)
+	result, err := s.updateMessageAttributes(r, u, m, "message[body]", "message[attachment]", nil)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	views, err := s.messageViews(r.Context(), []database.Message{m})
-	if err != nil {
+	m = result.Commit.Message
+	if err = s.updatedMessageEffects(r.Context(), result); err != nil {
 		s.fail(w, err)
 		return
 	}
-	markup, err := s.markup("presentation", views[0])
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.publish(m.RoomID, stream("replace", "presentation_message_"+m.ClientID, markup))
 	format := respondFormat(w, r, "html", "json")
 	if format == "" {
 		return
@@ -326,12 +320,18 @@ func (s *Server) deleteMessage(w http.ResponseWriter, r *http.Request, u databas
 		s.fail(w, err)
 		return
 	}
-	if err = s.DB.DeleteMessage(r.Context(), u.ID, m.ID); err != nil {
+	result, err := s.MessageCommands.Delete(r.Context(), u.ID, m.ID)
+	if err != nil {
 		s.fail(w, err)
 		return
 	}
+	m = result.Commit.Message
 	markup := stream("remove", "message_"+m.ClientID, "")
 	s.publish(m.RoomID, markup)
+	if result.Processing != nil {
+		s.fail(w, result.Processing)
+		return
+	}
 	if respondFormat(w, r, "turbo_stream") != "" {
 		writeStream(w, markup)
 	}

@@ -65,11 +65,11 @@ func TestMessageFragmentVersionAndBound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "fragment", "<p>before</p>", "before")
+	m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("fragment", "<p>before</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := app.messageItems(ctx, []database.Message{m})
+	first, err := app.messageItems(ctx, []database.Message{m.Message})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestMessageFragmentVersionAndBound(t *testing.T) {
 		t.Fatal("missing rendered message")
 	}
 	// A cache hit skips rich text, boosts and attachment hydration entirely.
-	cached, err := app.messageItems(ctx, []database.Message{m})
+	cached, err := app.messageItems(ctx, []database.Message{m.Message})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestMessageFragmentVersionAndBound(t *testing.T) {
 	}
 	m.UpdatedAt = m.UpdatedAt.Add(time.Microsecond)
 	m.Body = "<p>after</p>"
-	changed, err := app.messageItems(ctx, []database.Message{m})
+	changed, err := app.messageItems(ctx, []database.Message{m.Message})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestMissingMessageAuthorKeepsPlaceholder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "orphan", "hello", "hello")
+	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("orphan", "hello"))
 	if err != nil {
 		t.Fatal(err)
 	}

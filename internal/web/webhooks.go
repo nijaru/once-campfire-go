@@ -138,19 +138,10 @@ func (s *Server) deliverWebhook(ctx context.Context, botID, messageID int64) err
 			return err
 		}
 	}
-	created, err := s.saveNewMessage(ctx, bot.ID, room.ID, "", reply.Text, staged, true)
+	result, err := s.MessageCommands.Reply(ctx, bot.ID, room.ID, reply.Text, staged)
 	if err != nil {
 		return err
 	}
-	s.messageCreated(created, room)
-	views, err := s.messageViews(ctx, []database.Message{created})
-	if err != nil {
-		return err
-	}
-	markup, err := s.markup("message", views[0])
-	if err != nil {
-		return err
-	}
-	s.publish(room.ID, stream("append", room.DOM("messages"), markup))
-	return nil
+	_, err = s.createdMessageEffects(ctx, result, true)
+	return err
 }

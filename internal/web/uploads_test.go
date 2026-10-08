@@ -461,3 +461,7 @@ func TestSignedDiskUploadCapabilityDoesNotRequireFetchMetadata(t *testing.T) {
 		})
 	}
 }
+
+func messageInput(client, body string) database.MessageInput {
+	return database.MessageInput{ClientID: client, Body: &body}
+}

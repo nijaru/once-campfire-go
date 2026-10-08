@@ -23,7 +23,7 @@ func TestMessageControllersRenderFreshRecords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "record-input", "<p>record before</p>", "record before")
+	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("record-input", "<p>record before</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestMessageControllersRenderFreshRecords(t *testing.T) {
 		}
 	}
 	check("record before")
-	if _, err := app.DB.UpdateMessage(ctx, user.ID, message.ID, "<p>record after</p>", "record after"); err != nil {
+	if _, err := app.DB.UpdateMessage(ctx, user.ID, message.ID, messageInput("", "<p>record after</p>")); err != nil {
 		t.Fatal(err)
 	}
 	check("record after")
@@ -57,11 +57,11 @@ func TestMessageItemsBatchMissesKeepOrderAndBytes(t *testing.T) {
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
 	var records []database.Message
 	for i := 0; i < 4; i++ {
-		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, fmt.Sprint("batch-", i), fmt.Sprintf("<p>batch &amp; %d</p>", i), fmt.Sprintf("batch %d", i))
+		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput(fmt.Sprint("batch-", i), fmt.Sprintf("<p>batch &amp; %d</p>", i)))
 		if err != nil {
 			t.Fatal(err)
 		}
-		records = append(records, m)
+		records = append(records, m.Message)
 	}
 	app.fragments = newFragmentCache(0)
 	var want []template.HTML
@@ -105,11 +105,11 @@ func TestMessageListOwnershipAndAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "ownership", "<p>owned bytes</p>", "owned bytes")
+	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("ownership", "<p>owned bytes</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	messages := []database.Message{message}
+	messages := []database.Message{message.Message}
 	original, err := app.messageList(ctx, messages)
 	if err != nil {
 		t.Fatal(err)
@@ -165,11 +165,11 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 	app, _, _, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "recorded", "<p>one &amp; two</p>", "one & two")
+	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("recorded", "<p>one &amp; two</p>"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	list := []database.Message{message}
+	list := []database.Message{message.Message}
 	views, err := app.messageItems(ctx, list)
 	if err != nil {
 		t.Fatal(err)

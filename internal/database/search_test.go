@@ -21,11 +21,11 @@ func TestSearchReferencesMatchReachableResults(t *testing.T) {
 	}
 	room := rooms[0].ID
 	base := time.Date(2026, 10, 6, 12, 0, 0, 123456000, time.UTC)
-	var latest Message
+	var latest MessageCommit
 	for i := 0; i < 104; i++ {
 		// Tied creation timestamps must retain the previous query's ordering.
 		d.Now = func() time.Time { return base.Add(time.Duration(i/2) * time.Second) }
-		latest, err = d.CreateMessage(ctx, user.ID, room, "", "<p>wordneedle café AND</p>", "wordneedle café AND")
+		latest, err = d.CreateMessage(ctx, user.ID, room, messageInput("", "<p>wordneedle café AND</p>"))
 		if err != nil {
 			t.Fatal(err)
 		}

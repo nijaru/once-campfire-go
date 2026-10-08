@@ -6,10 +6,59 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestRoomMutationRechecksCapturedAdministrator(t *testing.T) {
+	app, _, _, captured := testApp(t)
+	ctx := context.Background()
+	creator, err := app.DB.CreateUser(ctx, "Creator", "creator@test", "digest", "", 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	room, err := app.DB.CreateRoom(ctx, creator.ID, "Rooms::Open", &sql.NullString{String: "Protected", Valid: true}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Authentication observed an administrator, but demotion commits before the
+	// command. The still-valid membership cannot carry stale administrative rights.
+	if _, err = app.DB.Write.ExecContext(ctx, "UPDATE users SET role=0 WHERE id=?", captured.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = app.DB.Write.ExecContext(ctx, `UPDATE accounts SET settings='{"restrict_room_creation_to_administrators":true}'`); err != nil {
+		t.Fatal(err)
+	}
+	for _, method := range []string{"POST", "PATCH", "DELETE"} {
+		path := fmt.Sprintf("/rooms/opens/%d", room.ID)
+		if method == "POST" {
+			path = "/rooms/opens"
+		}
+		r := httptest.NewRequest(method, path, strings.NewReader("room%5Bname%5D=changed"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if method != "POST" {
+			r.SetPathValue("id", fmt.Sprint(room.ID))
+		}
+		if err = r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		w := httptest.NewRecorder()
+		if method != "DELETE" {
+			app.saveRoom(w, r, captured)
+		} else {
+			app.deleteRoom(w, r, captured)
+		}
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("%s accepted stale administrator: %d", method, w.Code)
+		}
+	}
+	stored, err := app.DB.FindRoom(ctx, room.ID)
+	if err != nil || stored.Name != "Protected" {
+		t.Fatalf("unauthorized mutation: %+v %v", stored, err)
+	}
+}
 
 func TestDirectRoomSettingsRetainInactiveParticipants(t *testing.T) {
 	for _, status := range []string{"active", "deactivated", "banned"} {
@@ -288,7 +337,7 @@ func TestRoomUpdatesRedirectWhenMembershipIsMissing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := app.DB.UpdateRoom(ctx, room.ID, "Rooms::Closed", nil, []int64{member.ID}); err != nil {
+	if _, err := app.DB.UpdateRoom(ctx, owner.ID, room.ID, "Rooms::Closed", nil, []int64{member.ID}); err != nil {
 		t.Fatal(err)
 	}
 	for _, namespace := range []string{"opens", "closeds"} {

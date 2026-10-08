@@ -33,7 +33,7 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	message, err := d.CreateMessage(ctx, member.ID, room.ID, "", "original", "original")
+	message, err := d.CreateMessage(ctx, member.ID, room.ID, messageInput("", "original"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,21 +46,21 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	) {
 		t.Fatalf("private boost: %v", err)
 	}
-	if _, err = d.UpdateMessage(ctx, outsider.ID, message.ID, "hidden", "hidden"); !errors.Is(
+	if _, err = d.UpdateMessage(ctx, outsider.ID, message.ID, messageInput("", "hidden")); !errors.Is(
 		err,
 		sql.ErrNoRows,
 	) {
 		t.Fatalf("private edit: %v", err)
 	}
-	other, err := d.CreateMessage(ctx, owner.ID, room.ID, "", "admin message", "admin message")
+	other, err := d.CreateMessage(ctx, owner.ID, room.ID, messageInput("", "admin message"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = d.DeleteMessage(ctx, member.ID, other.ID); !errors.Is(err, ErrForbidden) {
+	if _, err = d.DeleteMessage(ctx, member.ID, other.ID); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("delete another user's message: %v", err)
 	}
 	d.Now = func() time.Time { return message.CreatedAt.Add(time.Minute) }
-	updated, err := d.UpdateMessage(ctx, owner.ID, message.ID, "edited", "edited")
+	updated, err := d.UpdateMessage(ctx, owner.ID, message.ID, messageInput("", "edited"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	if _, err = d.CreateBoost(ctx, owner.ID, message.ID, "again"); err != nil {
 		t.Fatal(err)
 	}
-	if err = d.DeleteMessage(ctx, member.ID, message.ID); err != nil {
+	if _, err = d.DeleteMessage(ctx, member.ID, message.ID); err != nil {
 		t.Fatal(err)
 	}
 	if hits, err := d.SearchReferences(ctx, member.ID, "edited"); err != nil || len(hits) != 0 {
@@ -121,13 +121,13 @@ func TestRoomConversionAndDeactivation(t *testing.T) {
 	if _, err = d.Room(ctx, member.ID, room.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err = d.UpdateRoom(ctx, room.ID, "Rooms::Closed", &sql.NullString{String: "Private", Valid: true}, []int64{owner.ID}); err != nil {
+	if _, err = d.UpdateRoom(ctx, owner.ID, room.ID, "Rooms::Closed", &sql.NullString{String: "Private", Valid: true}, []int64{owner.ID}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.Room(ctx, member.ID, room.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("revoked room access: %v", err)
 	}
-	if err = d.UpdateRoom(ctx, room.ID, "Rooms::Open", &sql.NullString{String: "Shared", Valid: true}, nil); err != nil {
+	if _, err = d.UpdateRoom(ctx, owner.ID, room.ID, "Rooms::Open", &sql.NullString{String: "Shared", Valid: true}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.Room(ctx, member.ID, room.ID); err != nil {
@@ -182,18 +182,18 @@ func TestMessagePaginationAndRefresh(t *testing.T) {
 	for i := 0; i < 85; i++ {
 		now := start.Add(time.Duration(i) * time.Second)
 		d.Now = func() time.Time { return now }
-		m, err := d.CreateMessage(ctx, u.ID, room.ID, "", "test", "test")
+		m, err := d.CreateMessage(ctx, u.ID, room.ID, messageInput("", "test"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		all = append(all, m)
+		all = append(all, m.Message)
 	}
 	around, err := d.MessagePage(ctx, room.ID, all[42].ID, "around")
 	if err != nil || len(around) != 81 || around[0].ID != all[2].ID || around[80].ID != all[82].ID {
 		t.Fatalf("around: %d %v", len(around), err)
 	}
 	d.Now = func() time.Time { return start.Add(100 * time.Second) }
-	if _, err = d.UpdateMessage(ctx, u.ID, all[0].ID, "updated", "updated"); err != nil {
+	if _, err = d.UpdateMessage(ctx, u.ID, all[0].ID, messageInput("", "updated")); err != nil {
 		t.Fatal(err)
 	}
 	created, updated, err := d.RefreshedMessages(ctx, room.ID, start.Add(80*time.Second))

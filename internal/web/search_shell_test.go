@@ -20,7 +20,7 @@ func TestSearchShellKeepsNavigationFresh(t *testing.T) {
 	app, server, cookie, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, "shell-navigation", "<p>shellneedle</p>", "shellneedle"); err != nil {
+	if _, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("shell-navigation", "<p>shellneedle</p>")); err != nil {
 		t.Fatal(err)
 	}
 	other, err := app.DB.CreateRoom(

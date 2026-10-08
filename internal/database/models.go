@@ -9,7 +9,6 @@ import (
 	"errors"
 	"strings"
 	"time"
-	"uuid"
 )
 
 var (
@@ -236,142 +235,12 @@ func (d *DB) Messages(ctx context.Context, room, before int64) ([]Message, error
 	return messages, err
 }
 
-// CreateMessage mirrors Message and Room callbacks in reference/reference/app/models.
-// Publication and job delivery happen only after this transaction commits.
-func (d *DB) CreateMessage(
-	ctx context.Context,
-	user, room int64,
-	client, body, plain string,
-) (Message, error) {
-	return d.CreateMessageWithBlob(ctx, user, room, client, body, plain, 0)
-}
-
-func (d *DB) CreateMessageWithBlob(
-	ctx context.Context,
-	user, room int64,
-	client, body, plain string,
-	blob int64,
-) (Message, error) {
-	return d.createMessage(ctx, user, room, client, &body, plain, blob, nil, true)
-}
-
-// CreateWebhookReply is called only by a queued, authorized webhook delivery. Like
-// the reference model callback it does not reapply controller membership checks.
-func (d *DB) CreateWebhookReply(
-	ctx context.Context,
-	user, room int64,
-	body, plain string,
-	blob int64,
-) (Message, error) {
-	return d.createMessage(ctx, user, room, "", &body, plain, blob, nil, false)
-}
-
 // BlobStager keeps file copying outside the SQLite writer while committing the blob
-// and its owning record together.
+// and its owning record together. Record uploads are migrated separately.
 type BlobStager interface {
 	Insert(context.Context, *sql.Tx) (int64, error)
 	Keep()
 	Discard()
-}
-
-func (d *DB) CreateMessageWithUpload(
-	ctx context.Context,
-	user, room int64,
-	client string,
-	body *string,
-	plain string,
-	staged BlobStager,
-	webhook bool,
-) (Message, error) {
-	return d.createMessage(ctx, user, room, client, body, plain, 0, staged, !webhook)
-}
-
-func (d *DB) createMessage(
-	ctx context.Context,
-	user, room int64,
-	client string,
-	body *string,
-	plain string,
-	blob int64,
-	staged BlobStager,
-	checkMembership bool,
-) (Message, error) {
-	if staged != nil {
-		defer staged.Discard()
-	}
-	if client == "" {
-		client = uuid.NewV4().String()
-	}
-	now := d.Now().UTC()
-	m := Message{RoomID: room, CreatorID: user, ClientID: client, CreatedAt: now, UpdatedAt: now}
-	if body != nil {
-		m.Body = *body
-	}
-	err := d.Transaction(ctx, func(tx *sql.Tx) error {
-		if checkMembership {
-			var n int
-			if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.room_id=? AND m.user_id=? AND u.status=0", room, user).Scan(&n); err != nil {
-				return err
-			}
-			if n != 1 {
-				return ErrForbidden
-			}
-		}
-		if err := tx.QueryRowContext(ctx, "SELECT name FROM users WHERE id=?", user).Scan(&m.Creator); err != nil {
-			return err
-		}
-		if staged != nil {
-			var err error
-			blob, err = staged.Insert(ctx, tx)
-			if err != nil {
-				return err
-			}
-		}
-		stamp := Stamp(now)
-		r, err := tx.ExecContext(
-			ctx,
-			"INSERT INTO messages(client_message_id,creator_id,room_id,created_at,updated_at) VALUES (?,?,?,?,?)",
-			client,
-			user,
-			room,
-			stamp,
-			stamp,
-		)
-		if err != nil {
-			return err
-		}
-		m.ID, err = r.LastInsertId()
-		if err != nil {
-			return err
-		}
-		for _, q := range []struct {
-			sql  string
-			args []any
-		}{
-			{"UPDATE rooms SET updated_at=? WHERE id=?", []any{stamp, room}},
-			{"UPDATE memberships SET unread_at=?,updated_at=? WHERE room_id=? AND user_id!=? AND involvement!='invisible' AND (connected_at IS NULL OR connected_at < ?)", []any{stamp, stamp, room, user, Stamp(now.Add(-60 * time.Second))}},
-			{"INSERT INTO message_search_index(rowid,body) VALUES (?,?)", []any{m.ID, plain}},
-		} {
-			if _, err = tx.ExecContext(ctx, q.sql, q.args...); err != nil {
-				return err
-			}
-		}
-		if body != nil {
-			if _, err = tx.ExecContext(ctx, "INSERT INTO action_text_rich_texts(name,record_type,record_id,body,created_at,updated_at) VALUES ('body','Message',?,?,?,?)", m.ID, *body, stamp, stamp); err != nil {
-				return err
-			}
-		}
-		if blob != 0 {
-			if _, err = tx.ExecContext(ctx, "INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'Message',?,'attachment',?)", blob, m.ID, stamp); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err == nil && staged != nil {
-		staged.Keep()
-	}
-	return m, err
 }
 
 // AuthorizedSessions checks a publication's distinct sessions in one snapshot.
