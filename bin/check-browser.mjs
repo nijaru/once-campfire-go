@@ -7,6 +7,7 @@ import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import path from "node:path"
 import { checkFrameCancellation } from "./frame-cancellation.mjs"
+import { checkSidebarRefresh } from "./sidebar-refresh.mjs"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const require = createRequire(import.meta.url)
@@ -37,6 +38,7 @@ try {
   if (!ready) throw new Error(`Server did not start: ${logs}`)
   browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_EXECUTABLE, env: { ...process.env, TMPDIR: work } })
   await checkFrameCancellation(browser, base)
+  await checkSidebarRefresh(browser, base)
   const context = await browser.newContext({ permissions: ["clipboard-read", "clipboard-write"] })
   const errors = []
   function watch(page) {

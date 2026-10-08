@@ -84,6 +84,9 @@ binaries built for the same host. Each workflow uses a fresh SQLite backup, incl
 of seeded storage. It checks HTTP behavior, controls, authorization, fresh reads and committed
 message/FTS state, not byte-identical HTML or internal implementation details. Reports include
 binary, tool and seed-snapshot hashes; failures remain visible and produce a nonzero exit status.
+The [upstream integration record](bench/results/upstream-integration-20261007/README.md) covers
+cache corrections and focused sidebar verification; it also records the unresolved full-browser
+smoke failures. This is not complete browser acceptance.
 It does not cover malformed Rack parameter compatibility, multipart metadata, JavaScript, live
 Cable delivery or crash durability.
 
@@ -123,8 +126,9 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 
 ## Benchmarks
 
-Measured with 16 concurrent clients on an AMD Ryzen AI MAX+ 395 with 32 GB RAM,
-with four hardware cores allocated to each app.
+Upstream's published measurements use 16 concurrent clients on an AMD Ryzen AI MAX+ 395
+with 32 GB RAM and four hardware cores allocated to each app. These are not measurements of
+this fork.
 
 | HTTP workload (requests/sec) | Rails | [Django](https://github.com/basecamp/once-campfire-django) | [Laravel](https://github.com/basecamp/once-campfire-laravel) | [Express](https://github.com/basecamp/once-campfire-express) | [Elixir](https://github.com/basecamp/once-campfire-elixir) | [Go](https://github.com/basecamp/once-campfire-go) | [Rust](https://github.com/basecamp/once-campfire-rust) | [C](https://github.com/basecamp/once-campfire-c) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -155,8 +159,6 @@ results vary across repetitions. Their machine and methodology differ from the h
 
 - Sidebar connection refresh waits for the current Turbo frame to finish loading,
   preventing an aborted response on startup or reconnect. Obsolete connections and removed frames do not reload.
-
-- Search selects the newest 100 matching messages by insertion ID, then displays them in ID order. Backdated messages can appear in a different order from the original Rails app.
 
 - Templates use `html/template`. Whitespace, attribute serialization, some canonical form-action
   URLs, some document titles, and response headers/validators differ from Rust. Strict server/live DOM and network layers

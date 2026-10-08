@@ -18,7 +18,23 @@ import (
 //go:embed schema.sql
 var schema string
 
-var migrations = []string{"20231215043540", "20231220143106", "20240110071740", "20240115124901", "20240130003150", "20240130213001", "20240131105830", "20240209110503", "20250825100957", "20250825100958", "20250825100959", "20251126092013", "20251126115722", "20251126130131", "20251212154340"}
+var migrations = []string{
+	"20231215043540",
+	"20231220143106",
+	"20240110071740",
+	"20240115124901",
+	"20240130003150",
+	"20240130213001",
+	"20240131105830",
+	"20240209110503",
+	"20250825100957",
+	"20250825100958",
+	"20250825100959",
+	"20251126092013",
+	"20251126115722",
+	"20251126130131",
+	"20251212154340",
+}
 
 // A single writer prevents pool starvation while WAL readers proceed independently.
 type DB struct {
@@ -30,6 +46,7 @@ type DB struct {
 	Now                 func() time.Time
 	versionDB           *sql.DB
 	version             *sql.Conn
+	versionGate         chan struct{}
 }
 
 func Open(path string, readers int) (*DB, error) {
@@ -40,7 +57,7 @@ func Open(path string, readers int) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+	if err = os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, err
 	}
 	uri := (&url.URL{Scheme: "file", Path: path}).String()
@@ -93,8 +110,16 @@ func Open(path string, readers int) (*DB, error) {
 		}
 		now = func() time.Time { return frozen }
 	}
-	return &DB{Read: &readPool{DB: r, statements: make(map[string]*sql.Stmt)}, Write: w, Now: now, versionDB: v, version: version}, nil
+	return &DB{
+		Read:        &readPool{DB: r, statements: make(map[string]*sql.Stmt)},
+		Write:       w,
+		Now:         now,
+		versionDB:   v,
+		version:     version,
+		versionGate: make(chan struct{}, 1),
+	}, nil
 }
+
 func (d *DB) Close() error {
 	return errors.Join(d.Read.Close(), d.Write.Close(), d.version.Close(), d.versionDB.Close())
 }
@@ -110,6 +135,7 @@ func (d *DB) Transaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	}
 	return tx.Commit()
 }
+
 func prepare(db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -126,7 +152,9 @@ func prepare(db *sql.DB) error {
 			return err
 		}
 		if count != 0 {
-			return errors.New("refusing to initialize a nonempty database without schema_migrations")
+			return errors.New(
+				"refusing to initialize a nonempty database without schema_migrations",
+			)
 		}
 		if _, err = tx.Exec(schema); err != nil {
 			return err
@@ -149,13 +177,13 @@ func prepare(db *sql.DB) error {
 			return err
 		}
 		if found != 1 {
-			return fmt.Errorf("pending migration %s: migrate with the reference app before starting", v)
+			return fmt.Errorf(
+				"pending migration %s: migrate with the reference app before starting",
+				v,
+			)
 		}
 	}
 	if _, err = tx.Exec("CREATE INDEX IF NOT EXISTS index_messages_on_room_id_and_created_at ON messages(room_id,created_at)"); err != nil {
-		return err
-	}
-	if _, err = tx.Exec("CREATE INDEX IF NOT EXISTS index_messages_on_room_id_and_updated_at ON messages(room_id,updated_at)"); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -190,6 +218,14 @@ func (t timestamp) Scan(value any) error {
 // A pinned reader observes commits from every writer, including this process.
 // PRAGMA data_version is connection-local, so it must never use the read pool.
 func (d *DB) ResponseVersion(ctx context.Context) (uint64, error) {
+	// Serialize through Scan/Close, not just statement execution: an overlapping
+	// PRAGMA can otherwise reuse an older statement's SQLite read transaction.
+	select {
+	case d.versionGate <- struct{}{}:
+		defer func() { <-d.versionGate }()
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	}
 	var version uint64
 	err := d.version.QueryRowContext(ctx, "PRAGMA data_version").Scan(&version)
 	return version, err

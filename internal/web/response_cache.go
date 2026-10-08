@@ -41,6 +41,7 @@ type responseRound struct {
 func newResponseCache(limit int) *responseCache {
 	return &responseCache{limit: limit, entries: make(map[string]*list.Element)}
 }
+
 func (c *responseCache) get(key string, version uint64) *cachedResponse {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -62,6 +63,7 @@ func (c *responseCache) get(key string, version uint64) *cachedResponse {
 	c.misses++
 	return nil
 }
+
 func (c *responseCache) put(entry *cachedResponse) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -81,6 +83,7 @@ func (c *responseCache) put(entry *cachedResponse) {
 	c.entries[entry.key] = c.order.PushFront(entry)
 	c.size += entry.cost
 }
+
 func (s *Server) beginResponseCache(r *http.Request) {
 	info := requestMetadata(r.Context())
 	if info == nil {
@@ -91,7 +94,9 @@ func (s *Server) beginResponseCache(r *http.Request) {
 		return
 	}
 	info.databaseVersion = version
-	if s.responses.limit == 0 || (r.Method != "GET" && r.Method != "HEAD") || r.ContentLength != 0 || len(r.TransferEncoding) != 0 {
+	if s.responses.limit == 0 || (r.Method != "GET" && r.Method != "HEAD") ||
+		r.ContentLength != 0 ||
+		len(r.TransferEncoding) != 0 {
 		return
 	}
 	route, _, err := recognize(r.Method, r.URL.EscapedPath())
@@ -109,8 +114,13 @@ func (s *Server) beginResponseCache(r *http.Request) {
 	}
 	state := browserState(r)
 	state.load()
-	info.response = &responseRound{version: version, gzip: encoding == "gzip", flash: state.values["flash"] != nil}
+	info.response = &responseRound{
+		version: version,
+		gzip:    encoding == "gzip",
+		flash:   state.values["flash"] != nil,
+	}
 }
+
 func (s *Server) responseHit(r *http.Request) *cachedResponse {
 	info := requestMetadata(r.Context())
 	if info == nil || info.response == nil {
@@ -124,10 +134,14 @@ func (s *Server) responseHit(r *http.Request) *cachedResponse {
 	if err != nil || version != round.version {
 		return nil
 	}
-	key, _ := json.Marshal([]any{info.host, info.origin, r.RequestURI, r.URL.RequestURI(), r.Form, round.user,
-		r.Header.Values("Cookie"), r.Header.Values("Accept"), r.Header.Values("Turbo-Frame"),
+	key, _ := json.Marshal([]any{
+		info.host, info.origin, r.RequestURI, r.URL.RequestURI(), r.Form, round.user,
+		r.Header.Values(
+			"Cookie",
+		), r.Header.Values("Accept"), r.Header.Values("Content-Type"), r.Header.Values("Turbo-Frame"),
 		r.UserAgent(), r.Header.Get("Origin"), r.Header.Get("X-Requested-With"), round.gzip,
-		os.Getenv("GIT_REVISION")})
+		os.Getenv("GIT_REVISION"),
+	})
 	round.key = string(key)
 	if len(round.key) > 8192 {
 		return nil
@@ -136,6 +150,7 @@ func (s *Server) responseHit(r *http.Request) *cachedResponse {
 	round.hit = entry != nil
 	return entry
 }
+
 func (entry *cachedResponse) serve(w http.ResponseWriter) {
 	for key, values := range entry.header {
 		w.Header()[key] = append([]string(nil), values...)
@@ -145,15 +160,22 @@ func (entry *cachedResponse) serve(w http.ResponseWriter) {
 
 // Only completed representations enter the cache; security and session headers
 // stay on the live writer. The version was captured before authentication.
-func (s *Server) cacheResponse(r *http.Request, w *responseBuffer, parts []responsebody.Part) []responsebody.Part {
+func (s *Server) cacheResponse(
+	r *http.Request,
+	w *responseBuffer,
+	parts []responsebody.Part,
+) []responsebody.Part {
 	info := requestMetadata(r.Context())
 	if info == nil || info.response == nil {
 		return parts
 	}
 	round := info.response
-	if round.hit || round.flash || round.key == "" || r.Method != "GET" || w.status != 200 || w.exception ||
-		w.Header().Get("Content-Encoding") != "" || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/html") ||
-		strings.Contains(w.Header().Get("Cache-Control"), "no-store") || strings.Contains(w.Header().Get("Cache-Control"), "no-transform") {
+	if round.hit || round.flash || round.key == "" || r.Method != "GET" || w.status != 200 ||
+		w.exception ||
+		w.Header().Get("Content-Encoding") != "" ||
+		!strings.HasPrefix(w.Header().Get("Content-Type"), "text/html") ||
+		strings.Contains(w.Header().Get("Cache-Control"), "no-store") ||
+		strings.Contains(w.Header().Get("Cache-Control"), "no-transform") {
 		return parts
 	}
 	version, err := s.DB.ResponseVersion(r.Context())
@@ -178,7 +200,8 @@ func (s *Server) cacheResponse(r *http.Request, w *responseBuffer, parts []respo
 		var compressed bytes.Buffer
 		writer, _ := gzip.NewWriterLevel(&compressed, 6)
 		writer.Header.OS = 3
-		if stamp, err := http.ParseTime(w.Header().Get("Last-Modified")); err == nil && stamp.Unix() > 0 {
+		if stamp, err := http.ParseTime(w.Header().Get("Last-Modified")); err == nil &&
+			stamp.Unix() > 0 {
 			writer.Header.ModTime = time.Unix(stamp.Unix(), 0)
 		}
 		if _, err = writer.Write(body.Bytes()); err != nil {
@@ -201,7 +224,12 @@ func (s *Server) cacheResponse(r *http.Request, w *responseBuffer, parts []respo
 	if round.gzip {
 		header.Set("Content-Encoding", "gzip")
 	}
-	entry := &cachedResponse{key: round.key, version: round.version, body: responsebody.NewPart(body.Bytes()), header: header}
+	entry := &cachedResponse{
+		key:     round.key,
+		version: round.version,
+		body:    responsebody.NewPart(body.Bytes()),
+		header:  header,
+	}
 	entry.cost = body.Cap() + len(entry.key) + 1024
 	for name, values := range header {
 		entry.cost += len(name)
@@ -218,6 +246,7 @@ func (s *Server) cacheResponse(r *http.Request, w *responseBuffer, parts []respo
 	}
 	return []responsebody.Part{entry.body}
 }
+
 func responseCacheBudget() (int, error) {
 	raw, ok := os.LookupEnv("CAMPFIRE_RESPONSE_CACHE_MB")
 	if !ok || raw == "" {

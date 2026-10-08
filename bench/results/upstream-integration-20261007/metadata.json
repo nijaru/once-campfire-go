@@ -1,0 +1,38 @@
+{
+  "upstream": "352706f",
+  "previous_published": "1fdb2f5",
+  "replay_head": "b0e570faa8574fcc30c4b7fb5710a28ab77fba96",
+  "source_sha256": {
+    "assets/overrides/controllers/rooms_list_controller.js": "1587abe377e2e7d80a8ee4a780eaf7fb00fe3a50d506b8525ab76fa29c5ea0ac",
+    "bin/check-browser.mjs": "e5ee9cc7002533a84c836e6cffe261d6ac1ed35bb363b65c0e798c7258ef8d3f",
+    "bin/sidebar-refresh.mjs": "8bf56ea048c77ddfcdacc31b099c07ddb4f4b56f3ee2dcdcf9e777dc904b54d9",
+    "internal/database/database.go": "c7a04ff120b8619c83997a8272604990b971208c3e4c771f3d61891766e9acba",
+    "internal/database/response_version_test.go": "eb30f046cffce4281ec609c8b1da797c7f8e0a4b933f2a069e36ed74b07a5a08",
+    "internal/front/compression.go": "e058953af51fc4250cdc8a03527fe12f1e12060df5e80da47d41bd7a7413c185",
+    "internal/web/conditional.go": "cda42725f104ae7758ccf23df4642c25df202f56f1b42e12baf8297544d0971a",
+    "internal/web/conditional_test.go": "67a7bc82603c511da4dab63a967f6041f0996a6966be505e7463fd5423ee7927",
+    "internal/web/fragments.go": "c6089a5b794817a37ab94a130148eae2e9b80124c2d2f565e6b491394e9a1c37",
+    "internal/web/messages.go": "a6362f92b268f3fcb64c49fef57edc808fc7ec54ddf1db5c76d361da23bdaa8e",
+    "internal/web/recorded.go": "0b5bb5460a5db69285f23e5831b9576715b7242e8fea51ae6747646ffcf00618",
+    "internal/web/recorded_test.go": "523dca334cc23e4ef0cfe771bf6f9878e9ead66faf31213847bc57f7d43fbb8d",
+    "internal/web/request_metadata.go": "f620ae992717e13123c53cd5a7da5472e0354de4d45d91c4564e0742ce901952",
+    "internal/web/response.go": "2d2f877b409fda1079f07085849d1979cdc71207aeabcfed96be6ee6b5050279",
+    "internal/web/response_cache.go": "a27802b4fded760216313871d194b8fac52d97e4513a3ccf76b25e211fab67ed",
+    "internal/web/response_cache_test.go": "565559500db6e3bdc74f61ed14f835597cf051ade1dffeffbe9e4f539f9ba81d",
+    "internal/web/server.go": "b4269077636ffc200f88a1d354d3c6c8d4a4583757f4c8c8198c5529e2eb16f1",
+    "internal/web/session_test.go": "32af00a60cacbb2a1243dda00829c4c8e0bedaab7433a3b1cedbbd19b14cb0d6",
+    "internal/web/templates/accounts.html": "77bb4a7d2b64165dec30a3e950c0aa67e4b2672e70e77e690d5386c01af8f652"
+  },
+  "binary_sha256": {
+    ".cache/upstream-integration/candidate": "d8ae924318d8c7bc04c504f6dc8137b601fa270f665ef344c37c7abd641d031e",
+    ".cache/upstream-integration/candidate-native": "92f80a1eace8bf9b2b0b33432f9ea0182a7b33656cd06bd3f42ade1ca5fe765f",
+    ".cache/parity-acceptance/campfire-go-native": "abcfe216d9902b7bda7e83b2c3fe2444ecfb86d177ca49c6744e35873e9f2bf3"
+  },
+  "native_go": "go version go1.27.1 darwin/arm64",
+  "node": "v26.10.0",
+  "limitations": [
+    "Full application browser smoke times out on both prior and integrated binaries; no complete browser acceptance claim.",
+    "Sidebar fixture uses real served Turbo/Stimulus/controller bytes and isolated Cable callbacks, not actual socket reconnect delivery.",
+    "Historical benchmark archives do not measure the integrated tree."
+  ]
+}

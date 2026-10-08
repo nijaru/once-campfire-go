@@ -1,24 +1,6 @@
 package web
 
 import (
-	"context",
-	"io",
-	"net/http",
-	"net/http/cookiejar",
-	"net/url",
-	"regexp",
-	"strings",
-	"testing",
-	"time",
-	"github.com/basecamp/once-campfire-go/internal/database",
-	"github.com/basecamp/once-campfire-go/internal/rails",
-	"golang.org/x/crypto/bcrypt",
-)
-
-import (
-)
-
-import (
 	"context"
 	"database/sql"
 	"fmt"
@@ -26,6 +8,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -192,10 +175,12 @@ func TestTransferPageHasOneCompleteAutoSubmitForm(t *testing.T) {
 		t.Fatalf("transfer GET: %s", response.Status)
 	}
 	html := string(body)
-	if strings.Count(html, "<form ") != strings.Count(html, "</form>") || strings.Count(html, `data-controller="auto-submit"`) != 1 {
+	if strings.Count(html, "<form ") != strings.Count(html, "</form>") ||
+		strings.Count(html, `data-controller="auto-submit"`) != 1 {
 		t.Fatal("transfer response must contain one balanced auto-submit form")
 	}
-	if !regexp.MustCompile(`<form\b[^>]*data-controller="auto-submit"[^>]*>(?:\s*<input\b[^>]*>)*\s*</form>`).MatchString(html) {
+	if !regexp.MustCompile(`<form\b[^>]*data-controller="auto-submit"[^>]*>(?:\s*<input\b[^>]*>)*\s*</form>`).
+		MatchString(html) {
 		t.Fatal("transfer form must close after its hidden fields")
 	}
 	if !strings.Contains(html, `action="/session/transfers/example"`) ||
