@@ -38,18 +38,18 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	}
 	var retained responsebody.Part
 	for _, limit := range []int{0, 1, 32 << 20} {
-		app.fragments = newFragmentCache(limit)
-		part, count, err := app.readSearchMessages(ctx, user.ID, "snapshotneedle")
+		setFragmentLimit(app, limit)
+		part, count, err := app.MessageQueries.Search(ctx, app.messageScope(ctx), user.ID, "snapshotneedle")
 		if err != nil || count != 1 || bytes.Contains(body(part), []byte(fmt.Sprintf(`data-message-id="%d"`, first.ID))) || !bytes.Contains(body(part), []byte(fmt.Sprintf(`data-message-id="%d"`, second.ID))) {
 			t.Fatalf("cache limit %d: stale selection/body, count %d / %v", limit, count, err)
 		}
-		retained, count, err = app.readSearchMessages(ctx, user.ID, "snapshotneedle")
+		retained, count, err = app.MessageQueries.Search(ctx, app.messageScope(ctx), user.ID, "snapshotneedle")
 		if err != nil || count != 1 || !bytes.Equal(body(part), body(retained)) {
 			t.Fatal("hit changed the selected body", err)
 		}
 	}
 	// Eviction and a newer edit must not turn a captured Part into hydration.
-	app.fragments = newFragmentCache(0)
+	setFragmentLimit(app, 0)
 	if _, err := app.DB.DeleteMessage(ctx, user.ID, second.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	if w.Code != 200 || !bytes.Contains(w.Body.Bytes(), body(retained)) {
 		t.Fatal("captured search body was lost after eviction/edit")
 	}
-	part, count, err := app.readSearchMessages(ctx, user.ID, "snapshotneedle")
+	part, count, err := app.MessageQueries.Search(ctx, app.messageScope(ctx), user.ID, "snapshotneedle")
 	if err != nil || count != 0 || part.Len() != 0 {
 		t.Fatal("miss did not observe committed deletion", count, err)
 	}
@@ -95,7 +95,7 @@ func TestSearchShowsFreshResultCount(t *testing.T) {
 	}
 	check("countneedle", 2)
 	check("countneedle", 2) // A message-list cache hit must retain the count too.
-	app.fragments = newFragmentCache(0)
+	setFragmentLimit(app, 0)
 	check("countneedle", 2) // Disabled retention uses the complete query directly.
 	if _, err := app.DB.DeleteMessage(ctx, user.ID, first.ID); err != nil {
 		t.Fatal(err)

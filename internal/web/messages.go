@@ -70,25 +70,6 @@ func (s *Server) presentationFacts(ctx context.Context) presentation.Facts {
 	return facts
 }
 
-func (s *Server) presentMessages(ctx context.Context, prepared presentation.PreparedMessages, data map[int64]database.MessageDisplay, users map[int64]database.UserDisplay) ([]presentation.MessageView, error) {
-	views, err := s.Presentation.Messages(s.presentationFacts(ctx), prepared, data, users)
-	if err != nil {
-		return nil, err
-	}
-	for i := range views {
-		if data[views[i].ID].Author == nil {
-			continue
-		}
-		key := s.fragmentKey(ctx, messageCacheKey(prepared.Records[i].Reference()))
-		if html, ok := s.fragments.get(key); cacheFragments(ctx) && ok {
-			views[i].Fragment = html
-		} else if cacheFragments(ctx) {
-			views[i].Fragment = s.fragments.put(key, views[i].Fragment)
-		}
-	}
-	return views, nil
-}
-
 func (s *Server) publish(room int64, markup string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

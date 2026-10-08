@@ -32,7 +32,6 @@ func TestMessageQueryDisablesStaleFragmentObservation(t *testing.T) {
 	if warm.Code != 200 || !strings.Contains(warm.Body.String(), `class="message__author" title="query-author-before"`) {
 		t.Fatal("warm query failed", warm.Code)
 	}
-	bytesBefore := app.fragments.bytes
 	// This is the generation observed by HTTP ingress. Change display data before
 	// the scoped query fixes its snapshot, leaving the message timestamp unchanged.
 	version, err := app.DB.ResponseVersion(ctx)
@@ -48,7 +47,17 @@ func TestMessageQueryDisablesStaleFragmentObservation(t *testing.T) {
 	if response.Code != 200 || !strings.Contains(body, `class="message__author" title="query-author-after"`) || strings.Contains(body, `class="message__author" title="query-author-before"`) {
 		t.Fatal("reused stale display observation", response.Code)
 	}
-	if app.fragments.bytes != bytesBefore {
-		t.Fatal("changed observation admitted fragments")
+	scope := app.MessageQueries.Observe(ctx, app.presentationFacts(queryCtx))
+	refs, err := app.DB.MessagePageReferences(ctx, rooms[0].ID, 0, "around")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := app.Fragments.MessageList(scope, refs); ok {
+		t.Fatal("changed observation admitted message list")
+	}
+	for _, ref := range refs {
+		if _, ok := app.Fragments.Message(scope, ref); ok {
+			t.Fatal("changed observation admitted message fragment")
+		}
 	}
 }

@@ -16,7 +16,7 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 	app, _, _, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
-	app.fragments = newFragmentCache(0)
+	setFragmentLimit(app, 0)
 	for _, body := range []string{`<p>Words &amp; <b>markup</b></p>`, `<action-text-attachment sgid="invalid"></action-text-attachment>`, `🎉`} {
 		m, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("", body))
 		if err != nil {

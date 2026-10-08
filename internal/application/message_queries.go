@@ -13,6 +13,7 @@ import (
 type MessageQueries struct {
 	DB           *database.DB
 	Presentation *presentation.Renderer
+	Fragments    *presentation.Fragments
 	Content      *ContentQueries
 }
 

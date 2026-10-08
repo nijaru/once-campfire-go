@@ -37,7 +37,7 @@ const (
 )
 
 type Server struct {
-	fragments       *fragmentCache
+	Fragments       *presentation.Fragments
 	responses       *responseCache
 	Webhooks        *integrations.WebhookClient
 	Jobs            *jobs.Runner
@@ -149,7 +149,7 @@ func New(
 		return nil, fmt.Errorf("invalid CAMPFIRE_RESPONSE_CACHE_MB: %w", err)
 	}
 	s := &Server{
-		fragments:    newFragmentCache(cacheMB << 20),
+		Fragments:    presentation.NewFragments(presenter, cacheMB<<20),
 		responses:    newResponseCache(responseBytes),
 		Cable:        cable.New(db, secrets),
 		DB:           db,
@@ -171,7 +171,7 @@ func New(
 	s.initJobs()
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
-	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries}
+	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
 	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
 	attachments := &application.Attachments{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
@@ -449,13 +449,13 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if name == "search" {
 		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
 	}
-	if (name == "room" || (name == "search" && s.fragments.limit > 0)) && recorded != nil {
+	if (name == "room" || name == "search") && recorded != nil {
 		var parts []responsebody.Part
 		var err error
 		if name == "room" {
-			parts, err = s.roomParts(p, *recorded)
+			parts, err = s.Fragments.RoomParts(layoutInput(p), p.LoadedAt, *recorded)
 		} else {
-			parts, err = s.searchParts(p, *recorded)
+			parts, err = s.Fragments.SearchParts(presentation.SearchInput{LayoutInput: layoutInput(p), Query: p.Query, SearchResultCount: p.SearchResultCount, RecentSearches: p.RecentSearches, ReturnRoom: p.ReturnRoom}, *recorded)
 		}
 		if err != nil {
 			s.fail(w, err)
@@ -469,7 +469,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 		p.MessagesHTML = template.HTML("\x00campfire-" + rand.Text() + "\x00")
 	}
 	if name == "sidebar" {
-		parts, err := s.sidebarParts(p)
+		parts, err := s.Fragments.SidebarParts(layoutInput(p), sidebarInput(p))
 		if err != nil {
 			s.fail(w, err)
 			return
@@ -795,7 +795,7 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 		return
 	}
 	anchor, _ := strconv.ParseInt(strings.TrimPrefix(r.PathValue("anchor"), "@"), 10, 64)
-	messageBody, _, err := s.readMessagePage(r.Context(), u.ID, room.ID, anchor, "around", true)
+	messageBody, _, err := s.MessageQueries.Page(r.Context(), s.messageScope(r.Context()), u.ID, room.ID, anchor, "around", true)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -844,7 +844,7 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request, u database.Use
 		before, _ = strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
 		direction = "after"
 	}
-	messageBody, count, err := s.readMessagePage(r.Context(), u.ID, room.ID, before, direction, false)
+	messageBody, count, err := s.MessageQueries.Page(r.Context(), s.messageScope(r.Context()), u.ID, room.ID, before, direction, false)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -968,7 +968,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		return
 	}
 	p := page{Title: "Search", Query: q, User: u, RecentSearches: recent}
-	part, count, err := s.readSearchMessages(r.Context(), u.ID, q)
+	part, count, err := s.MessageQueries.Search(r.Context(), s.messageScope(r.Context()), u.ID, q)
 	if err != nil {
 		s.fail(w, err)
 		return

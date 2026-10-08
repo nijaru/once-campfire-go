@@ -36,7 +36,7 @@ func TestCapturedMessageCannotPopulateNewObservation(t *testing.T) {
 	if _, err := capturedMessagePart(ctx, app, []database.Message{captured.Message}); err != nil {
 		t.Fatal(err)
 	}
-	part, count, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
+	part, count, err := app.MessageQueries.Page(ctx, app.messageScope(ctx), user.ID, rooms[0].ID, 0, "around", false)
 	if err != nil || count != 1 {
 		t.Fatal("current scoped query failed", count, err)
 	}

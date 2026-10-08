@@ -36,7 +36,7 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	messageBody, _, err := app.readMessagePage(ctx, user.ID, roomID, 0, "around", true)
+	messageBody, _, err := app.MessageQueries.Page(ctx, app.messageScope(ctx), user.ID, roomID, 0, "around", true)
 	if err != nil {
 		t.Fatal(err)
 	}

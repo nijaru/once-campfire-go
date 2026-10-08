@@ -76,7 +76,7 @@ func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 		}
 		records = append(records, m.Message)
 	}
-	app.fragments = newFragmentCache(0)
+	setFragmentLimit(app, 0)
 	var want []template.HTML
 	for _, record := range records {
 		views, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), []database.Message{record})
@@ -86,23 +86,19 @@ func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 		want = append(want, views[0].Fragment)
 	}
 	for _, limit := range []int{0, 32 << 20} {
-		app.fragments = newFragmentCache(limit)
+		setFragmentLimit(app, limit)
 		// Nonadjacent fragment hits must not shift the positions of scoped misses.
-		warmCtx := app.messageQueryContext(ctx)
-		read, err := app.DB.BeginMessageRead(warmCtx)
-		if err != nil {
-			t.Fatal(err)
+		for _, warm := range []struct {
+			anchor    int64
+			direction string
+		}{
+			{records[1].ID, "before"}, // first fragment
+			{records[1].ID, "after"},  // nonadjacent third (and fourth) fragments
+		} {
+			if _, _, err := app.MessageQueries.Page(ctx, app.messageScope(ctx), user.ID, rooms[0].ID, warm.anchor, warm.direction, false); err != nil {
+				t.Fatal(err)
+			}
 		}
-		refs, err := read.PageReferences(warmCtx, user.ID, rooms[0].ID, 0, "around")
-		if err != nil {
-			read.Close()
-			t.Fatal(err)
-		}
-		if _, err := app.readMessageList(warmCtx, read, []database.MessageReference{refs[0], refs[2]}); err != nil {
-			read.Close()
-			t.Fatal(err)
-		}
-		read.Close()
 		got, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), records)
 		if err != nil || len(got) != len(want) {
 			t.Fatal("batch size/error differs", err)
@@ -112,7 +108,7 @@ func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 				t.Fatalf("limit=%d: message %d bytes/order differ", limit, i)
 			}
 		}
-		part, count, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
+		part, count, err := app.MessageQueries.Page(ctx, app.messageScope(ctx), user.ID, rooms[0].ID, 0, "around", false)
 		var body bytes.Buffer
 		if err != nil || count != len(want) {
 			t.Fatal("scoped batch size/error differs", count, err)
@@ -129,69 +125,6 @@ func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 		}
 	}
 
-}
-
-func TestMessageListOwnershipAndAdmission(t *testing.T) {
-	app, _, _, user := testApp(t)
-	ctx := context.Background()
-	rooms, err := app.DB.Rooms(ctx, user.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	message, err := app.DB.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("ownership", "<p>owned bytes</p>"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	messages := []database.Message{message.Message}
-	original, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := func(part responsebody.Part) string {
-		t.Helper()
-		var b bytes.Buffer
-		if _, err := part.WriteTo(&b); err != nil {
-			t.Fatal(err)
-		}
-		return b.String()
-	}
-	want := body(original)
-	key := app.fragmentKey(app.messageQueryContext(ctx), messageListCacheKey(messageReferences(messages)))
-	cost := len(key) + len(want) + 240
-	for _, test := range []struct {
-		name     string
-		limit    int
-		retained bool
-	}{
-		{"disabled", 0, false},
-		{"oversized", (cost - 1) * 4, false},
-		{"admitted", cost * 4, true},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			app.fragments = newFragmentCache(test.limit)
-			part, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
-			if err != nil || body(part) != want || part.Digest() != original.Digest() {
-				t.Fatal("cache admission changed response", err)
-			}
-			entry, retained := app.fragments.entry(key)
-			if retained != test.retained {
-				t.Fatalf("retained=%v, want %v", retained, test.retained)
-			}
-			if retained && (entry.html != "" || entry.bytes != cost || body(entry.part) != want) {
-				t.Fatal("list payload must be retained and charged once")
-			}
-			// Eviction releases the cache's reference, not an outstanding response.
-			for i := 0; i < 40; i++ {
-				app.fragments.putEntry(fragmentEntry{key: fmt.Sprint(i), part: responsebody.NewPart([]byte(want))})
-			}
-			if _, retained := app.fragments.entry(key); retained || app.fragments.bytes > test.limit {
-				t.Fatal("eviction/admission bound was not enforced")
-			}
-			if body(part) != want || body(original) != want {
-				t.Fatal("eviction changed outstanding response bytes")
-			}
-		})
-	}
 }
 
 func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {

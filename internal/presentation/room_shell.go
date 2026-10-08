@@ -1,6 +1,7 @@
-package web
+package presentation
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
@@ -13,22 +14,20 @@ import (
 
 // Authorization and page data are read afresh. Only static surrounding bytes
 // are retained; cursor and message parts are inserted independently per request.
-func (s *Server) roomParts(p page, messages responsebody.Part) ([]responsebody.Part, error) {
-	loadedAt := p.LoadedAt
+func (f *Fragments) RoomParts(p LayoutInput, loadedAt string, messages responsebody.Part) ([]responsebody.Part, error) {
 	input := shellPage(p)
 	raw, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
 	key := fmt.Sprintf("room-shell/%x", sha256.Sum256(raw))
-	entry, ok := s.fragments.entry(key)
+	entry, ok := f.cache.entry(key)
 	if !ok {
 		messageMarker := "\x00campfire-" + rand.Text() + "\x00"
 		loadedMarker := "campfire-loaded-" + rand.Text()
 		input.MessagesHTML, input.LoadedAt = template.HTML(messageMarker), loadedMarker
-		b := borrowBuffer()
-		defer releaseBuffer(b)
-		if err := s.Presentation.ExecuteTemplate(b, "room", input); err != nil {
+		b := new(bytes.Buffer)
+		if err := f.renderer.ExecuteTemplate(b, "room", input); err != nil {
 			return nil, err
 		}
 		rendered := b.String()
@@ -50,7 +49,7 @@ func (s *Server) roomParts(p page, messages responsebody.Part) ([]responsebody.P
 			},
 			bytes: len(beforeTime) + len(beforeMessages) + len(afterMessages),
 		}
-		entry = s.fragments.putEntry(fragmentEntry{key: key, shell: shell})
+		entry = f.cache.putEntry(fragmentEntry{key: key, shell: shell})
 	}
 	shell := entry.shell
 	return []responsebody.Part{shell.parts[0], responsebody.NewPart([]byte(loadedAt)), shell.parts[1], messages, shell.parts[2]}, nil

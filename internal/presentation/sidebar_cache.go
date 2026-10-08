@@ -1,6 +1,7 @@
-package web
+package presentation
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
@@ -20,32 +21,31 @@ type sidebarShellPage struct {
 // Memberships and layout observations are read afresh before selecting parts.
 // Frame and surrounding bytes have independent identities: a profile, flash or
 // account change replaces the layout without rendering an unchanged frame again.
-func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
+func (f *Fragments) SidebarParts(layout LayoutInput, p SidebarInput) ([]responsebody.Part, error) {
 	frameKey := sidebarCacheKey(p)
-	frame, ok := s.fragments.entry(frameKey)
+	frame, ok := f.cache.entry(frameKey)
 	if !ok {
-		html, err := s.Presentation.Markup("sidebar-frame", p)
+		html, err := f.renderer.Markup("sidebar-frame", p)
 		if err != nil {
 			return nil, err
 		}
-		frame = s.fragments.putEntry(fragmentEntry{
+		frame = f.cache.putEntry(fragmentEntry{
 			key: frameKey, part: responsebody.NewPart([]byte(html)),
 		})
 	}
 
-	input := sidebarShellPage{layoutShellPage: shellPage(p)}
+	input := sidebarShellPage{layoutShellPage: shellPage(layout)}
 	raw, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
 	key := fmt.Sprintf("sidebar-shell/%x", sha256.Sum256(raw))
-	entry, ok := s.fragments.entry(key)
+	entry, ok := f.cache.entry(key)
 	if !ok {
 		marker := "\x00campfire-" + rand.Text() + "\x00"
 		input.SidebarHTML = template.HTML(marker)
-		b := borrowBuffer()
-		defer releaseBuffer(b)
-		if err := s.Presentation.ExecuteTemplate(b, "sidebar", input); err != nil {
+		b := new(bytes.Buffer)
+		if err := f.renderer.ExecuteTemplate(b, "sidebar", input); err != nil {
 			return nil, err
 		}
 		rendered := b.String()
@@ -53,7 +53,7 @@ func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
 		if !found || strings.Count(rendered, marker) != 1 {
 			return nil, fmt.Errorf("sidebar template must contain one frame insertion point")
 		}
-		entry = s.fragments.putEntry(fragmentEntry{key: key, shell: &templateShell{
+		entry = f.cache.putEntry(fragmentEntry{key: key, shell: &templateShell{
 			parts: []responsebody.Part{
 				responsebody.NewPart([]byte(before)), responsebody.NewPart([]byte(after)),
 			},
@@ -65,12 +65,12 @@ func (s *Server) sidebarParts(p page) ([]responsebody.Part, error) {
 
 // Key every value the sidebar frame reads. Authorization and membership data
 // are still read afresh before looking up the rendered fragment.
-func sidebarCacheKey(p page) string {
+func sidebarCacheKey(p SidebarInput) string {
 	var key strings.Builder
 	user := func(u database.RoomParticipant) {
 		fmt.Fprintf(&key, "u%d/%d/%d:%s/", u.ID, u.UpdatedAt.UnixMicro(), len(u.Name), u.Name)
 	}
-	user(p.User.Participant())
+	user(p.User)
 	fmt.Fprintf(&key, "%t/%s/%s/", p.CanCreateRooms, p.RoomsStream, p.UserRoomsStream)
 	for _, room := range p.SidebarRooms {
 		fmt.Fprintf(
@@ -94,4 +94,12 @@ func sidebarCacheKey(p page) string {
 		user(member)
 	}
 	return fmt.Sprintf("sidebar/%x", sha256.Sum256([]byte(key.String())))
+}
+
+type SidebarInput struct {
+	User                         database.RoomParticipant
+	SidebarRooms                 []RoomView
+	Placeholders                 []database.RoomParticipant
+	RoomsStream, UserRoomsStream string
+	CanCreateRooms               bool
 }

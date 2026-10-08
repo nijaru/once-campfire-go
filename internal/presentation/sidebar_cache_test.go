@@ -1,4 +1,4 @@
-package web
+package presentation
 
 import (
 	"bytes"
@@ -7,45 +7,47 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
-	"github.com/basecamp/once-campfire-go/internal/presentation"
 )
 
 func TestSidebarPartsMatchTemplates(t *testing.T) {
-	app, _, _, user := testApp(t)
-	original := page{
+	app, user := shellTestFragments(t)
+	original := shellFixture{
 		User: user, Screen: "sidebar", CanCreateRooms: true,
 		RoomsStream: "rooms", UserRoomsStream: "user", VAPIDPublicKey: "push-key",
 		Account: database.Account{ID: 1, UpdatedAt: time.Unix(1700000000, 0)},
-		SidebarRooms: []presentation.RoomView{
+		SidebarRooms: []RoomView{
 			{Room: database.Room{ID: 1, Name: "Chat", Type: "Rooms::Open"}},
 		},
 	}
 	changes := []struct {
 		name   string
-		change func(*page)
+		change func(*shellFixture)
 	}{
-		{"unchanged", func(*page) {}},
+		{"unchanged", func(*shellFixture) {}},
 		{
 			"profile and escaping",
-			func(p *page) { p.User.Name = `<name "quoted">`; p.User.Role = 0 },
+			func(p *shellFixture) { p.User.Name = `<name "quoted">`; p.User.Role = 0 },
 		},
 		{
 			"account logo",
-			func(p *page) { p.Account.HasLogo = true; p.Account.UpdatedAt = p.Account.UpdatedAt.Add(time.Second) },
+			func(p *shellFixture) {
+				p.Account.HasLogo = true
+				p.Account.UpdatedAt = p.Account.UpdatedAt.Add(time.Second)
+			},
 		},
 		{
 			"custom styles",
-			func(p *page) { p.CustomStyles = template.HTML("<style>body{color:red}</style>") },
+			func(p *shellFixture) { p.CustomStyles = template.HTML("<style>body{color:red}</style>") },
 		},
-		{"flash", func(p *page) { p.Notice = "Saved <changes>" }},
+		{"flash", func(p *shellFixture) { p.Notice = "Saved <changes>" }},
 		{
 			"permission and streams",
-			func(p *page) { p.CanCreateRooms = false; p.UserRoomsStream = "fresh" },
+			func(p *shellFixture) { p.CanCreateRooms = false; p.UserRoomsStream = "fresh" },
 		},
 	}
 	for _, enabled := range []bool{true, false} {
 		if !enabled {
-			app.fragments = newFragmentCache(0)
+			app.cache = newFragmentCache(0)
 		}
 		for _, frame := range []bool{false, true} {
 			for _, change := range changes {
@@ -53,20 +55,20 @@ func TestSidebarPartsMatchTemplates(t *testing.T) {
 					p := original
 					p.Frame = frame
 					change.change(&p)
-					fragment, err := app.Presentation.Markup("sidebar-frame", p)
+					fragment, err := app.renderer.Markup("sidebar-frame", p)
 					if err != nil {
 						t.Fatal(err)
 					}
 					input := struct {
-						page
+						shellFixture
 						SidebarHTML template.HTML
 					}{p, template.HTML(fragment)}
 					var want bytes.Buffer
-					if err := app.Presentation.ExecuteTemplate(&want, "sidebar", input); err != nil {
+					if err := app.renderer.ExecuteTemplate(&want, "sidebar", input); err != nil {
 						t.Fatal(err)
 					}
 					for range 2 {
-						parts, err := app.sidebarParts(p)
+						parts, err := app.SidebarParts(p.layout(), p.sidebar())
 						if err != nil {
 							t.Fatal(err)
 						}
@@ -91,11 +93,11 @@ func TestSidebarPartsMatchTemplates(t *testing.T) {
 }
 
 func TestSidebarCacheTracksRenderedChanges(t *testing.T) {
-	app, _, _, user := testApp(t)
-	makePage := func() page {
-		return page{
+	app, user := shellTestFragments(t)
+	makePage := func() shellFixture {
+		return shellFixture{
 			User: user, CanCreateRooms: true, RoomsStream: "rooms", UserRoomsStream: "user",
-			SidebarRooms: []presentation.RoomView{
+			SidebarRooms: []RoomView{
 				{Room: database.Room{ID: 1, Name: "Chat", Type: "Rooms::Open"}},
 				{
 					Room:    database.Room{ID: 2, Type: "Rooms::Direct"},
@@ -105,25 +107,25 @@ func TestSidebarCacheTracksRenderedChanges(t *testing.T) {
 			Placeholders: []database.RoomParticipant{{ID: 3, Name: "Third Person"}},
 		}
 	}
-	render := func(p page) string {
+	render := func(p shellFixture) string {
 		var b bytes.Buffer
-		if err := app.Presentation.ExecuteTemplate(&b, "sidebar-frame", p); err != nil {
+		if err := app.renderer.ExecuteTemplate(&b, "sidebar-frame", p); err != nil {
 			t.Fatal(err)
 		}
 		return b.String()
 	}
 	original := makePage()
-	body, key := render(original), sidebarCacheKey(original)
-	changes := map[string]func(*page){
-		"unread":             func(p *page) { p.SidebarRooms[0].Unread = true },
-		"rename":             func(p *page) { p.SidebarRooms[0].Name = "Renamed" },
-		"membership removed": func(p *page) { p.SidebarRooms = p.SidebarRooms[1:] },
-		"room permission":    func(p *page) { p.CanCreateRooms = false },
-		"member name":        func(p *page) { p.SidebarRooms[1].Members[0].Name = "Changed Person" },
-		"member avatar":      func(p *page) { p.SidebarRooms[1].Members[0].UpdatedAt = time.Now() },
-		"own avatar":         func(p *page) { p.User.UpdatedAt = p.User.UpdatedAt.Add(time.Second) },
-		"placeholder":        func(p *page) { p.Placeholders[0].Name = "Different Person" },
-		"stream":             func(p *page) { p.UserRoomsStream = "different" },
+	body, key := render(original), sidebarCacheKey(original.sidebar())
+	changes := map[string]func(*shellFixture){
+		"unread":             func(p *shellFixture) { p.SidebarRooms[0].Unread = true },
+		"rename":             func(p *shellFixture) { p.SidebarRooms[0].Name = "Renamed" },
+		"membership removed": func(p *shellFixture) { p.SidebarRooms = p.SidebarRooms[1:] },
+		"room permission":    func(p *shellFixture) { p.CanCreateRooms = false },
+		"member name":        func(p *shellFixture) { p.SidebarRooms[1].Members[0].Name = "Changed Person" },
+		"member avatar":      func(p *shellFixture) { p.SidebarRooms[1].Members[0].UpdatedAt = time.Now() },
+		"own avatar":         func(p *shellFixture) { p.User.UpdatedAt = p.User.UpdatedAt.Add(time.Second) },
+		"placeholder":        func(p *shellFixture) { p.Placeholders[0].Name = "Different Person" },
+		"stream":             func(p *shellFixture) { p.UserRoomsStream = "different" },
 	}
 	for name, change := range changes {
 		t.Run(name, func(t *testing.T) {
@@ -132,7 +134,7 @@ func TestSidebarCacheTracksRenderedChanges(t *testing.T) {
 			if render(p) == body {
 				t.Fatal("test must change rendered HTML")
 			}
-			if sidebarCacheKey(p) == key {
+			if sidebarCacheKey(p.sidebar()) == key {
 				t.Fatal("changed HTML reused cache key")
 			}
 		})

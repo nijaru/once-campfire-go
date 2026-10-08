@@ -1,26 +1,12 @@
 package web
 
 import (
-	"context"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
 
-	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
-
-// The marker exists only during template execution. The actual response inserts
-// the cached message list without copying it through template/fmt/page buffers.
-
-func (s *Server) recordMessageList(ctx context.Context, key string, fragments []template.HTML) responsebody.Part {
-	entry := fragmentEntry{key: key, part: presentation.FragmentList(fragments)}
-	if cacheFragments(ctx) {
-		entry = s.fragments.putEntry(entry)
-	}
-	return entry.part
-}
 
 func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, part responsebody.Part) {
 	before, after, found := strings.Cut(rendered, marker)

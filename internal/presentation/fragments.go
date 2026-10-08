@@ -1,8 +1,7 @@
-package web
+package presentation
 
 import (
 	"container/list"
-	"context"
 	"encoding/binary"
 	"html/template"
 	"strconv"
@@ -111,29 +110,67 @@ func messageListCacheKey(messages []database.MessageReference) string {
 	return key.String()
 }
 
-// Only a scoped query can establish the observation owning persisted records.
-// A receipt or separately captured full record has no such cache provenance.
-func (s *Server) fragmentKey(ctx context.Context, key string) string {
-	observation, _ := ctx.Value(fragmentObservationKey{}).(fragmentObservation)
-	var host, origin string
-	if info := requestMetadata(ctx); info != nil {
-		host, origin = info.host, info.origin
-	}
-	if observation.generation == 0 {
+// MessageScope is supplied by a scoped query observation, never by a receipt.
+// A zero generation disables persisted-fragment reuse and admission.
+type MessageScope struct {
+	Generation uint64
+	Facts      Facts
+}
+
+func (s MessageScope) key(key string) string {
+	if s.Generation == 0 {
 		return ""
 	}
-	return strconv.FormatUint(observation.generation, 10) + "/" + strconv.Quote(host) + "/" + strconv.Quote(origin) + "/" + key
+	return strconv.FormatUint(s.Generation, 10) + "/" + strconv.Quote(s.Facts.Host) + "/" + strconv.Quote(s.Facts.Origin) + "/" + key
 }
 
-func cacheFragments(ctx context.Context) bool {
-	observation, _ := ctx.Value(fragmentObservationKey{}).(fragmentObservation)
-	return observation.generation != 0
+// Fragments owns the single budget shared by message fragments, lists and shells.
+// It consumes owned display data and has no persistence or request dependency.
+type Fragments struct {
+	renderer *Renderer
+	cache    *fragmentCache
 }
 
-func messageReferences(records []database.Message) []database.MessageReference {
-	refs := make([]database.MessageReference, len(records))
-	for i, record := range records {
-		refs[i] = record.Reference()
+func NewFragments(renderer *Renderer, limit int) *Fragments {
+	return &Fragments{renderer: renderer, cache: newFragmentCache(limit)}
+}
+func (f *Fragments) MessageList(scope MessageScope, refs []database.MessageReference) (responsebody.Part, bool) {
+	if scope.Generation == 0 {
+		return responsebody.Part{}, false
 	}
-	return refs
+	entry, ok := f.cache.entry(scope.key(messageListCacheKey(refs)))
+	return entry.part, ok
+}
+func (f *Fragments) Message(scope MessageScope, ref database.MessageReference) (template.HTML, bool) {
+	if scope.Generation == 0 {
+		return "", false
+	}
+	return f.cache.get(scope.key(messageCacheKey(ref)))
+}
+func (f *Fragments) Messages(scope MessageScope, prepared PreparedMessages, data map[int64]database.MessageDisplay, users map[int64]database.UserDisplay) ([]MessageView, error) {
+	views, err := f.renderer.Messages(scope.Facts, prepared, data, users)
+	if err != nil {
+		return nil, err
+	}
+	if scope.Generation != 0 {
+		for i := range views {
+			if data[views[i].ID].Author == nil {
+				continue
+			}
+			ref := prepared.Records[i].Reference()
+			if html, ok := f.Message(scope, ref); ok {
+				views[i].Fragment = html
+			} else {
+				views[i].Fragment = f.cache.put(scope.key(messageCacheKey(ref)), views[i].Fragment)
+			}
+		}
+	}
+	return views, nil
+}
+func (f *Fragments) RecordMessages(scope MessageScope, refs []database.MessageReference, fragments []template.HTML) responsebody.Part {
+	entry := fragmentEntry{key: scope.key(messageListCacheKey(refs)), part: FragmentList(fragments)}
+	if scope.Generation != 0 {
+		entry = f.cache.putEntry(entry)
+	}
+	return entry.part
 }
