@@ -49,6 +49,7 @@ type Server struct {
 	ContentQueries      *application.ContentQueries
 	PageQueries         *application.PageQueries
 	NotificationQueries *application.NotificationQueries
+	Searches            *application.Searches
 	RoomCommands        *application.Rooms
 	AccountCommands     *application.Accounts
 	SessionCommands     *application.Sessions
@@ -172,6 +173,7 @@ func New(
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
 	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}
+	s.Searches = &application.Searches{DB: db, Messages: s.MessageQueries}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
 	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
 	attachments := &application.Attachments{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
@@ -930,9 +932,9 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u database.User
 }
 
 func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User) {
-	q := database.SearchQuery(r.FormValue("q"))
 	if r.Method == "POST" {
-		if err := s.DB.RecordSearch(r.Context(), u.ID, q); err != nil {
+		q, err := s.Searches.Remember(r.Context(), u.ID, r.FormValue("q"))
+		if err != nil {
 			s.fail(w, err)
 			return
 		}
@@ -940,7 +942,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		return
 	}
 	if r.Method == "DELETE" {
-		if _, err := s.DB.Write.ExecContext(r.Context(), "DELETE FROM searches WHERE user_id=?", u.ID); err != nil {
+		if err := s.Searches.Clear(r.Context(), u.ID); err != nil {
 			s.fail(w, err)
 			return
 		}
@@ -951,20 +953,14 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		hit.serve(w)
 		return
 	}
-	recent, err := s.DB.RecentSearches(r.Context(), u.ID)
+	data, err := s.Searches.Page(r.Context(), s.messageScope(r.Context()), u.ID, r.FormValue("q"))
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	p := page{Title: "Search", Query: q, User: u, RecentSearches: recent}
-	part, count, err := s.MessageQueries.Search(r.Context(), s.messageScope(r.Context()), u.ID, q)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	p.SearchResultCount = count
-	if count > 0 {
-		p.messageBody = &part
+	p := page{Title: "Search", Query: data.Query, User: u, RecentSearches: data.Recent, SearchResultCount: data.Count}
+	if data.Count > 0 {
+		p.messageBody = &data.Messages
 	}
 	s.respondPage(w, r, "search", 200, p)
 }

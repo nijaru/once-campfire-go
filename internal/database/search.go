@@ -99,6 +99,11 @@ func (d *DB) RecordSearch(ctx context.Context, user int64, query string) error {
 	})
 }
 
+func (d *DB) ClearSearches(ctx context.Context, user int64) error {
+	_, err := d.Write.ExecContext(ctx, "DELETE FROM searches WHERE user_id=?", user)
+	return err
+}
+
 func (d *DB) RecentSearches(ctx context.Context, user int64) ([]string, error) {
 	rows, err := d.Read.QueryContext(
 		ctx,
