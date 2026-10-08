@@ -86,13 +86,20 @@ message/FTS state, not byte-identical HTML or internal implementation details. R
 binary, tool and seed-snapshot hashes; failures remain visible and produce a nonzero exit status.
 The [upstream integration record](bench/results/upstream-integration-20261007/README.md) covers
 cache corrections and focused sidebar verification; it also records the unresolved full-browser
-smoke failures. This is not complete browser acceptance.
-It does not cover malformed Rack parameter compatibility, multipart metadata, JavaScript, live
-Cable delivery or crash durability.
+smoke failures in the earlier local harness. The current browser command uses the shared flow
+rather than maintaining a divergent copy. The [read-path record](bench/results/read-path-20261008/README.md)
+documents current checks and a shared-flow synchronization defect. A local patch is available
+for review; it has not been submitted. Shared flows are functional checks, not complete parity.
+The paired HTTP tool does not cover malformed Rack parameter compatibility, multipart metadata,
+JavaScript, live Cable delivery or crash durability.
 
-The browser smoke accepts `GO_BINARY`, `PLAYWRIGHT_ROOT` and `CHROMIUM_EXECUTABLE` overrides;
-otherwise it uses the local `campfire` binary and the Rust checkout's installed Playwright.
-The browser/upgrade tools use the Rust checkout's parity seed and installed Playwright. Screen
+The browser command starts a fresh disposable Go instance and runs the
+[shared Campfire browser flow](https://github.com/basecamp/once-campfire-verification), the same
+flow used for Rails, Elixir and Rust. Clone that harness alongside this repository, run `npm ci`
+and `npx playwright install chromium` there, then run `node bin/check-browser.mjs` here.
+`VERIFICATION_ROOT` selects another harness checkout; `GO_BINARY` selects another Go binary.
+Use `--turbo-cancellation` only for the focused regression when changing the port's Turbo override.
+The upgrade and screen tools use the Rust checkout's parity seed and installed Playwright. Screen
 comparison runs both binaries on disposable copies of each seed, recording their hashes and keeping
 the original parity masks. Reports distinguish screenshots, accessibility, server/live DOM, network
 responses and Cable traffic. There are no Go-specific allowlists hiding failures.
@@ -101,8 +108,8 @@ Package tests use temporary databases and do not silently skip integration tests
 They include Rails signing/encryption and serialization vectors, 658 rich-text cases, 385 user-agent
 cases, QR codes, route recognition, storage/ranges, transactions, access control, Cable, jobs,
 90 Open Graph cases, 19 webhook cases and Web Push encryption/local delivery. Media metadata tests
-run locally. Exact media output is a required acceptance check, selected with the `media_vectors`
-build tag. The checked-in video goldens require AMD64 FFmpeg 7.1.5; ARM64 FFmpeg with the same
+run locally. Changes to media processing also use the reference output checks, selected with the
+`media_vectors` build tag. The checked-in video goldens require AMD64 FFmpeg 7.1.5; ARM64 FFmpeg with the same
 version produces different JPEG bytes. Architecture is part of the toolchain identity:
 
 ```sh
@@ -146,8 +153,12 @@ KLOC counts backend code plus executable code in templates; excludes plain HTML,
 See [`bench/`](bench/) for tooling. The [initial Go/Rust baseline](bench/results/current-baseline-20261007/README.md)
 and [sidebar hydration comparison](bench/results/sidebar-hydration-20261007/README.md) use identical
 fixtures and full-response/write validation on an ARM64 Linux VM. The [reference scan comparison](bench/results/scan-record-20261007/README.md)
-reduces allocations and improves measured room throughput. Rust still leads read capacity; write
-results vary across repetitions. Their machine and methodology differ from the historical table above.
+reduces allocations and improves measured room throughput. The
+[cache-hit setup comparison](bench/results/read-path-20261008/README.md) removes repeated route
+recognition and SQLite statement preparation, improving read medians by 5.5–9.4%; writes do not
+improve. It also records a rejected query-fusion experiment rather than hiding its regressions.
+Earlier comparisons still favor Rust on reads. These local measurements differ from the upstream
+table in machine, revisions and methodology.
 
 ## Known differences
 
