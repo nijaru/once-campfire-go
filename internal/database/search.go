@@ -17,35 +17,22 @@ func SearchQuery(query string) string {
 	}, query)
 }
 
-// SearchReferences returns reachable message IDs, room IDs and versions, with
-// the latest 100 results in chronological order. Renderers hydrate cache misses.
-func (d *DB) SearchReferences(ctx context.Context, user int64, query string) ([]Message, error) {
-	terms := searchTerms(query)
-	if terms == "" {
-		return []Message{}, nil
-	}
-	rows, err := d.Read.QueryContext(
-		ctx,
-		"SELECT m.id,m.room_id,m.updated_at FROM messages m JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100",
-		user,
-		terms,
-	)
+// SearchReferences returns scoped identities. Use MessageRead when preparing
+// misses so result membership and matching bodies remain one observation.
+func (d *DB) SearchReferences(ctx context.Context, user int64, query string) ([]MessageReference, error) {
+	read, err := d.BeginMessageRead(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	messages := []Message{}
-	var m Message
-	for rows.Next() {
-		if err := rows.Scan(&m.ID, &m.RoomID, timestamp{&m.UpdatedAt}); err != nil {
-			return nil, err
-		}
-		messages = append(messages, m)
+	defer read.Close()
+	refs, err := read.SearchReferences(ctx, user, query)
+	if err != nil {
+		return nil, err
 	}
-	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-		messages[i], messages[j] = messages[j], messages[i]
+	if err = read.Finish(); err != nil {
+		return nil, err
 	}
-	return messages, rows.Err()
+	return refs, nil
 }
 
 // Search reads matching bodies in the same statement as result membership.

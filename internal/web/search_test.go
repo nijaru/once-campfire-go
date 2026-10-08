@@ -24,11 +24,7 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	refs, err := app.DB.SearchReferences(ctx, user.ID, "snapshotneedle")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// A real commit between reference selection and resolving the message body.
+	// An edit changes both matching selection and the body returned on a miss.
 	if _, err := app.DB.UpdateMessage(ctx, user.ID, first.ID, messageInput("", "<p>differentword</p>")); err != nil {
 		t.Fatal(err)
 	}
@@ -43,15 +39,11 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	var retained responsebody.Part
 	for _, limit := range []int{0, 1, 32 << 20} {
 		app.fragments = newFragmentCache(limit)
-		part, count, err := app.searchMessageList(ctx, user.ID, "snapshotneedle", refs)
+		part, count, err := app.readSearchMessages(ctx, user.ID, "snapshotneedle")
 		if err != nil || count != 1 || bytes.Contains(body(part), []byte(fmt.Sprintf(`data-message-id="%d"`, first.ID))) || !bytes.Contains(body(part), []byte(fmt.Sprintf(`data-message-id="%d"`, second.ID))) {
 			t.Fatalf("cache limit %d: stale selection/body, count %d / %v", limit, count, err)
 		}
-		fresh, err := app.DB.SearchReferences(ctx, user.ID, "snapshotneedle")
-		if err != nil {
-			t.Fatal(err)
-		}
-		retained, count, err = app.searchMessageList(ctx, user.ID, "snapshotneedle", fresh)
+		retained, count, err = app.readSearchMessages(ctx, user.ID, "snapshotneedle")
 		if err != nil || count != 1 || !bytes.Equal(body(part), body(retained)) {
 			t.Fatal("hit changed the selected body", err)
 		}
@@ -68,7 +60,7 @@ func TestSearchMissRetainsQueryBodySnapshot(t *testing.T) {
 	if w.Code != 200 || !bytes.Contains(w.Body.Bytes(), body(retained)) {
 		t.Fatal("captured search body was lost after eviction/edit")
 	}
-	part, count, err := app.searchMessageList(ctx, user.ID, "snapshotneedle", refs)
+	part, count, err := app.readSearchMessages(ctx, user.ID, "snapshotneedle")
 	if err != nil || count != 0 || part.Len() != 0 {
 		t.Fatal("miss did not observe committed deletion", count, err)
 	}

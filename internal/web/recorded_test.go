@@ -72,30 +72,38 @@ func TestMessageItemsBatchMissesKeepOrderAndBytes(t *testing.T) {
 		}
 		want = append(want, views[0].Fragment)
 	}
-	for _, references := range []bool{false, true} {
-		input := append([]database.Message(nil), records...)
-		if references {
-			for i, m := range input {
-				input[i] = database.Message{ID: m.ID, RoomID: m.RoomID, UpdatedAt: m.UpdatedAt}
+	for _, limit := range []int{0, 32 << 20} {
+		app.fragments = newFragmentCache(limit)
+		// Nonadjacent fragment hits must not shift the positions of scoped misses.
+		if _, err := app.messageViews(ctx, []database.Message{records[0], records[2]}); err != nil {
+			t.Fatal(err)
+		}
+		got, err := app.messageItems(ctx, records)
+		if err != nil || len(got) != len(want) {
+			t.Fatal("batch size/error differs", err)
+		}
+		for i := range want {
+			if got[i].Fragment != want[i] {
+				t.Fatalf("limit=%d: message %d bytes/order differ", limit, i)
 			}
 		}
-		for _, limit := range []int{0, 32 << 20} {
-			app.fragments = newFragmentCache(limit)
-			// Nonadjacent hits must not shift the positions of batched misses.
-			if _, err := app.messageViews(ctx, []database.Message{records[0], records[2]}); err != nil {
-				t.Fatal(err)
-			}
-			got, err := app.messageItems(ctx, input)
-			if err != nil || len(got) != len(want) {
-				t.Fatal("batch size/error differs", err)
-			}
-			for i := range want {
-				if got[i].Fragment != want[i] {
-					t.Fatalf("references=%v, limit=%d: message %d bytes/order differ", references, limit, i)
-				}
-			}
+		part, count, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
+		var body bytes.Buffer
+		if err != nil || count != len(want) {
+			t.Fatal("scoped batch size/error differs", count, err)
+		}
+		if _, err := part.WriteTo(&body); err != nil {
+			t.Fatal(err)
+		}
+		var expected strings.Builder
+		for _, fragment := range want {
+			expected.WriteString(string(fragment))
+		}
+		if body.String() != expected.String() {
+			t.Fatalf("limit=%d: scoped batch changed bytes/order", limit)
 		}
 	}
+
 }
 
 func TestMessageListOwnershipAndAdmission(t *testing.T) {
@@ -123,7 +131,7 @@ func TestMessageListOwnershipAndAdmission(t *testing.T) {
 		return b.String()
 	}
 	want := body(original)
-	key := app.fragmentKey(context.Background(), messageListCacheKey(messages))
+	key := app.fragmentKey(context.Background(), messageListCacheKey(messageReferences(messages)))
 	cost := len(key) + len(want) + 240
 	for _, test := range []struct {
 		name     string

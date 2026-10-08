@@ -833,10 +833,7 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 		return
 	}
 	anchor, _ := strconv.ParseInt(strings.TrimPrefix(r.PathValue("anchor"), "@"), 10, 64)
-	messages, err := s.DB.MessagePageReferences(r.Context(), room.ID, anchor, "around")
-	if errors.Is(err, sql.ErrNoRows) {
-		messages, err = s.DB.MessagePageReferences(r.Context(), room.ID, 0, "around")
-	}
+	messageBody, _, err := s.readMessagePage(r.Context(), u.ID, room.ID, anchor, "around", true)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -859,12 +856,12 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 		"room",
 		200,
 		page{
-			Invitation:     invitation,
-			Stream:         s.Secrets.SignStream(rails.RoomStream(room.Type, room.ID)),
-			Title:          room.Name,
-			User:           u,
-			Room:           room,
-			messageRecords: messages,
+			Invitation:  invitation,
+			Stream:      s.Secrets.SignStream(rails.RoomStream(room.Type, room.ID)),
+			Title:       room.Name,
+			User:        u,
+			Room:        room,
+			messageBody: &messageBody,
 		},
 	)
 }
@@ -885,18 +882,18 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request, u database.Use
 		before, _ = strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
 		direction = "after"
 	}
-	messages, err := s.DB.MessagePageReferences(r.Context(), room.ID, before, direction)
+	messageBody, count, err := s.readMessagePage(r.Context(), u.ID, room.ID, before, direction, false)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	if len(messages) == 0 {
+	if count == 0 {
 		w.WriteHeader(204)
 		return
 	}
 	// The rendered representation, including related users and boosts, defines
 	// freshness. Timestamps alone miss external edits and association changes.
-	s.render(w, r, "messages", 200, page{messageRecords: messages})
+	s.render(w, r, "messages", 200, page{messageBody: &messageBody})
 }
 
 func (s *Server) createMessage(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -1009,24 +1006,14 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 		return
 	}
 	p := page{Title: "Search", Query: q, User: u, RecentSearches: recent}
-	if s.fragments.limit <= 0 {
-		// With no retention, a reference lookup cannot avoid the full query.
-		p.messageRecords, err = s.DB.Search(r.Context(), u.ID, q)
-		p.SearchResultCount = len(p.messageRecords)
-	} else {
-		var refs []database.Message
-		refs, err = s.DB.SearchReferences(r.Context(), u.ID, q)
-		if err == nil {
-			var part responsebody.Part
-			part, p.SearchResultCount, err = s.searchMessageList(r.Context(), u.ID, q, refs)
-			if p.SearchResultCount > 0 {
-				p.messageBody = &part
-			}
-		}
-	}
+	part, count, err := s.readSearchMessages(r.Context(), u.ID, q)
 	if err != nil {
 		s.fail(w, err)
 		return
+	}
+	p.SearchResultCount = count
+	if count > 0 {
+		p.messageBody = &part
 	}
 	s.render(w, r, "search", 200, p)
 }

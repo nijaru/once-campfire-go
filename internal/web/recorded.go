@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -14,46 +15,37 @@ import (
 // the cached message list without copying it through template/fmt/page buffers.
 
 func (s *Server) messageList(ctx context.Context, messages []database.Message) (responsebody.Part, error) {
-	key := s.fragmentKey(ctx, messageListCacheKey(messages))
-	if entry, ok := s.fragments.entry(key); ok {
+	key := s.fragmentKey(ctx, messageListCacheKey(messageReferences(messages)))
+	if entry, ok := s.fragments.entry(key); cacheFragments(ctx) && ok {
 		return entry.part, nil
 	}
 	views, err := s.messageItems(ctx, messages)
 	if err != nil {
 		return responsebody.Part{}, err
 	}
+	fragments := make([]template.HTML, len(views))
+	for i, view := range views {
+		fragments[i] = view.Fragment
+	}
+	return s.recordMessageList(ctx, key, fragments), nil
+}
+
+func (s *Server) recordMessageList(ctx context.Context, key string, fragments []template.HTML) responsebody.Part {
 	size := 0
-	for _, view := range views {
-		size += len(view.Fragment)
+	for _, fragment := range fragments {
+		size += len(fragment)
 	}
 	body := make([]byte, size)
 	offset := 0
-	for _, view := range views {
-		offset += copy(body[offset:], view.Fragment)
+	for _, fragment := range fragments {
+		offset += copy(body[offset:], fragment)
 	}
-	// This buffer is not pooled: the Part takes ownership through eviction and
-	// any outstanding responses, without retaining a second HTML string.
-	entry := s.fragments.putEntry(fragmentEntry{key: key, part: responsebody.NewPart(body)})
-	return entry.part, nil
-}
-
-// Retain the actual Part on a hit: eviction between lookup and rendering cannot
-// turn a references-only search into an unscoped, newer-body hydration.
-func (s *Server) searchMessageList(ctx context.Context, user int64, query string, refs []database.Message) (responsebody.Part, int, error) {
-	if len(refs) == 0 {
-		return responsebody.Part{}, 0, nil
+	// The Part owns unpooled bytes through eviction and outstanding responses.
+	entry := fragmentEntry{key: key, part: responsebody.NewPart(body)}
+	if cacheFragments(ctx) {
+		entry = s.fragments.putEntry(entry)
 	}
-	if entry, ok := s.fragments.entry(s.fragmentKey(ctx, messageListCacheKey(refs))); ok {
-		return entry.part, len(refs), nil
-	}
-	// Matching membership and body must come from one statement on a miss.
-	// An edit/delete after the reference query can change the result set.
-	messages, err := s.DB.Search(ctx, user, query)
-	if err != nil {
-		return responsebody.Part{}, 0, err
-	}
-	part, err := s.messageList(ctx, messages)
-	return part, len(messages), err
+	return entry.part
 }
 
 func writeRecorded(w http.ResponseWriter, status int, rendered, marker string, part responsebody.Part) {

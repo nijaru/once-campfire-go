@@ -88,7 +88,7 @@ const messageVersionSize = 20
 
 // Match Stamp's UTC, microsecond-truncated identity without formatting dates.
 // Separate seconds and fractions avoid UnixNano/UnixMicro's narrower date range.
-func messageVersion(message database.Message) [messageVersionSize]byte {
+func messageVersion(message database.MessageReference) [messageVersionSize]byte {
 	var version [messageVersionSize]byte
 	binary.LittleEndian.PutUint64(version[:8], uint64(message.ID))
 	binary.LittleEndian.PutUint64(version[8:16], uint64(message.UpdatedAt.Unix()))
@@ -96,12 +96,12 @@ func messageVersion(message database.Message) [messageVersionSize]byte {
 	return version
 }
 
-func messageCacheKey(message database.Message) string {
+func messageCacheKey(message database.MessageReference) string {
 	version := messageVersion(message)
 	return "message/" + string(version[:])
 }
 
-func messageListCacheKey(messages []database.Message) string {
+func messageListCacheKey(messages []database.MessageReference) string {
 	var key strings.Builder
 	key.Grow(len("message-list/") + messageVersionSize*len(messages))
 	key.WriteString("message-list/")
@@ -120,8 +120,11 @@ func (s *Server) fragmentKey(ctx context.Context, key string) string {
 	if info := requestMetadata(ctx); info != nil {
 		version = info.databaseVersion
 		host, origin = info.host, info.origin
-	} else {
+	} else if _, ok := ctx.Value(fragmentObservationKey{}).(fragmentObservation); !ok {
 		version, _ = s.DB.ResponseVersion(ctx)
+	}
+	if observation, ok := ctx.Value(fragmentObservationKey{}).(fragmentObservation); ok {
+		version = observation.generation
 	}
 	if version == 0 {
 		return "uncached/" + rand.Text() + "/" + key
@@ -129,39 +132,28 @@ func (s *Server) fragmentKey(ctx context.Context, key string) string {
 	return strconv.FormatUint(version, 10) + "/" + strconv.Quote(host) + "/" + strconv.Quote(origin) + "/" + key
 }
 
+func cacheFragments(ctx context.Context) bool {
+	if observation, ok := ctx.Value(fragmentObservationKey{}).(fragmentObservation); ok {
+		return observation.generation != 0
+	}
+	info := requestMetadata(ctx)
+	return info == nil || info.databaseVersion != 0
+}
+
+func messageReferences(records []database.Message) []database.MessageReference {
+	refs := make([]database.MessageReference, len(records))
+	for i, record := range records {
+		refs[i] = record.Reference()
+	}
+	return refs
+}
+
 func (s *Server) messageItems(ctx context.Context, messages []database.Message) ([]messageView, error) {
 	views := viewMessages(messages)
-	var missing []int64
 	for i, m := range messages {
-		if html, ok := s.fragments.get(s.fragmentKey(ctx, messageCacheKey(m))); ok {
+		if html, ok := s.fragments.get(s.fragmentKey(ctx, messageCacheKey(m.Reference()))); cacheFragments(ctx) && ok {
 			views[i].Fragment = html
-		} else if m.CreatorID == 0 {
-			missing = append(missing, m.ID)
 		}
-	}
-	hydrated := make(map[int64]database.Message, len(missing))
-	if len(missing) > 0 {
-		loaded, err := s.DB.MessagesByID(ctx, missing)
-		if err != nil {
-			return nil, err
-		}
-		for _, message := range loaded {
-			hydrated[message.ID] = message
-		}
-	}
-	for i, m := range messages {
-		if views[i].Fragment != "" {
-			continue
-		}
-		if m.CreatorID == 0 {
-			var found bool
-			m, found = hydrated[m.ID]
-			if !found {
-				views[i].Fragment = unrenderableMessage
-				continue
-			}
-		}
-		views[i].Message = m
 	}
 	if err := s.hydrateMessageViews(ctx, views); err != nil {
 		return nil, err

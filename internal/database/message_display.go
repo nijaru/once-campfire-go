@@ -48,6 +48,22 @@ func (d *DB) MessageDisplays(ctx context.Context, records []Message, mentioned [
 		return nil, nil, err
 	}
 	defer tx.Rollback()
+	result, users, err = messageDisplays(ctx, tx, records, mentioned)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, nil, err
+	}
+	return result, users, nil
+}
+
+func messageDisplays(ctx context.Context, tx *sql.Tx, records []Message, mentioned []int64) (map[int64]MessageDisplay, map[int64]UserDisplay, error) {
+	result := make(map[int64]MessageDisplay, len(records))
+	users := make(map[int64]UserDisplay)
+	if len(records) == 0 {
+		return result, users, nil
+	}
 	roomIDs := map[int64]bool{}
 	userIDs := map[int64]bool{}
 	for _, m := range records {
@@ -106,9 +122,6 @@ func (d *DB) MessageDisplays(ctx context.Context, records []Message, mentioned [
 			data.Attachment = attachments[id]
 			result[id] = data
 		}
-	}
-	if err = tx.Commit(); err != nil {
-		return nil, nil, err
 	}
 	return result, users, nil
 }

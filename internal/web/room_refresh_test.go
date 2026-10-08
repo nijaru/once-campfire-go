@@ -36,7 +36,7 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	messages, err := app.DB.MessagePageReferences(ctx, roomID, 0, "around")
+	messageBody, _, err := app.readMessagePage(ctx, user.ID, roomID, 0, "around", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 	request = request.WithContext(context.WithValue(request.Context(), browserSessionKey{}, session))
 	render := func() *httptest.ResponseRecorder {
 		response := httptest.NewRecorder()
-		app.render(response, request, "room", 200, page{User: user, Room: room, messageRecords: messages})
+		app.render(response, request, "room", 200, page{User: user, Room: room, messageBody: &messageBody})
 		return response
 	}
 	first, second := render(), render()

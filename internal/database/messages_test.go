@@ -115,10 +115,20 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 			}
 		}
 	}
+	loads := []func(context.Context, int64, int64, string) (int, error){
+		func(ctx context.Context, room, anchor int64, direction string) (int, error) {
+			rows, err := d.MessagePage(ctx, room, anchor, direction)
+			return len(rows), err
+		},
+		func(ctx context.Context, room, anchor int64, direction string) (int, error) {
+			rows, err := d.MessagePageReferences(ctx, room, anchor, direction)
+			return len(rows), err
+		},
+	}
 	for _, direction := range []string{"before", "after", "around"} {
 		for _, anchor := range []int64{-1, records[22].ID} {
 			// A missing anchor or one belonging to another room is not an empty page.
-			for _, load := range []func(context.Context, int64, int64, string) ([]Message, error){d.MessagePage, d.MessagePageReferences} {
+			for _, load := range loads {
 				if _, err := load(ctx, room+1, anchor, direction); !errors.Is(err, sql.ErrNoRows) {
 					t.Fatalf("foreign/missing %s cursor %d: %v", direction, anchor, err)
 				}
@@ -126,10 +136,10 @@ func TestMessageReferencesMatchPagination(t *testing.T) {
 		}
 	}
 	// An existing oldest message has a valid, empty preceding page.
-	for _, load := range []func(context.Context, int64, int64, string) ([]Message, error){d.MessagePage, d.MessagePageReferences} {
+	for _, load := range loads {
 		if messages, err := load(ctx, room, records[0].ID, "before"); err != nil ||
-			len(messages) != 0 {
-			t.Fatalf("oldest cursor: %d messages, %v", len(messages), err)
+			messages != 0 {
+			t.Fatalf("oldest cursor: %d messages, %v", messages, err)
 		}
 	}
 	// Reads must observe external commits and the scanner's existing formats.

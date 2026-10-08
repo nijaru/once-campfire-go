@@ -18,8 +18,8 @@ func TestMessageVersionMatchesStampIdentity(t *testing.T) {
 		"far future": time.Date(300000, 1, 1, 0, 0, 0, 1, time.UTC),
 	} {
 		t.Run(name, func(t *testing.T) {
-			base := database.Message{ID: -1, UpdatedAt: stamp}
-			variants := []database.Message{
+			base := database.MessageReference{ID: -1, UpdatedAt: stamp}
+			variants := []database.MessageReference{
 				{ID: -1, UpdatedAt: stamp.In(time.FixedZone("offset", 19800))},
 				{ID: -1, UpdatedAt: stamp.Add(998 * time.Nanosecond)},
 				{ID: -1, UpdatedAt: stamp.Add(time.Microsecond)},
@@ -38,24 +38,24 @@ func TestMessageVersionMatchesStampIdentity(t *testing.T) {
 		{{}, time.Unix(0, time.Time{}.UnixNano())},
 		{time.Date(300000, 1, 1, 0, 0, 0, 0, time.UTC), time.UnixMicro(time.Date(300000, 1, 1, 0, 0, 0, 0, time.UTC).UnixMicro())},
 	} {
-		if messageCacheKey(database.Message{ID: 1, UpdatedAt: pair[0]}) == messageCacheKey(database.Message{ID: 1, UpdatedAt: pair[1]}) {
+		if messageCacheKey(database.MessageReference{ID: 1, UpdatedAt: pair[0]}) == messageCacheKey(database.MessageReference{ID: 1, UpdatedAt: pair[1]}) {
 			t.Fatal("out-of-range dates collided")
 		}
 	}
 }
 
 func TestMessageListKeyPreservesOrderAndBoundaries(t *testing.T) {
-	a, b := database.Message{ID: 1}, database.Message{ID: 2}
-	for _, pair := range [][2][]database.Message{
+	a, b := database.MessageReference{ID: 1}, database.MessageReference{ID: 2}
+	for _, pair := range [][2][]database.MessageReference{
 		{{a, b}, {b, a}},
 		{{a}, {a, a}},
-		{nil, {database.Message{}}},
+		{nil, {database.MessageReference{}}},
 	} {
 		if messageListCacheKey(pair[0]) == messageListCacheKey(pair[1]) {
 			t.Fatal("different ordered lists collided")
 		}
 	}
-	if messageListCacheKey(nil) == messageCacheKey(database.Message{}) {
+	if messageListCacheKey(nil) == messageCacheKey(database.MessageReference{}) {
 		t.Fatal("list and item namespaces collided")
 	}
 }

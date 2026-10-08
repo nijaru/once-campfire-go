@@ -126,7 +126,14 @@ func (s *Server) messagePageViews(
 
 // Prepare only fragment misses. Associations and mention targets are materialized
 // together; presentation and signing run after the read snapshot is released.
-func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) error {
+type messagePreparation struct {
+	records   []database.Message
+	documents map[int]richtext.Document
+	targets   map[string]mentionTarget
+	mentioned []int64
+}
+
+func prepareMessageViews(views []messageView) messagePreparation {
 	var records []database.Message
 	documents := make(map[int]richtext.Document)
 	targets := make(map[string]mentionTarget)
@@ -149,11 +156,20 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
 			}
 		}
 	}
-	data, users, err := s.DB.MessageDisplays(ctx, records, mentioned)
+	return messagePreparation{records: records, documents: documents, targets: targets, mentioned: mentioned}
+}
+
+func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) error {
+	prepared := prepareMessageViews(views)
+	data, users, err := s.DB.MessageDisplays(ctx, prepared.records, prepared.mentioned)
 	if err != nil {
 		return err
 	}
-	rich := s.resolvedRichContext(ctx, targets, users)
+	return s.presentMessageViews(ctx, views, prepared, data, users)
+}
+
+func (s *Server) presentMessageViews(ctx context.Context, views []messageView, prepared messagePreparation, data map[int64]database.MessageDisplay, users map[int64]database.UserDisplay) error {
+	rich := s.resolvedRichContext(ctx, prepared.targets, users)
 	for i := range views {
 		if views[i].Fragment != "" {
 			continue
@@ -169,7 +185,7 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
 		views[i].CreatorUpdatedAt = creator.UpdatedAt
 		views[i].Permalink = messagePermalink(ctx, views[i].RoomID, views[i].ID)
 		views[i].RoomName = displayRoom(detail.Room, detail.Participants, database.User{}).Name
-		result, err := documents[i].Display(rich)
+		result, err := prepared.documents[i].Display(rich)
 		if err != nil {
 			return err
 		}
@@ -184,15 +200,18 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
 				return err
 			}
 		}
-		key := s.fragmentKey(ctx, messageCacheKey(views[i].Message))
-		if html, ok := s.fragments.get(key); ok {
+		key := s.fragmentKey(ctx, messageCacheKey(views[i].Message.Reference()))
+		if html, ok := s.fragments.get(key); cacheFragments(ctx) && ok {
 			views[i].Fragment = html
 		} else {
 			body, err := s.messageMarkup(views[i])
 			if err != nil {
 				return err
 			}
-			views[i].Fragment = s.fragments.put(key, template.HTML(body))
+			views[i].Fragment = template.HTML(body)
+			if cacheFragments(ctx) {
+				views[i].Fragment = s.fragments.put(key, views[i].Fragment)
+			}
 		}
 	}
 	return nil

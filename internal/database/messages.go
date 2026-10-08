@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"slices"
 	"time"
 )
@@ -29,52 +28,26 @@ func (d *DB) ReachableMessage(ctx context.Context, user, id int64) (Message, err
 	return messages[0], nil
 }
 
-// messageCreatedAt validates a cursor against its room, including empty pages.
-func (d *DB) messageCreatedAt(ctx context.Context, room, anchor int64) (string, error) {
-	var stamp string
-	err := d.Read.QueryRowContext(ctx, "SELECT created_at FROM messages WHERE id=? AND room_id=?", anchor, room).
-		Scan(&stamp)
-	return stamp, err
-}
-
-func (d *DB) MessagePage(
-	ctx context.Context,
-	room, anchor int64,
-	direction string,
-) ([]Message, error) {
-	if direction == "before" || anchor == 0 {
-		return d.Messages(ctx, room, anchor)
-	}
-	stamp, err := d.messageCreatedAt(ctx, room, anchor)
+// MessagePage is the full-record lookup used by bot responses. Selection and
+// body loading share a snapshot, and all pagination directions resolve once.
+func (d *DB) MessagePage(ctx context.Context, room, anchor int64, direction string) ([]Message, error) {
+	read, err := d.BeginMessageRead(ctx)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := d.Read.QueryContext(
-		ctx,
-		messageSelect+"WHERE m.room_id=? AND m.created_at>? ORDER BY m.created_at LIMIT 40",
-		room,
-		stamp,
-	)
+	defer read.Close()
+	refs, err := messagePageReferences(ctx, read.tx, room, anchor, direction)
 	if err != nil {
 		return nil, err
 	}
-	after, err := scanMessages(rows)
-	if err != nil || direction == "after" {
-		return after, err
-	}
-	before, err := d.Messages(ctx, room, anchor)
+	records, err := messageReferenceRecords(ctx, read.tx, refs)
 	if err != nil {
 		return nil, err
 	}
-	rows, err = d.Read.QueryContext(ctx, messageSelect+"WHERE m.room_id=? AND m.id=?", room, anchor)
-	if err != nil {
+	if err = read.Finish(); err != nil {
 		return nil, err
 	}
-	center, err := scanMessages(rows)
-	if err != nil {
-		return nil, err
-	}
-	return append(append(before, center...), after...), nil
+	return records, nil
 }
 
 func (d *DB) RefreshedMessages(
@@ -262,58 +235,20 @@ func (d *DB) FindRoom(ctx context.Context, id int64) (Room, error) {
 	return room, err
 }
 
-// MessagePageReferences leaves rich text and author loading to cache misses.
-// Around/after pagination retains the same full-record path and ordering.
-func (d *DB) MessagePageReferences(
-	ctx context.Context,
-	room, anchor int64,
-	direction string,
-) ([]Message, error) {
-	if direction != "before" && anchor != 0 {
-		return d.MessagePage(ctx, room, anchor, direction)
-	}
-	query := "SELECT id,updated_at FROM messages WHERE room_id=? "
-	args := []any{room}
-	if anchor != 0 {
-		stamp, err := d.messageCreatedAt(ctx, room, anchor)
-		if err != nil {
-			return nil, err
-		}
-		query += "AND created_at < ? "
-		args = append(args, stamp)
-	}
-	rows, err := d.Read.QueryContext(ctx, query+"ORDER BY created_at DESC LIMIT 40", args...)
+// MessagePageReferences is the references-only lookup. Cache-aware assembly uses
+// MessageRead to keep scoped body and association misses in this observation.
+func (d *DB) MessagePageReferences(ctx context.Context, room, anchor int64, direction string) ([]MessageReference, error) {
+	read, err := d.BeginMessageRead(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var messages []Message
-	message := Message{RoomID: room}
-	for rows.Next() {
-		if messages == nil {
-			messages = make([]Message, 0, 40)
-		}
-		if err := rows.Scan(&message.ID, timestamp{&message.UpdatedAt}); err != nil {
-			return nil, err
-		}
-		messages = append(messages, message)
-	}
-	slices.Reverse(messages)
-	return messages, rows.Err()
-}
-
-func (d *DB) MessagesByID(ctx context.Context, ids []int64) ([]Message, error) {
-	raw, err := json.Marshal(ids)
+	defer read.Close()
+	refs, err := messagePageReferences(ctx, read.tx, room, anchor, direction)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := d.Read.QueryContext(
-		ctx,
-		messageSelect+"WHERE m.id IN (SELECT value FROM json_each(?))",
-		string(raw),
-	)
-	if err != nil {
+	if err = read.Finish(); err != nil {
 		return nil, err
 	}
-	return scanMessages(rows)
+	return refs, nil
 }

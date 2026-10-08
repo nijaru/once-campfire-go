@@ -141,25 +141,7 @@ func scanMessages(rows *sql.Rows) ([]Message, error) {
 }
 
 func (d *DB) Messages(ctx context.Context, room, before int64) ([]Message, error) {
-	query := messageSelect + "WHERE m.room_id=? "
-	args := []any{room}
-	if before != 0 {
-		stamp, err := d.messageCreatedAt(ctx, room, before)
-		if err != nil {
-			return nil, err
-		}
-		query += "AND m.created_at < ? "
-		args = append(args, stamp)
-	}
-	rows, err := d.Read.QueryContext(ctx, query+"ORDER BY m.created_at DESC LIMIT 40", args...)
-	if err != nil {
-		return nil, err
-	}
-	messages, err := scanMessages(rows)
-	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-		messages[i], messages[j] = messages[j], messages[i]
-	}
-	return messages, err
+	return d.MessagePage(ctx, room, before, "before")
 }
 
 // AuthorizedSessions checks a publication's distinct sessions in one snapshot.
