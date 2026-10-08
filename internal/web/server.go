@@ -53,6 +53,7 @@ type Server struct {
 	NotificationQueries *application.NotificationQueries
 	Searches            *application.Searches
 	RoomCommands        *application.Rooms
+	RoomQueries         *application.RoomQueries
 	AccountCommands     *application.Accounts
 	SessionCommands     *application.Sessions
 	Cable               *cable.Hub
@@ -107,8 +108,7 @@ type page struct {
 	RecentSearches               []string
 	Subject                      database.User
 	JoinCode, Webhook, Transfer  string
-	Users                        []database.User
-	Selected                     map[int64]bool
+	RoomUsers                    []database.RoomChoice
 	CanAdminister                bool
 	Involvement                  string
 	Account                      database.Account
@@ -174,6 +174,7 @@ func New(
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.PageQueries = &application.PageQueries{DB: db}
 	s.BotQueries = &application.BotQueries{DB: db}
+	s.RoomQueries = &application.RoomQueries{DB: db}
 	s.AccountQueries = &application.AccountQueries{DB: db}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
 	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}

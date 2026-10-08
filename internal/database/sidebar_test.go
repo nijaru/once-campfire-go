@@ -103,13 +103,9 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 				continue
 			}
 			visibleDirects = append(visibleDirects, room.ID)
-			full, err := d.RoomMembers(ctx, room.ID)
+			want, err := d.RoomParticipants(ctx, room.ID)
 			if err != nil {
 				t.Fatal(err)
-			}
-			var want []RoomParticipant
-			for _, user := range full {
-				want = append(want, user.Participant())
 			}
 			if !reflect.DeepEqual(room.Members, want) {
 				t.Fatalf(

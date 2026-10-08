@@ -281,7 +281,7 @@ func TestRoomUpdatesRejectMissingRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := app.DB.RoomMembers(ctx, room.ID)
+	before, err := app.DB.RoomParticipants(ctx, room.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func TestRoomUpdatesRejectMissingRoot(t *testing.T) {
 			if err != nil || stored != room {
 				t.Errorf("missing root changed room: %+v, %v", stored, err)
 			}
-			after, err := app.DB.RoomMembers(ctx, room.ID)
+			after, err := app.DB.RoomParticipants(ctx, room.ID)
 			if err != nil || !reflect.DeepEqual(before, after) {
 				t.Errorf("missing root changed membership: %+v, %v", after, err)
 			}

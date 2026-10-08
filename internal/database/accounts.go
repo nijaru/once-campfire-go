@@ -86,19 +86,12 @@ func (d *DB) LoginHelpContact(ctx context.Context) (UserContact, error) {
 	return contact, err
 }
 
-func (d *DB) ActiveUsers(ctx context.Context, room int64) ([]User, error) {
-	query := "SELECT " + userColumns + " FROM users u "
-	args := []any{}
-	if room != 0 {
-		query += "JOIN memberships m ON m.user_id=u.id AND m.room_id=? "
-		args = append(args, room)
-	}
-	query += "WHERE u.status=0 "
-	rows, err := d.Read.QueryContext(ctx, query+"ORDER BY lower(u.name)", args...)
+func (d *DB) ActiveRoomParticipants(ctx context.Context, room int64) ([]RoomParticipant, error) {
+	rows, err := d.Read.QueryContext(ctx, "SELECT u.id,u.name,u.updated_at FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=? AND u.status=0 ORDER BY lower(u.name)", room)
 	if err != nil {
 		return nil, err
 	}
-	return usersRows(rows)
+	return participantsRows(rows)
 }
 
 func (d *DB) Bot(ctx context.Context, key string) (User, error) {
@@ -153,18 +146,6 @@ func (d *DB) AccountUsers(ctx context.Context, includeBanned bool) ([]AccountMem
 		users = append(users, user)
 	}
 	return users, rows.Err()
-}
-
-func (d *DB) RoomMembers(ctx context.Context, room int64) ([]User, error) {
-	rows, err := d.Read.QueryContext(
-		ctx,
-		"SELECT "+userColumns+" FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=?",
-		room,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return usersRows(rows)
 }
 
 func (d *DB) RoomParticipants(ctx context.Context, room int64) ([]RoomParticipant, error) {

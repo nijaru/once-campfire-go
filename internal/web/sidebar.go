@@ -21,7 +21,7 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
 		return nil
 	}
-	members, err := s.DB.ActiveUsers(ctx, room.ID)
+	members, err := s.DB.ActiveRoomParticipants(ctx, room.ID)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update b
 		}
 	}
 	for _, user := range members {
-		view := presentation.DisplayRoom(room, participants, user.Participant())
+		view := presentation.DisplayRoom(room, participants, user)
 		name := "sidebar-shared"
 		if room.Type == "Rooms::Direct" {
 			name, target, action = "sidebar-direct", "direct_rooms", "prepend"

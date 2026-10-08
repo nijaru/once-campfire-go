@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -66,106 +65,23 @@ func roomUsers(r *http.Request) []int64 {
 	return ids
 }
 
-func (s *Server) canCreateRoom(ctx context.Context, u database.User, kind string) error {
-	if kind == "Rooms::Direct" || u.Role == 1 {
-		return nil
-	}
-	account, err := s.DB.Account(ctx)
-	if err != nil {
-		return err
-	}
-	if account.RestrictRooms() {
-		return database.ErrForbidden
-	}
-	return nil
-}
-
 func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.User) {
-	kind := namespaceKind(r)
-	room := database.Room{Type: kind, CreatorID: u.ID, Name: "New room"}
-	var err error
-	if roomID(r) != 0 {
-		room, err = s.DB.Room(r.Context(), u.ID, roomID(r))
-		if err == nil && (kind == "Rooms::Direct") != (room.Type == "Rooms::Direct") {
-			err = database.ErrForbidden
-		}
-	} else {
-		err = s.canCreateRoom(r.Context(), u, kind)
-	}
+	id := roomID(r)
+	data, err := s.RoomQueries.Form(r.Context(), application.RoomFormRequest{
+		UserID: u.ID, Role: u.Role, RoomID: id, Kind: namespaceKind(r),
+	})
 	if err != nil {
-		if roomID(r) != 0 {
+		if id != 0 {
 			s.roomLookupFailure(w, r, err)
 		} else {
 			s.fail(w, err)
 		}
 		return
 	}
-	room.Type = kind
-	var users []database.User
-	if kind == "Rooms::Direct" {
-		if room.ID != 0 {
-			users, err = s.DB.RoomMembers(r.Context(), room.ID)
-			if len(users) > 1 {
-				users = slices.DeleteFunc(
-					users,
-					func(member database.User) bool { return member.ID == u.ID },
-				)
-			}
-		}
-	} else {
-		users, err = s.DB.ActiveUsers(r.Context(), 0)
-	}
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	selected := map[int64]bool{u.ID: true}
-	if room.ID != 0 && kind != "Rooms::Direct" {
-		members, err := s.DB.ActiveUsers(r.Context(), room.ID)
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-		selected = map[int64]bool{}
-		for _, m := range members {
-			selected[m.ID] = true
-		}
-	}
-	divider := 0
-	if room.ID != 0 && kind == "Rooms::Closed" {
-		ordered := make([]database.User, 0, len(users))
-		for _, member := range users {
-			if selected[member.ID] {
-				ordered = append(ordered, member)
-			}
-		}
-		divider = len(ordered)
-		for _, member := range users {
-			if !selected[member.ID] {
-				ordered = append(ordered, member)
-			}
-		}
-		users = ordered
-		if divider == len(users) {
-			divider = 0
-		}
-	}
-	s.respondPage(
-		w,
-		r,
-		"room-form",
-		200,
-		page{
-			UserDivider: divider,
-			Title:       "Room settings",
-			User:        u,
-			Room:        room,
-			Users:       users,
-			Selected:    selected,
-			CanAdminister: room.ID == 0 || u.Role == 1 || room.CreatorID == u.ID ||
-				kind == "Rooms::Direct",
-		},
-	)
+	s.respondPage(w, r, "room-form", 200, page{
+		Title: "Room settings", User: u, Room: data.Room, RoomUsers: data.Users,
+		UserDivider: data.Divider, CanAdminister: data.CanAdminister,
+	})
 }
 
 // Strong room attributes distinguish omitted names, explicit null, and empty text.
@@ -216,7 +132,7 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 	// Preflight preserves protocol error ordering. Mutation authority is checked
 	// again against current state inside the command transaction.
 	if id == 0 {
-		if err := s.canCreateRoom(r.Context(), u, kind); err != nil {
+		if err := s.RoomQueries.CanCreate(r.Context(), u.Role, kind); err != nil {
 			s.fail(w, err)
 			return
 		}
