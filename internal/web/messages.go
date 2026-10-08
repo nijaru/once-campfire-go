@@ -37,12 +37,20 @@ func (s *Server) registerMessageRoutes() {
 	s.mux.HandleFunc("DELETE /messages/{message}/boosts/{boost}", s.auth(s.deleteBoost))
 	s.mux.HandleFunc("GET /rooms/{id}/refresh", s.auth(s.refreshRoom))
 }
+
 func pathInt(r *http.Request, key string) int64 {
 	id, _ := strconv.ParseInt(r.PathValue(key), 10, 64)
 	return id
 }
-func (s *Server) findMessage(r *http.Request, u database.User, administer bool) (database.Message, error) {
-	if route, _, _ := recognize(r.Method, r.URL.EscapedPath()); route != nil && strings.HasPrefix(route.Endpoint, "messages#") && roomID(r) == 0 {
+
+func (s *Server) findMessage(
+	r *http.Request,
+	u database.User,
+	administer bool,
+) (database.Message, error) {
+	if route, _, _ := recognizeRequest(r); route != nil &&
+		strings.HasPrefix(route.Endpoint, "messages#") &&
+		roomID(r) == 0 {
 		return database.Message{}, sql.ErrNoRows
 	}
 	m, err := s.DB.ReachableMessage(r.Context(), u.ID, pathInt(r, "message"))
@@ -57,7 +65,11 @@ func (s *Server) findMessage(r *http.Request, u database.User, administer bool) 
 	}
 	return m, nil
 }
-func (s *Server) messageViews(ctx context.Context, messages []database.Message) ([]messageView, error) {
+
+func (s *Server) messageViews(
+	ctx context.Context,
+	messages []database.Message,
+) ([]messageView, error) {
 	views := viewMessages(messages)
 	if err := s.hydrateMessageViews(ctx, views); err != nil {
 		return nil, err
@@ -67,7 +79,11 @@ func (s *Server) messageViews(ctx context.Context, messages []database.Message) 
 
 // Single-message forms consume different data from a displayed message. Keep
 // their reads fresh without rendering and retaining an unused message fragment.
-func (s *Server) messagePageViews(ctx context.Context, name string, records []database.Message) ([]messageView, error) {
+func (s *Server) messagePageViews(
+	ctx context.Context,
+	name string,
+	records []database.Message,
+) ([]messageView, error) {
 	if name != "edit-message" && name != "boosts-index" && name != "new-boost" {
 		return s.messageViews(ctx, records)
 	}
@@ -175,6 +191,7 @@ func (s *Server) hydrateMessageViews(ctx context.Context, views []messageView) e
 	}
 	return nil
 }
+
 func (s *Server) messageAttachment(ctx context.Context, view *messageView) error {
 	blob, err := s.Storage.Attached(ctx, "Message", view.ID, "attachment")
 	if errors.Is(err, sql.ErrNoRows) {
@@ -190,7 +207,10 @@ func (s *Server) messageAttachment(ctx context.Context, view *messageView) error
 	if view.Image || storage.Previewable(blob.Type()) {
 		variation := storage.Resize(1200, 800, "")
 		if storage.Previewable(blob.Type()) {
-			variation = storage.Variation{{Key: "format", Value: storage.Symbol("webp")}, {Key: "resize_to_limit", Value: []any{int64(1200), int64(800)}}}
+			variation = storage.Variation{
+				{Key: "format", Value: storage.Symbol("webp")},
+				{Key: "resize_to_limit", Value: []any{int64(1200), int64(800)}},
+			}
 		}
 		view.PreviewURL, err = s.Storage.RepresentationURL(blob, variation)
 		if err != nil {
@@ -217,25 +237,35 @@ func messagePermalink(ctx context.Context, room, message int64) string {
 	}
 	return fmt.Sprintf("%s/rooms/%d/@%d", origin, room, message)
 }
+
 func stream(action, target, markup string) string {
 	if action == "remove" {
-		return fmt.Sprintf(`<turbo-stream action="remove" target="%s"></turbo-stream>`, template.HTMLEscapeString(target))
+		return fmt.Sprintf(
+			`<turbo-stream action="remove" target="%s"></turbo-stream>`,
+			template.HTMLEscapeString(target),
+		)
 	}
 	attr := ""
-	if action == "replace" && strings.HasPrefix(target, "presentation_message_") || action == "append" && strings.HasPrefix(target, "boosts_message_") {
+	if action == "replace" && strings.HasPrefix(target, "presentation_message_") ||
+		action == "append" && strings.HasPrefix(target, "boosts_message_") {
 		attr = ` maintain_scroll="true"`
 	}
-	return `<turbo-stream action="` + action + `" target="` + html.EscapeString(target) + `"` + attr + `><template>` + markup + `</template></turbo-stream>`
+	return `<turbo-stream action="` + action + `" target="` + html.EscapeString(
+		target,
+	) + `"` + attr + `><template>` + markup + `</template></turbo-stream>`
 }
+
 func (s *Server) publish(room int64, markup string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	s.Cable.Publish(ctx, room, markup)
 }
+
 func writeStream(w http.ResponseWriter, markup string) {
 	w.Header().Set("Content-Type", "text/vnd.turbo-stream.html; charset=utf-8")
 	fmt.Fprint(w, markup)
 }
+
 func (s *Server) showMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
 	if err != nil {
@@ -244,6 +274,7 @@ func (s *Server) showMessage(w http.ResponseWriter, r *http.Request, u database.
 	}
 	s.render(w, r, "show-message", 200, page{User: u, messageRecords: []database.Message{m}})
 }
+
 func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, true)
 	if err != nil {
@@ -252,6 +283,7 @@ func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.
 	}
 	s.render(w, r, "edit-message", 200, page{User: u, messageRecords: []database.Message{m}})
 }
+
 func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, true)
 	if err != nil {
@@ -287,6 +319,7 @@ func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u databas
 	}
 	http.Redirect(w, r, fmt.Sprintf("/rooms/%d/messages/%d", m.RoomID, m.ID), 302)
 }
+
 func (s *Server) deleteMessage(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, true)
 	if err != nil {
@@ -303,6 +336,7 @@ func (s *Server) deleteMessage(w http.ResponseWriter, r *http.Request, u databas
 		writeStream(w, markup)
 	}
 }
+
 func (s *Server) boosts(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
 	if err != nil {
@@ -311,6 +345,7 @@ func (s *Server) boosts(w http.ResponseWriter, r *http.Request, u database.User)
 	}
 	s.render(w, r, "boosts-index", 200, page{User: u, messageRecords: []database.Message{m}})
 }
+
 func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
 	if err != nil {
@@ -319,6 +354,7 @@ func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.Use
 	}
 	s.render(w, r, "new-boost", 200, page{User: u, messageRecords: []database.Message{m}})
 }
+
 func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
 	if err != nil {
@@ -338,6 +374,7 @@ func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.
 	s.publish(m.RoomID, stream("append", "boosts_message_"+m.ClientID, markup))
 	http.Redirect(w, r, fmt.Sprintf("/messages/%d/boosts", m.ID), 302)
 }
+
 func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.User) {
 	m, err := s.findMessage(r, u, false)
 	if err != nil {
@@ -353,6 +390,7 @@ func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.
 	s.publish(m.RoomID, markup)
 	w.WriteHeader(204)
 }
+
 func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.User) {
 	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
 	if err != nil {

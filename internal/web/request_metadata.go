@@ -16,6 +16,7 @@ type requestInfo struct {
 	host, origin    string
 	response        *responseRound
 	databaseVersion uint64
+	routing         *recognizedRoute
 	agentOnce       sync.Once
 	agent           *useragent.Agent
 }

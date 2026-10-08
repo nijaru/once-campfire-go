@@ -1,0 +1,14 @@
+diff --git i/browser/smoke.mjs w/browser/smoke.mjs
+index 3ebf748..e7a49af 100644
+--- i/browser/smoke.mjs
++++ w/browser/smoke.mjs
+@@ -138,6 +138,9 @@ try {
+     .filter({ hasText: "safe browser text" })
+     .waitFor()
+   for (const page of [first, second]) {
++    // The other tab receiving a broadcast does not mean the sender has rendered
++    // its persisted echo; its optimistic preview has no data-message-id yet.
++    await page.waitForFunction(() => document.querySelectorAll(".messages > .message[data-message-id]").length >= 3)
+     if (
+       (await page.locator(".messages > .message[data-message-id]").count()) !==
+       3

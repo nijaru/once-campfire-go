@@ -2,12 +2,13 @@ package web
 
 import (
 	"errors"
-	"github.com/basecamp/once-campfire-go/internal/database"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/basecamp/once-campfire-go/internal/database"
 )
 
 type routeContract struct {
@@ -54,6 +55,7 @@ func normalizedPath(path string) string {
 	parts := strings.FieldsFunc(path, func(r rune) bool { return r == '/' })
 	return escapedHex.ReplaceAllStringFunc("/"+strings.Join(parts, "/"), strings.ToUpper)
 }
+
 func recognize(method, path string) (*routeContract, map[string]string, error) {
 	path = normalizedPath(path)
 	if method == "HEAD" {
@@ -92,18 +94,49 @@ func recognize(method, path string) (*routeContract, map[string]string, error) {
 	}
 	return nil, nil, nil
 }
+
+// Recognition is pure in method/path. Reuse it within a request; method
+// overrides and normalized/format-stripped paths select a new match.
+type recognizedRoute struct {
+	method, path string
+	route        *routeContract
+	params       map[string]string
+	err          error
+}
+
+func recognizeRequest(r *http.Request) (*routeContract, map[string]string, error) {
+	info := requestMetadata(r.Context())
+	path := r.URL.EscapedPath()
+	if info == nil {
+		return recognize(r.Method, path)
+	}
+	if match := info.routing; match != nil && match.method == r.Method && match.path == path {
+		return match.route, match.params, match.err
+	}
+	route, params, err := recognize(r.Method, path)
+	info.routing = &recognizedRoute{
+		method: r.Method,
+		path:   path,
+		route:  route,
+		params: params,
+		err:    err,
+	}
+	return route, params, err
+}
+
 func init() {
 	for i := range contracts {
 		contracts[i].regex, contracts[i].names = compileContract(contracts[i].Pattern)
 		contracts[i].bot = strings.Contains(contracts[i].Pattern, ":bot_key")
 	}
 }
+
 func (s *Server) routeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/cable" {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
-	route, params, err := recognize(r.Method, r.URL.EscapedPath())
+	route, params, err := recognizeRequest(r)
 	if err != nil {
 		http.Error(w, "Invalid path parameters", 400)
 		return
