@@ -44,9 +44,7 @@ type DB struct {
 	Read                *readPool
 	Write               *sql.DB
 	Now                 func() time.Time
-	versionDB           *sql.DB
-	version             *sql.Conn
-	versionGate         chan struct{}
+	version             *versionObserver
 }
 
 func Open(path string, readers int) (*DB, error) {
@@ -87,15 +85,8 @@ func Open(path string, readers int) (*DB, error) {
 		r.Close()
 		return fail(err)
 	}
-	v, err := sql.Open("sqlite3", uri+options+"&mode=ro&_query_only=on")
+	version, err := openVersionObserver(uri + options + "&mode=ro&_query_only=on")
 	if err != nil {
-		r.Close()
-		return fail(err)
-	}
-	v.SetMaxOpenConns(1)
-	version, err := v.Conn(context.Background())
-	if err != nil {
-		v.Close()
 		r.Close()
 		return fail(err)
 	}
@@ -104,24 +95,21 @@ func Open(path string, readers int) (*DB, error) {
 		frozen, err := time.Parse(time.RFC3339Nano, raw)
 		if err != nil {
 			version.Close()
-			v.Close()
 			r.Close()
 			return fail(err)
 		}
 		now = func() time.Time { return frozen }
 	}
 	return &DB{
-		Read:        &readPool{DB: r, statements: make(map[string]*sql.Stmt)},
-		Write:       w,
-		Now:         now,
-		versionDB:   v,
-		version:     version,
-		versionGate: make(chan struct{}, 1),
+		Read:    &readPool{DB: r, statements: make(map[string]*sql.Stmt)},
+		Write:   w,
+		Now:     now,
+		version: version,
 	}, nil
 }
 
 func (d *DB) Close() error {
-	return errors.Join(d.Read.Close(), d.Write.Close(), d.version.Close(), d.versionDB.Close())
+	return errors.Join(d.Read.Close(), d.Write.Close(), d.version.Close())
 }
 func Stamp(t time.Time) string { return t.UTC().Format("2006-01-02 15:04:05.000000") }
 func (d *DB) Transaction(ctx context.Context, fn func(*sql.Tx) error) error {
@@ -213,20 +201,4 @@ func (t timestamp) Scan(value any) error {
 		}
 	}
 	return fmt.Errorf("invalid timestamp %q", raw)
-}
-
-// A pinned reader observes commits from every writer, including this process.
-// PRAGMA data_version is connection-local, so it must never use the read pool.
-func (d *DB) ResponseVersion(ctx context.Context) (uint64, error) {
-	// Serialize through Scan/Close, not just statement execution: an overlapping
-	// PRAGMA can otherwise reuse an older statement's SQLite read transaction.
-	select {
-	case d.versionGate <- struct{}{}:
-		defer func() { <-d.versionGate }()
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	}
-	var version uint64
-	err := d.version.QueryRowContext(ctx, "PRAGMA data_version").Scan(&version)
-	return version, err
 }

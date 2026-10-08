@@ -13,8 +13,8 @@ import (
 func TestResponseVersionWaitingReadIsCancellable(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		d := testDB(t)
-		d.versionGate <- struct{}{}
-		defer func() { <-d.versionGate }()
+		d.version.gate <- struct{}{}
+		defer func() { <-d.version.gate }()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		result := make(chan error, 1)

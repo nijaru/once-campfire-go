@@ -99,7 +99,7 @@ func (s *Server) beginResponseCache(r *http.Request) {
 		len(r.TransferEncoding) != 0 {
 		return
 	}
-	route, _, err := recognize(r.Method, r.URL.EscapedPath())
+	route, _, err := recognizeRequest(r)
 	if err != nil || route == nil {
 		return
 	}

@@ -263,7 +263,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if route, _, _ := recognize(r.Method, r.URL.EscapedPath()); route != nil && route.bot {
+	if route, _, _ := recognizeRequest(r); route != nil && route.bot {
 		s.routeHTTP(w, r)
 		return
 	}
