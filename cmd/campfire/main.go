@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"syscall"
+	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/front"
@@ -59,19 +60,44 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 	if command == "backup" {
+		defer db.Close()
 		return db.Backup(context.Background(), filepath.Join(storage, "backups", filepath.Base(path)))
 	}
 	if command == "db:prepare" {
-		return nil
+		return db.Close()
 	}
 	app, err := web.New(db, secrets, os.Getenv("DISABLE_SSL") == "", storage)
 	if err != nil {
+		db.Close()
 		return err
 	}
-	defer app.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	closing, finished := make(chan struct{}), make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-closing:
+		case <-finished:
+			return
+		}
+		timer := time.NewTimer(30 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-finished:
+		case <-timer.C:
+			// Native media work cannot always be preempted. This is forced exit,
+			// not successful teardown: persistence stays open under surviving work.
+			slog.Error("shutdown grace expired; forcing process exit")
+			os.Exit(1)
+		}
+	}()
+	defer func() {
+		close(closing)
+		app.Close()
+		db.Close()
+		close(finished)
+	}()
 	return front.Serve(ctx, front.FromEnv(), app)
 }

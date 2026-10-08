@@ -224,9 +224,12 @@ exemption; bot-key endpoints exempt authenticated bots only.
   Go and Rust also match a separate native ARM64 Rails capture. A matching version string alone
   does not guarantee matching bytes. Web Push is verified locally, not against external push providers.
 
-As in Rust, background queues are bounded and in-process: graceful shutdown drains work, but a
-process crash can lose queued jobs. See [the implementation record](plans/go-conversion.md) for
-coverage and validation scope.
+As in Rust, background queues are bounded and in-process: a crash or forced exit can lose queued
+jobs. Shutdown stops intake and joins HTTP commands, sockets, presence cleanup and workers before
+closing SQLite. Workers are cancelled after a ten-second queue-drain grace. The CLI allows thirty
+seconds overall; if work cannot finish, it exits with status 1 rather than closing shared resources
+under surviving work. Native libvips processing cannot always be preempted. See
+[the implementation record](plans/go-conversion.md) for coverage and validation scope.
 
 ## License
 

@@ -20,6 +20,8 @@ type Hub struct {
 	db          *database.DB
 	secrets     *rails.Secrets
 	mu          sync.RWMutex
+	closed      bool
+	serving     sync.WaitGroup
 	clients     map[*client]struct{}
 	subscribers map[publication][]recipient
 }
@@ -122,6 +124,17 @@ func (c *client) sendFrame(data *websocket.PreparedMessage) bool {
 	}
 }
 func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, token string) {
+	// Admission and the join count share the close lock, including upgrades that
+	// have not yet installed their client. No positive Add can race a zero Wait.
+	h.mu.Lock()
+	if h.closed {
+		h.mu.Unlock()
+		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	h.serving.Add(1)
+	h.mu.Unlock()
+	defer h.serving.Done()
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{"actioncable-v1-json"}, CompressionMode: websocket.CompressionNoContextTakeover, CompressionThreshold: 256})
 	if err != nil {
 		return
@@ -136,6 +149,10 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 	defer cancel()
 	c := &client{disconnect: make(chan bool, 1), user: user, token: token, cancel: cancel, out: make(chan *websocket.PreparedMessage, 256), subscriptions: map[string]subscription{}}
 	h.mu.Lock()
+	if h.closed {
+		h.mu.Unlock()
+		return
+	}
 	h.clients[c] = struct{}{}
 	h.mu.Unlock()
 	defer func() {
@@ -306,11 +323,14 @@ func (h *Hub) disconnect(user int64, reconnect bool) {
 	}
 }
 func (h *Hub) Close() {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	h.closed = true
 	for c := range h.clients {
 		c.cancel()
 	}
+	h.mu.Unlock()
+	// Serve returns only after its writer, persisted absence and socket close.
+	h.serving.Wait()
 }
 func (h *Hub) Publish(ctx context.Context, room int64, markup string) {
 	h.publish(ctx, publication{room: room}, markup)

@@ -94,7 +94,9 @@ func (r *Runner) Enqueue(kind string, work Work) bool {
 
 // The HTTP server stops accepting requests before Close. Queued work can still
 // enqueue dependent work (a banned message's attachment purge, for example).
-// changed wakes one drain waiter; done broadcasts shutdown to all closers.
+// changed wakes one drain waiter; done broadcasts cancellation/drain initiation.
+// A timeout cancels work; every caller still joins the workers before returning.
+// A process deadline must force exit rather than close resources under stuck work.
 func (r *Runner) Close(timeout time.Duration) {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -102,6 +104,7 @@ func (r *Runner) Close(timeout time.Duration) {
 		r.mu.Lock()
 		if r.closed {
 			r.mu.Unlock()
+			r.workers.Wait()
 			return
 		}
 		if r.pending == 0 {
@@ -119,18 +122,21 @@ func (r *Runner) Close(timeout time.Duration) {
 		select {
 		case <-r.changed:
 		case <-r.done:
+			r.workers.Wait()
 			return
 		case <-timer.C:
 			r.mu.Lock()
 			if r.closed {
 				r.mu.Unlock()
+				r.workers.Wait()
 				return
 			}
 			r.closed = true
 			close(r.done)
 			r.mu.Unlock()
 			r.cancel()
-			slog.Warn("background jobs abandoned at shutdown")
+			slog.Warn("background jobs cancelled at shutdown")
+			r.workers.Wait()
 			return
 		}
 	}

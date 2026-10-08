@@ -61,6 +61,9 @@ type Server struct {
 	Secure              bool
 	mux                 *router
 	Presentation        *presentation.Renderer
+	intakeMu            sync.Mutex
+	closing             bool
+	handlers            sync.WaitGroup
 	attemptsMu          sync.Mutex
 	attempts            map[string]attempt
 	dummyHash           []byte
@@ -212,6 +215,15 @@ func New(
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.intakeMu.Lock()
+	if s.closing {
+		s.intakeMu.Unlock()
+		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	s.handlers.Add(1)
+	s.intakeMu.Unlock()
+	defer s.handlers.Done()
 	r = r.WithContext(
 		context.WithValue(
 			r.Context(),
@@ -984,7 +996,16 @@ func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.U
 	}
 	s.Cable.Serve(w, r, u, token)
 }
-func (s *Server) Close() { s.Jobs.Close(10 * time.Second); s.Cable.Close() }
+func (s *Server) Close() {
+	s.intakeMu.Lock()
+	s.closing = true
+	s.intakeMu.Unlock()
+	// Upgraded handlers must be stopped before joining HTTP commands. Both can
+	// use persistence or admit dependent work, so drain jobs only after joining.
+	s.Cable.Close()
+	s.handlers.Wait()
+	s.Jobs.Close(10 * time.Second)
+}
 
 func appVersion() string {
 	for _, key := range []string{"APP_VERSION", "GIT_REVISION"} {

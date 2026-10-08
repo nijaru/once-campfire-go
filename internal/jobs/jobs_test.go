@@ -71,6 +71,36 @@ func TestConcurrentShutdown(t *testing.T) {
 	}
 }
 
+func TestShutdownJoinsCancelledWorkForEveryCloser(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		r := New(1, "work")
+		cancelled := make(chan struct{})
+		release := make(chan struct{})
+		defer close(release)
+		r.Enqueue("work", func(ctx context.Context) error {
+			<-ctx.Done()
+			close(cancelled)
+			<-release // Cancellation cannot preempt every owned operation.
+			return nil
+		})
+		var closers sync.WaitGroup
+		returned := make(chan struct{}, 2)
+		for range 2 {
+			closers.Go(func() { r.Close(time.Second); returned <- struct{}{} })
+		}
+		<-cancelled
+		synctest.Wait()
+		select {
+		case <-returned:
+			t.Fatal("shutdown returned while cancelled work still owned resources")
+		default:
+		}
+		// Release without closing twice; the deferred close also handles failures.
+		release <- struct{}{}
+		closers.Wait()
+	})
+}
+
 func TestShutdownDrainsDependentJobs(t *testing.T) {
 	r := New(1, "parent", "child")
 	entered := make(chan struct{})
