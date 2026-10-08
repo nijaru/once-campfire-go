@@ -26,6 +26,6 @@ func (s *Server) blockBrowser(w http.ResponseWriter, r *http.Request) bool {
 			frame = false
 		}
 	}
-	s.render(w, r, "incompatible-browser", http.StatusOK, page{Frame: frame})
+	s.respondPage(w, r, "incompatible-browser", http.StatusOK, page{Frame: frame})
 	return true
 }

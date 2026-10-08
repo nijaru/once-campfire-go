@@ -74,6 +74,18 @@ func usersRows(rows *sql.Rows) ([]User, error) {
 	return users, rows.Err()
 }
 
+// UserContact is the complete login-help projection; no credentials are read.
+type UserContact struct {
+	ID          int64
+	Name, Email string
+}
+
+func (d *DB) LoginHelpContact(ctx context.Context) (UserContact, error) {
+	var contact UserContact
+	err := d.Read.QueryRowContext(ctx, "SELECT id,name,coalesce(email_address,'') FROM users WHERE status=0 AND role=1 ORDER BY id LIMIT 1").Scan(&contact.ID, &contact.Name, &contact.Email)
+	return contact, err
+}
+
 func (d *DB) Users(ctx context.Context, room int64, botsOnly bool) ([]User, error) {
 	query := "SELECT " + userColumns + " FROM users u "
 	args := []any{}

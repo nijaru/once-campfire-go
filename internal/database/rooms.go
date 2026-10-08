@@ -53,6 +53,12 @@ func uniqueIDs(ids []int64) []int64 {
 	return slices.Compact(out)
 }
 
+func (d *DB) RoomInvitation(ctx context.Context, room int64) (bool, error) {
+	var invitation bool
+	err := d.Read.QueryRowContext(ctx, "SELECT ?=(SELECT id FROM rooms ORDER BY created_at LIMIT 1) AND NOT EXISTS(SELECT 1 FROM messages WHERE room_id=? LIMIT 1 OFFSET 40)", room, room).Scan(&invitation)
+	return invitation, err
+}
+
 func (d *DB) Involvement(ctx context.Context, user, room int64) (string, error) {
 	var value sql.NullString
 	err := d.Read.QueryRowContext(ctx, "SELECT involvement FROM memberships WHERE user_id=? AND room_id=?", user, room).

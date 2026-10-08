@@ -25,7 +25,7 @@ var reactions = []reaction{{"👍", "Thumbs up"}, {"👏", "Clapping"}, {"👋",
 func parseTemplates(secrets *rails.Secrets) (*template.Template, messageLayouts, error) {
 	var reactionBodies []template.HTML
 	t, err := template.New("pages").Funcs(template.FuncMap{
-		"helpMailto": func(user database.User) template.HTMLAttr {
+		"helpMailto": func(user database.UserContact) template.HTMLAttr {
 			value := "mailto:" + (&mail.Address{Name: user.Name, Address: user.Email}).String()
 			return template.HTMLAttr(`href="` + template.HTMLEscapeString(value) + `"`)
 		},

@@ -51,7 +51,7 @@ func TestRoomRefreshCursorUsesQueriedRoomVersion(t *testing.T) {
 	request = request.WithContext(context.WithValue(request.Context(), browserSessionKey{}, session))
 	render := func() *httptest.ResponseRecorder {
 		response := httptest.NewRecorder()
-		app.render(response, request, "room", 200, page{User: user, Room: room, messageBody: &messageBody})
+		app.respondPage(response, request, "room", 200, page{User: user, Room: room, messageBody: &messageBody})
 		return response
 	}
 	first, second := render(), render()

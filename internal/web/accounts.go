@@ -92,7 +92,7 @@ func (s *Server) accountForm(w http.ResponseWriter, r *http.Request, u database.
 			p.Users = append(p.Users, user)
 		}
 	}
-	s.render(w, r, "account", 200, p)
+	s.respondPage(w, r, "account", 200, p)
 }
 
 func (s *Server) accountUsers(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -175,7 +175,7 @@ func (s *Server) customStyles(w http.ResponseWriter, r *http.Request, u database
 		return
 	}
 	if r.Method == "GET" || r.Method == "HEAD" {
-		s.render(w, r, "custom-styles", 200, page{Title: "Custom styles", User: u})
+		s.respondPage(w, r, "custom-styles", 200, page{Title: "Custom styles", User: u})
 		return
 	}
 	if r.Form.Has("account[custom_styles]") {
@@ -214,7 +214,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 				s.fail(w, err)
 				return
 			}
-			view, err := s.displayRoom(r.Context(), room, u)
+			view, err := s.PageQueries.DisplayRoom(r.Context(), room, u.Participant())
 			if err != nil {
 				s.fail(w, err)
 				return
@@ -228,7 +228,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 				p.Memberships = append(p.Memberships, profileMembership{view.Room, involvement})
 			}
 		}
-		s.render(w, r, "profile", 200, p)
+		s.respondPage(w, r, "profile", 200, p)
 		return
 	}
 	attrs := database.UserChanges{}
@@ -280,7 +280,7 @@ func (s *Server) showUser(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
-	s.render(
+	s.respondPage(
 		w,
 		r,
 		"user",
@@ -356,7 +356,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" || r.Method == "HEAD" {
-		s.render(w, r, "join", 200, page{Title: "Join " + account.Name, JoinCode: account.JoinCode})
+		s.respondPage(w, r, "join", 200, page{Title: "Join " + account.Name, JoinCode: account.JoinCode})
 		return
 	}
 	banned, err := s.DB.BannedIP(r.Context(), remoteIP(r))
@@ -414,7 +414,7 @@ func (s *Server) bots(w http.ResponseWriter, r *http.Request, u database.User) {
 			return
 		}
 		for i, room := range rooms {
-			view, err := s.displayRoom(r.Context(), room, bot)
+			view, err := s.PageQueries.DisplayRoom(r.Context(), room, bot.Participant())
 			if err != nil {
 				s.fail(w, err)
 				return
@@ -429,7 +429,7 @@ func (s *Server) bots(w http.ResponseWriter, r *http.Request, u database.User) {
 		}
 		p.Bots = append(p.Bots, botView{bot, shared})
 	}
-	s.render(w, r, "bots", 200, p)
+	s.respondPage(w, r, "bots", 200, p)
 }
 
 func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -466,7 +466,7 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 			return
 		}
 	}
-	s.render(
+	s.respondPage(
 		w,
 		r,
 		"bot-form",
@@ -572,7 +572,7 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
 
 func (s *Server) transfer(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" || r.Method == "HEAD" {
-		s.render(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("token")})
+		s.respondPage(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("token")})
 		return
 	}
 	id, err := s.Secrets.VerifyID("User", r.PathValue("token"), "transfer", s.DB.Now())

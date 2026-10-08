@@ -47,6 +47,7 @@ type Server struct {
 	MessageCommands *application.Messages
 	MessageQueries  *application.MessageQueries
 	ContentQueries  *application.ContentQueries
+	PageQueries     *application.PageQueries
 	RoomCommands    *application.Rooms
 	AccountCommands *application.Accounts
 	SessionCommands *application.Sessions
@@ -96,7 +97,7 @@ type page struct {
 	Screen                       string
 	ReturnRoom                   int64
 	Email                        string
-	HelpContact                  database.User
+	HelpContact                  database.UserContact
 	Reload                       bool
 	Chat                         bool
 	Notice                       string
@@ -170,6 +171,7 @@ func New(
 	s.Webhooks = integrations.NewWebhookClient()
 	s.initJobs()
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
+	s.PageQueries = &application.PageQueries{DB: db}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
@@ -382,12 +384,17 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, HealthBody)
 }
 
-func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, status int, p page) {
+func (s *Server) respondPage(w http.ResponseWriter, r *http.Request, name string, status int, p page) {
 	if name != "incompatible-browser" && respondFormat(w, r, "html") == "" {
 		return
 	}
-	a, err := s.DB.Account(r.Context())
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	layout, err := s.PageQueries.Layout(r.Context(), application.LayoutRequest{
+		UserID:     p.User.ID,
+		Help:       name == "login" || name == "join",
+		Navigation: name == "room-form" || name == "account" || name == "push-subscriptions" || name == "search",
+		LastRoom:   lastRoomCandidate(r),
+	})
+	if err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -396,24 +403,21 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if p.Error == "" {
 		p.Error = alert
 	}
+	a := layout.Account
 	p.Account = a
 	p.Email = r.Form.Get("email_address")
 	if name == "login" || name == "join" {
 		p.Reload = true
-		users, e := s.DB.Users(r.Context(), 0, false)
-		if e == nil {
-			for _, u := range users {
-				if u.Role == 1 && (p.HelpContact.ID == 0 || u.ID < p.HelpContact.ID) {
-					p.HelpContact = u
-				}
-			}
-		}
+		p.HelpContact = layout.HelpContact
 	}
 	p.BackPath = "/"
 	if name == "room-form" || name == "account" || name == "push-subscriptions" {
-		if id, e := s.lastRoom(r, p.User.ID); e == nil {
-			p.BackPath = fmt.Sprintf("/rooms/%d", id)
+		if layout.ReturnRoom != nil {
+			p.BackPath = fmt.Sprintf("/rooms/%d", *layout.ReturnRoom)
 		}
+	}
+	if layout.ReturnRoom != nil {
+		p.ReturnRoom = *layout.ReturnRoom
 	}
 	p.Version = appVersion()
 	if r.Header.Get("Turbo-Frame") != "" && name != "edit-message" && name != "show-message" &&
@@ -444,11 +448,12 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if a.CustomStyles != "" {
 		p.CustomStyles = template.HTML("<style>" + a.CustomStyles + "</style>")
 	}
+	s.renderPage(w, name, status, p)
+}
+
+func (s *Server) renderPage(w http.ResponseWriter, name string, status int, p page) {
 	recorded := p.messageBody
 	p.messageBody = nil
-	if name == "search" {
-		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
-	}
 	if (name == "room" || name == "search") && recorded != nil {
 		var parts []responsebody.Part
 		var err error
@@ -492,7 +497,6 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	w.WriteHeader(status)
 	w.Write(b.Bytes())
 }
-
 func (s *Server) fail(w http.ResponseWriter, err error) {
 	status := 500
 	if errors.Is(err, sql.ErrNoRows) {
@@ -568,7 +572,7 @@ func (s *Server) loginForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/first_run", 302)
 		return
 	}
-	s.render(w, r, "login", 200, page{Title: "Sign in"})
+	s.respondPage(w, r, "login", 200, page{Title: "Sign in"})
 }
 
 func (s *Server) setupForm(w http.ResponseWriter, r *http.Request) {
@@ -581,7 +585,7 @@ func (s *Server) setupForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
-	s.render(w, r, "first-run", 200, page{Title: "Set up Campfire", Setup: true})
+	s.respondPage(w, r, "first-run", 200, page{Title: "Set up Campfire", Setup: true})
 }
 
 func (s *Server) allowLogin(ip string) bool {
@@ -607,7 +611,7 @@ func (s *Server) allowLogin(ip string) bool {
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if !s.allowLogin(remoteIP(r)) {
-		s.render(
+		s.respondPage(
 			w,
 			r,
 			"login",
@@ -627,7 +631,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	valid := bcrypt.CompareHashAndPassword(hash, []byte(r.Form.Get("password"))) == nil
 	if err != nil || !valid {
-		s.render(
+		s.respondPage(
 			w,
 			r,
 			"login",
@@ -642,7 +646,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 	password := r.Form.Get("user[password]")
 	if password == "" || len(password) > 72 {
-		s.render(
+		s.respondPage(
 			w,
 			r,
 			"first-run",
@@ -680,7 +684,7 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errors.Is(err, database.ErrValidation) {
-		s.render(
+		s.respondPage(
 			w,
 			r,
 			"first-run",
@@ -748,21 +752,18 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, u database.User)
 	http.Redirect(w, r, "/", 302)
 }
 
-func (s *Server) lastRoom(r *http.Request, user int64) (int64, error) {
+func lastRoomCandidate(r *http.Request) *int64 {
 	if cookie, err := r.Cookie("last_room"); err == nil {
 		if id, err := strconv.ParseInt(cookie.Value, 10, 64); err == nil {
-			if _, err = s.DB.Room(r.Context(), user, id); err == nil {
-				return id, nil
-			}
+			return &id
 		}
 	}
-	return s.DB.OriginalRoom(r.Context(), user)
+	return nil
 }
-
 func (s *Server) home(w http.ResponseWriter, r *http.Request, u database.User) {
-	id, err := s.lastRoom(r, u.ID)
+	id, err := s.PageQueries.LastRoom(r.Context(), u.ID, lastRoomCandidate(r))
 	if errors.Is(err, sql.ErrNoRows) {
-		s.render(w, r, "welcome", 200, page{Title: "No rooms yet", User: u})
+		s.respondPage(w, r, "welcome", 200, page{Title: "No rooms yet", User: u})
 		return
 	}
 	if err != nil {
@@ -800,25 +801,20 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 		s.fail(w, err)
 		return
 	}
-	view, err := s.displayRoom(r.Context(), room, u)
+	roomPage, err := s.PageQueries.RoomPage(r.Context(), room, u.Participant())
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	room = view.Room
-	var invitation bool
-	if err = s.DB.Read.QueryRowContext(r.Context(), "SELECT ?=(SELECT id FROM rooms ORDER BY created_at LIMIT 1) AND NOT EXISTS(SELECT 1 FROM messages WHERE room_id=? LIMIT 1 OFFSET 40)", room.ID, room.ID).Scan(&invitation); err != nil {
-		s.fail(w, err)
-		return
-	}
+	room = roomPage.Room.Room
 	s.rememberRoom(w, r, strconv.FormatInt(room.ID, 10))
-	s.render(
+	s.respondPage(
 		w,
 		r,
 		"room",
 		200,
 		page{
-			Invitation:  invitation,
+			Invitation:  roomPage.Invitation,
 			Stream:      s.Secrets.SignStream(rails.RoomStream(room.Type, room.ID)),
 			Title:       room.Name,
 			User:        u,
@@ -855,7 +851,7 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request, u database.Use
 	}
 	// The rendered representation, including related users and boosts, defines
 	// freshness. Timestamps alone miss external edits and association changes.
-	s.render(w, r, "messages", 200, page{messageBody: &messageBody})
+	s.respondPage(w, r, "messages", 200, page{messageBody: &messageBody})
 }
 
 func (s *Server) createMessage(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -864,7 +860,7 @@ func (s *Server) createMessage(w http.ResponseWriter, r *http.Request, u databas
 	}
 	if _, err := s.DB.Room(r.Context(), u.ID, roomID(r)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			s.render(w, r, "room-not-found", 200, page{User: u})
+			s.respondPage(w, r, "room-not-found", 200, page{User: u})
 			return
 		}
 		s.fail(w, err)
@@ -915,24 +911,19 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u database.User
 		hit.serve(w)
 		return
 	}
-	items, err := s.sidebarRooms(r.Context(), u)
+	data, err := s.PageQueries.Sidebar(r.Context(), u.Participant())
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	placeholders, err := s.DB.DirectPlaceholders(r.Context(), u.ID)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.render(
+	s.respondPage(
 		w,
 		r,
 		"sidebar",
 		200,
 		page{
-			Placeholders:    placeholders,
-			SidebarRooms:    items,
+			Placeholders:    data.Placeholders,
+			SidebarRooms:    data.Rooms,
 			User:            u,
 			RoomsStream:     s.Secrets.SignStream("rooms"),
 			UserRoomsStream: s.Secrets.SignStream(rails.UserRoomsStream(u.ID)),
@@ -977,7 +968,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 	if count > 0 {
 		p.messageBody = &part
 	}
-	s.render(w, r, "search", 200, p)
+	s.respondPage(w, r, "search", 200, p)
 }
 
 func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.User) {

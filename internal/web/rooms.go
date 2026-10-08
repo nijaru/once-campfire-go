@@ -150,7 +150,7 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 			divider = 0
 		}
 	}
-	s.render(
+	s.respondPage(
 		w,
 		r,
 		"room-form",
@@ -368,7 +368,7 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
+	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
 }
 
 func (s *Server) roomAt(w http.ResponseWriter, r *http.Request, u database.User) {

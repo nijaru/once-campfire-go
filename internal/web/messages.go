@@ -95,7 +95,7 @@ func (s *Server) showMessage(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "show-message", 200, page{User: u, Messages: views})
+	s.respondPage(w, r, "show-message", 200, page{User: u, Messages: views})
 }
 
 func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -112,7 +112,7 @@ func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "edit-message", 200, page{User: u, Messages: []presentation.MessageView{view}})
+	s.respondPage(w, r, "edit-message", 200, page{User: u, Messages: []presentation.MessageView{view}})
 }
 
 func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -182,7 +182,7 @@ func (s *Server) boosts(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "boosts-index", 200, page{User: u, Messages: []presentation.MessageView{view}})
+	s.respondPage(w, r, "boosts-index", 200, page{User: u, Messages: []presentation.MessageView{view}})
 }
 
 func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -191,7 +191,7 @@ func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "new-boost", 200, page{User: u, Messages: []presentation.MessageView{presentation.ViewMessage(m)}})
+	s.respondPage(w, r, "new-boost", 200, page{User: u, Messages: []presentation.MessageView{presentation.ViewMessage(m)}})
 }
 
 func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.User) {

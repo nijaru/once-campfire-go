@@ -110,7 +110,7 @@ func (s *Server) pushSubscriptions(w http.ResponseWriter, r *http.Request, u dat
 			s.fail(w, err)
 			return
 		}
-		s.render(
+		s.respondPage(
 			w,
 			r,
 			"push-subscriptions",
