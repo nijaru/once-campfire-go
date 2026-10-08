@@ -103,12 +103,21 @@ completed-response cache and existing bounded nested caches. This is a defaults
 comparison, not an equal-memory-cache comparison. Exact images/topology, source snapshots,
 seed hashes, generator CPU and load samples are retained in each compressed record.
 
+Request logging remains enabled for both applications. The runner sets
+`RAILS_LOG_LEVEL=warn`, but Rust's `init_logging` explicitly keeps its frontend at
+INFO unless `CAMPFIRE_LOG` overrides it. Go's default slog handler also emits the
+frontend's INFO request events; it does not interpret `RAILS_LOG_LEVEL`. The
+measured requests were therefore not logged by Go alone.
+
 `comparison` is the pre-session eight-route Go/Rust population; `mixed` is its
 separate shared churn profile; `session-*` compare old/new Go; `final-comparison` is
 the final five-route Go/Rust population. The diagnostic profile is excluded from
 these comparisons: it attributes 16.0% cumulative CPU to SQLite transaction commits,
 4.8% to user reads and 3.0% to the now-removed separate activity read. Percentages
-overlap and are not additive projected gains.
+overlap and are not additive projected gains. The subsequent
+[background-checkpoint prototype](rejected-checkpoints/README.md) was rejected:
+its small, inconsistent POST gain and flat p99 did not justify a driver fork.
+Commit CPU attribution alone did not isolate checkpoint cost.
 
 Guest CPU affinity is not dedicated physical-core isolation. Workstation/VM load
 can vary; no fresh native Intel, TLS, Cable, zstd, large-seed or media-processing
