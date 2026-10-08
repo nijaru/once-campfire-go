@@ -81,6 +81,34 @@ func (q *PageQueries) RoomPage(ctx context.Context, room database.Room, viewer d
 	return RoomPage{Room: view, Invitation: invitation}, nil
 }
 
+type ProfileData struct {
+	Memberships, DirectMemberships []presentation.RoomView
+	AvatarAttached                 bool
+}
+
+func (q *PageQueries) Profile(ctx context.Context, viewer database.RoomParticipant) (ProfileData, error) {
+	rooms, err := q.DB.ProfileRooms(ctx, viewer.ID)
+	if err != nil {
+		return ProfileData{}, err
+	}
+	var data ProfileData
+	_, err = q.DB.AttachedBlob(ctx, "User", viewer.ID, "avatar")
+	data.AvatarAttached = err == nil
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return ProfileData{}, err
+	}
+	for _, room := range rooms {
+		view := presentation.DisplayRoom(room.Room, room.Members, viewer)
+		view.Involvement = room.Involvement
+		if room.Type == "Rooms::Direct" {
+			data.DirectMemberships = append(data.DirectMemberships, view)
+		} else {
+			data.Memberships = append(data.Memberships, view)
+		}
+	}
+	return data, nil
+}
+
 type SidebarData struct {
 	Rooms        []presentation.RoomView
 	Placeholders []database.RoomParticipant

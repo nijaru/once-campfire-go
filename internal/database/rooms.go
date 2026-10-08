@@ -139,27 +139,37 @@ func (d *DB) OriginalRoom(ctx context.Context, user int64) (int64, error) {
 	return id, err
 }
 
-// SidebarRoom owns current membership state and retained direct participants.
-type SidebarRoom struct {
+// RoomMembership owns current membership state and retained direct participants.
+type RoomMembership struct {
 	Room
 	Involvement string
 	Unread      bool
 	Members     []RoomParticipant
 }
 
-func (d *DB) SidebarRooms(ctx context.Context, user int64) ([]SidebarRoom, error) {
-	rows, err := d.Read.QueryContext(
-		ctx,
-		"SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,r.updated_at,coalesce(m.involvement,''),m.unread_at IS NOT NULL FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE m.user_id=? AND m.involvement!='invisible' ORDER BY lower(r.name)",
-		user,
-	)
+func (d *DB) SidebarRooms(ctx context.Context, user int64) ([]RoomMembership, error) {
+	return d.roomMemberships(ctx, user, true)
+}
+
+// ProfileRooms includes invisible and nullable-involvement memberships. Filtering
+// them like the sidebar would hide notification settings the user can still edit.
+func (d *DB) ProfileRooms(ctx context.Context, user int64) ([]RoomMembership, error) {
+	return d.roomMemberships(ctx, user, false)
+}
+
+func (d *DB) roomMemberships(ctx context.Context, user int64, visible bool) ([]RoomMembership, error) {
+	query := "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,r.updated_at,coalesce(m.involvement,''),m.unread_at IS NOT NULL FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE m.user_id=?"
+	if visible {
+		query += " AND m.involvement!='invisible'"
+	}
+	rows, err := d.Read.QueryContext(ctx, query+" ORDER BY lower(r.name)", user)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var rooms []SidebarRoom
+	var rooms []RoomMembership
 	for rows.Next() {
-		var r SidebarRoom
+		var r RoomMembership
 		if err := rows.Scan(&r.ID, &r.CreatorID, &r.Name, &r.Type, timestamp{&r.UpdatedAt}, &r.Involvement, &r.Unread); err != nil {
 			return nil, err
 		}

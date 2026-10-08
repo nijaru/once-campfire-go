@@ -84,7 +84,7 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 	}
 	// Hidden and NULL-involvement directs still consume placeholder slots.
 	checkPlaceholders(ids[9:18])
-	checkRooms := func() []SidebarRoom {
+	checkRooms := func() []RoomMembership {
 		t.Helper()
 		rooms, err := d.SidebarRooms(ctx, viewer.ID)
 		if err != nil {
@@ -125,6 +125,28 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 		return rooms
 	}
 	checkRooms()
+	// Profiles use the same batched participant preparation but must include
+	// hidden and nullable-involvement rooms, unlike the visible sidebar.
+	profile, err := d.ProfileRooms(ctx, viewer.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all, err := d.AllRooms(ctx, viewer.ID)
+	if err != nil || len(profile) != len(all) {
+		t.Fatalf("profile lost memberships: %v %v", profile, err)
+	}
+	for i, room := range profile {
+		involvement, err := d.Involvement(ctx, viewer.ID, room.ID)
+		if err != nil || room.Room != all[i] || room.Involvement != involvement {
+			t.Fatalf("profile membership changed: %+v %v", room, err)
+		}
+		if room.Type == "Rooms::Direct" {
+			participants, err := d.RoomParticipants(ctx, room.ID)
+			if err != nil || !reflect.DeepEqual(room.Members, participants) {
+				t.Fatalf("profile participants changed: %+v %v", room, err)
+			}
+		}
+	}
 	// Warm prepared queries must observe independently committed SQLite changes.
 	external, err := sql.Open("sqlite3", path)
 	if err != nil {

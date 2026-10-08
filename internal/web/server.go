@@ -66,10 +66,6 @@ type attempt struct {
 	Count int
 	Start time.Time
 }
-type profileMembership struct {
-	Room        database.Room
-	Involvement string
-}
 type botView struct {
 	User  database.User
 	Rooms []database.Room
@@ -93,8 +89,8 @@ type page struct {
 	RoomsStream, UserRoomsStream string
 	AvatarAttached               bool
 	AvatarURL                    string
-	Memberships                  []profileMembership
-	DirectMemberships            []profileMembership
+	Memberships                  []presentation.RoomView
+	DirectMemberships            []presentation.RoomView
 	Screen                       string
 	ReturnRoom                   int64
 	Email                        string

@@ -191,42 +191,15 @@ func (s *Server) customStyles(w http.ResponseWriter, r *http.Request, u database
 
 func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User) {
 	if r.Method == "GET" || r.Method == "HEAD" {
-		rooms, err := s.DB.AllRooms(r.Context(), u.ID)
+		data, err := s.PageQueries.Profile(r.Context(), u.Participant())
 		if err != nil {
 			s.fail(w, err)
 			return
 		}
 		p := page{
-			Title:    "My settings",
-			User:     u,
-			Rooms:    rooms,
-			Transfer: s.origin(r) + s.transferPath(u),
-		}
-		_, err = s.DB.AttachedBlob(r.Context(), "User", u.ID, "avatar")
-		p.AvatarAttached = err == nil
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			s.fail(w, err)
-			return
-		}
-		for _, room := range rooms {
-			involvement, err := s.DB.Involvement(r.Context(), u.ID, room.ID)
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
-			view, err := s.PageQueries.DisplayRoom(r.Context(), room, u.Participant())
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
-			if room.Type == "Rooms::Direct" {
-				p.DirectMemberships = append(
-					p.DirectMemberships,
-					profileMembership{view.Room, involvement},
-				)
-			} else {
-				p.Memberships = append(p.Memberships, profileMembership{view.Room, involvement})
-			}
+			Title: "My settings", User: u, Transfer: s.origin(r) + s.transferPath(u),
+			AvatarAttached: data.AvatarAttached, Memberships: data.Memberships,
+			DirectMemberships: data.DirectMemberships,
 		}
 		s.respondPage(w, r, "profile", 200, p)
 		return
