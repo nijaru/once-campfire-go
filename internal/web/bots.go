@@ -303,7 +303,10 @@ func (s *Server) userJSON(r *http.Request, u database.User) userJSON {
 }
 func (s *Server) messageJSON(r *http.Request, m database.Message) (messageJSON, error) {
 	result := messageJSON{ID: m.ID, CreatedAt: jsonTime(m.CreatedAt), URL: fmt.Sprintf("%s/rooms/%d/messages/%d", s.origin(r), m.RoomID, m.ID)}
-	rich := s.richText(r.Context(), m.Body)
+	rich, err := s.richText(r.Context(), m.Body)
+	if err != nil {
+		return result, err
+	}
 	plain := rich.Plain
 	result.Body.Plain = plain
 	result.Body.HTML = rich.BodyHTML

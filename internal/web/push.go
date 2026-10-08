@@ -229,7 +229,11 @@ func (s *Server) messageCreated(message database.Message, room database.Room) {
 	if s.Push.VAPID == nil {
 		return
 	}
-	mentions := s.mentionedIDs(ctx, message.Body)
+	mentions, err := s.mentionedIDs(ctx, message.Body)
+	if err != nil {
+		slog.Error("push mentions failed", "error", err)
+		return
+	}
 	subscriptions, err := s.DB.PushRecipients(ctx, room.ID, message.CreatorID, mentions)
 	if err != nil {
 		slog.Error("push recipients failed", "error", err)
@@ -238,7 +242,11 @@ func (s *Server) messageCreated(message database.Message, room database.Room) {
 	if len(subscriptions) == 0 {
 		return
 	}
-	body := s.plainText(ctx, message.Body)
+	body, err := s.plainText(ctx, message.Body)
+	if err != nil {
+		slog.Error("push body failed", "error", err)
+		return
+	}
 	if attachment, err := s.DB.AttachedBlob(ctx, "Message", message.ID, "attachment"); err == nil &&
 		attachment.ID != 0 &&
 		strings.TrimSpace(body) == "" {

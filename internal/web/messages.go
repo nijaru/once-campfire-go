@@ -15,6 +15,7 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/rails"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
@@ -89,17 +90,26 @@ func (s *Server) messagePageViews(
 		return s.messageViews(ctx, records)
 	}
 	views := viewMessages(records)
+	var creators map[int64]database.UserDisplay
+	if name != "new-boost" {
+		ids := make([]int64, len(records))
+		for i, record := range records {
+			ids[i] = record.CreatorID
+		}
+		var err error
+		creators, err = s.DB.UserDisplays(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for i := range views {
 		if name == "new-boost" {
 			continue
 		}
 		// Missing creators suppress attachment/boost presentation in the
 		// reference. This observation is required even by these narrow views.
-		_, err := s.DB.User(ctx, views[i].CreatorID)
-		missingCreator := errors.Is(err, sql.ErrNoRows)
-		if err != nil && !missingCreator {
-			return nil, err
-		}
+		_, exists := creators[views[i].CreatorID]
+		missingCreator := !exists
 		switch name {
 		case "edit-message":
 			if !missingCreator {
@@ -108,7 +118,12 @@ func (s *Server) messagePageViews(
 				}
 			}
 			if views[i].Attachment == nil {
-				views[i].Editable, _ = richtext.Editable(views[i].Body, s.richContext(ctx))
+				doc := richtext.Prepare(views[i].Body)
+				resolved, err := s.resolveDocument(ctx, doc.EditorAttachables())
+				if err != nil {
+					return nil, err
+				}
+				views[i].Editable, _ = doc.Editable(resolved)
 			}
 		case "boosts-index":
 			if missingCreator {
@@ -129,14 +144,14 @@ func (s *Server) messagePageViews(
 type messagePreparation struct {
 	records   []database.Message
 	documents map[int]richtext.Document
-	targets   map[string]mentionTarget
+	targets   map[string]presentation.MentionTarget
 	mentioned []int64
 }
 
 func prepareMessageViews(views []messageView) messagePreparation {
 	var records []database.Message
 	documents := make(map[int]richtext.Document)
-	targets := make(map[string]mentionTarget)
+	targets := make(map[string]presentation.MentionTarget)
 	var mentioned []int64
 	for i := range views {
 		if views[i].Fragment != "" {
@@ -149,7 +164,7 @@ func prepareMessageViews(views []messageView) messagePreparation {
 			if _, ok := targets[token]; ok {
 				continue
 			}
-			target := displayMentionTarget(token)
+			target := presentation.MentionTargetFor(token)
 			targets[token] = target
 			if target.ID != 0 {
 				mentioned = append(mentioned, target.ID)

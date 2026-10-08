@@ -77,20 +77,7 @@ func messageDisplays(ctx context.Context, tx *sql.Tx, records []Message, mention
 	if err != nil {
 		return nil, nil, err
 	}
-	rows, err := tx.QueryContext(ctx, "SELECT id,name,coalesce(bio,''),updated_at FROM users WHERE id IN (SELECT value FROM json_each(?))", displayIDs(userIDs))
-	if err != nil {
-		return nil, nil, err
-	}
-	for rows.Next() {
-		var u UserDisplay
-		if err = rows.Scan(&u.ID, &u.Name, &u.Bio, timestamp{&u.UpdatedAt}); err != nil {
-			rows.Close()
-			return nil, nil, err
-		}
-		users[u.ID] = u
-	}
-	err = rows.Err()
-	rows.Close()
+	users, err = userDisplays(ctx, tx, userIDs)
 	if err != nil {
 		return nil, nil, err
 	}

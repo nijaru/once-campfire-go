@@ -22,7 +22,8 @@ func TestMessageMentionReadFailureDoesNotRenderSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = app.DB.CreateMessage(ctx, owner.ID, rooms[0].ID, messageInput("", body)); err != nil {
+	message, err := app.DB.CreateMessage(ctx, owner.ID, rooms[0].ID, messageInput("", body))
+	if err != nil {
 		t.Fatal(err)
 	}
 	// A real foreign-style malformed SQLite value makes the target's display
@@ -30,8 +31,16 @@ func TestMessageMentionReadFailureDoesNotRenderSuccess(t *testing.T) {
 	if _, err = app.DB.Write.ExecContext(ctx, "UPDATE users SET updated_at=? WHERE id=?", []byte("unreadable timestamp"), target.ID); err != nil {
 		t.Fatal(err)
 	}
-	response, _ := perform(t, server, "GET", fmt.Sprintf("/rooms/%d/messages", rooms[0].ID), "", nil, cookie)
-	if response.StatusCode != 500 {
-		t.Fatalf("mention database failure hidden: %s", response.Status)
+	for _, path := range []string{
+		fmt.Sprintf("/rooms/%d/messages", rooms[0].ID),
+		fmt.Sprintf("/rooms/%d/messages/%d/edit", rooms[0].ID, message.ID),
+		fmt.Sprintf("/rooms/%d/api/messages", rooms[0].ID),
+	} {
+		t.Run(path, func(t *testing.T) {
+			response, _ := perform(t, server, "GET", path, "", nil, cookie)
+			if response.StatusCode != 500 {
+				t.Fatalf("mention database failure hidden: %s", response.Status)
+			}
+		})
 	}
 }

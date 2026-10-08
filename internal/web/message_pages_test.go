@@ -57,7 +57,12 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 					t.Fatal(err)
 				}
 				if name == "edit-message" {
-					before[0].Editable, _ = richtext.Editable(m.Body, app.richContext(ctx))
+					doc := richtext.Prepare(m.Body)
+					resolved, err := app.resolveDocument(ctx, doc.EditorAttachables())
+					if err != nil {
+						t.Fatal(err)
+					}
+					before[0].Editable, _ = doc.Editable(resolved)
 				}
 				after, err := app.messagePageViews(ctx, name, []database.Message{m.Message})
 				if err != nil || len(after) != 1 {

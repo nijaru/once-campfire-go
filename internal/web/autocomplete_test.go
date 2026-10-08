@@ -45,9 +45,13 @@ func TestMentionAutocompleteAndRendering(t *testing.T) {
 	if response.StatusCode != 200 || !strings.Contains(string(raw), `class="mention"`) {
 		t.Fatalf("%d %s", response.StatusCode, raw)
 	}
-	result := app.richText(ctx, messages[0].Body)
-	if result.Plain != "Hi @Owner" || len(result.Mentioned) != 1 || result.Mentioned[0] != owner.ID {
-		t.Fatal(result)
+	result, err := app.richText(ctx, messages[0].Body)
+	if err != nil || result.Plain != "Hi @Owner" {
+		t.Fatal(result, err)
+	}
+	ids, err := app.mentionedIDs(ctx, messages[0].Body)
+	if err != nil || len(ids) != 1 || ids[0] != owner.ID {
+		t.Fatal(ids, err)
 	}
 	response, raw = perform(t, server, "GET", "/autocompletable/users?filter=Other", "", nil, cookie)
 	if response.StatusCode != 200 || !strings.Contains(string(raw), `<lexxy-prompt-item`) || strings.Contains(string(raw), `Other <person>`) {

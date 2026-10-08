@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 	"uuid"
@@ -275,42 +274,41 @@ func (d *DB) messageUpload(ctx context.Context, tx *sql.Tx, input MessageInput) 
 func messageSearchText(ctx context.Context, tx *sql.Tx, message Message) (string, error) {
 	// Content failures deliberately retain the reference's empty-text fallback.
 	// SQL/cancellation failures are different: the command must roll back.
-	var lookupErr error
-	cache := map[int64]*richtext.Mention{}
-	plain, _ := richtext.PlainText(message.Body, richtext.Context{Resolve: func(token string, _ bool) (*richtext.Mention, error) {
-		gid, err := rails.UnverifiedUserGID(token)
-		if err != nil {
-			return nil, err
+	doc := richtext.Prepare(message.Body)
+	targets := map[string]int64{}
+	ids := map[int64]bool{}
+	errorsByToken := map[string]error{}
+	for _, token := range doc.PlainAttachables() {
+		id, err := rails.UnverifiedUserID(token)
+		targets[token] = id
+		errorsByToken[token] = err
+		if id != 0 {
+			ids[id] = true
 		}
-		gid, _, _ = strings.Cut(gid, "?")
-		parts := strings.Split(gid, "/")
-		if len(parts) != 5 || parts[3] != "User" {
-			return nil, nil
-		}
-		id, err := strconv.ParseInt(parts[4], 10, 64)
-		if err != nil {
-			return nil, nil
-		}
-		if mention, ok := cache[id]; ok {
-			return mention, nil
-		}
-		var name string
-		err = tx.QueryRowContext(ctx, "SELECT name FROM users WHERE id=?", id).Scan(&name)
-		if errors.Is(err, sql.ErrNoRows) {
-			cache[id] = nil
-			return nil, nil
-		}
-		if err != nil {
-			lookupErr = err
-			return nil, err
-		}
-		mention := &richtext.Mention{ID: id, Name: name}
-		cache[id] = mention
-		return mention, nil
-	}})
-	if lookupErr != nil {
-		return "", lookupErr
 	}
+	mentions := map[int64]*richtext.Mention{}
+	if len(ids) > 0 {
+		rows, err := tx.QueryContext(ctx, "SELECT id,name FROM users WHERE id IN (SELECT value FROM json_each(?))", displayIDs(ids))
+		if err != nil {
+			return "", err
+		}
+		for rows.Next() {
+			var mention richtext.Mention
+			if err := rows.Scan(&mention.ID, &mention.Name); err != nil {
+				rows.Close()
+				return "", err
+			}
+			mentions[mention.ID] = &mention
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return "", err
+		}
+	}
+	plain, _ := doc.PlainText(richtext.Context{Resolve: func(token string, _ bool) (*richtext.Mention, error) {
+		return mentions[targets[token]], errorsByToken[token]
+	}})
 	if strings.TrimSpace(plain) != "" {
 		return plain, nil
 	}

@@ -25,7 +25,8 @@ func (s *Server) enqueueWebhooks(message database.Message, room database.Room) {
 	if room.Type == "Rooms::Direct" {
 		candidates, err = s.DB.Users(ctx, room.ID, true)
 	} else {
-		ids := s.mentionedIDs(ctx, message.Body)
+		var ids []int64
+		ids, err = s.mentionedIDs(ctx, message.Body)
 		for _, id := range ids {
 			u, e := s.DB.User(ctx, id)
 			if errors.Is(e, sql.ErrNoRows) {
@@ -72,7 +73,10 @@ func (s *Server) deliverWebhook(ctx context.Context, botID, messageID int64) err
 	if err != nil {
 		return err
 	}
-	plain := s.plainText(ctx, message.Body)
+	plain, err := s.plainText(ctx, message.Body)
+	if err != nil {
+		return err
+	}
 	if strings.TrimSpace(plain) == "" {
 		if blob, e := s.DB.AttachedBlob(ctx, "Message", message.ID, "attachment"); e == nil {
 			plain = blob.Filename
