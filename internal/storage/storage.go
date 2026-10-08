@@ -27,6 +27,7 @@ type Store struct {
 	Verifier    rails.Verifier
 	Root        string
 	derivatives derivativeFlights
+	purges      purgeContinuations
 }
 type Blob struct {
 	ID          int64           `json:"id"`
