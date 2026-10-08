@@ -94,32 +94,6 @@ func (d *DB) UserByEmail(ctx context.Context, email string) (User, error) {
 	)
 }
 
-func (d *DB) SessionUser(ctx context.Context, token string) (User, error) {
-	return userRow(
-		d.Read.QueryRowContext(
-			ctx,
-			"SELECT "+userColumns+" FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND u.status=0",
-			token,
-		),
-	)
-}
-
-func (d *DB) StartSession(ctx context.Context, user int64, agent, ip string) (string, error) {
-	token, now := Token(), Stamp(d.Now())
-	_, err := d.Write.ExecContext(
-		ctx,
-		"INSERT INTO sessions(token,user_id,user_agent,ip_address,last_active_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?)",
-		token,
-		user,
-		agent,
-		ip,
-		now,
-		now,
-		now,
-	)
-	return token, err
-}
-
 func (d *DB) Setup(
 	ctx context.Context,
 	name, email, passwordDigest string,

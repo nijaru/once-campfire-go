@@ -546,16 +546,11 @@ func (s *Server) auth(
 			s.requestAuthentication(w, r)
 			return
 		}
-		u, err := s.DB.SessionUser(r.Context(), token)
+		u, refreshed, err := s.DB.AuthenticateSession(r.Context(), token, r.UserAgent(), remoteIP(r))
 		if errors.Is(err, sql.ErrNoRows) {
 			s.requestAuthentication(w, r)
 			return
 		}
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-		refreshed, err := s.DB.RefreshSession(r.Context(), token, r.UserAgent(), remoteIP(r))
 		if err != nil {
 			s.fail(w, err)
 			return

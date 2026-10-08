@@ -157,8 +157,10 @@ reduces allocations and improves measured room throughput. The
 [cache-hit setup comparison](bench/results/read-path-20261008/README.md) removes repeated route
 recognition and SQLite statement preparation, improving read medians by 5.5–9.4%; writes do not
 improve. It also records a rejected query-fusion experiment rather than hiding its regressions.
-Earlier comparisons still favor Rust on reads. These local measurements differ from the upstream
-table in machine, revisions and methodology.
+The [shared-contract comparison](bench/results/shared-contracts-20261008/README.md) validates
+every timed response and exact acknowledged write, combines duplicate session reads, and improves
+read medians by another 3.7–5.4%. Fresh Rust comparisons still favor Rust on every measured route.
+These local measurements differ from the upstream table in machine, revisions and methodology.
 
 ## Known differences
 

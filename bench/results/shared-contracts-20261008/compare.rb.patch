@@ -1,0 +1,31 @@
+diff --git i/bench/compare.rb w/bench/compare.rb
+index f7c2c37..fb25d6a 100644
+--- i/bench/compare.rb
++++ w/bench/compare.rb
+@@ -29,7 +29,7 @@ OptionParser.new do |parser|
+ end.parse!
+ raise "use at least two rounds" unless options[:rounds] >= 2
+ apps = options[:apps].split(",")
+-allowed = %w[rails django laravel express express-bun elixir go rust c]
++allowed = %w[rails django laravel express express-bun elixir go go-before rust c]
+ raise "apps must be nonempty, unique and supported" unless !apps.empty? && apps.uniq == apps && apps.all? { |app| allowed.include?(app) }
+ selected_routes = options[:routes].split(",")
+ raise "unknown or empty route selection" unless !selected_routes.empty? && (selected_routes - %w[room_show messages_page sidebar search avatar static_css up post_message]).empty?
+@@ -40,7 +40,7 @@ if mixed
+   selected_routes &= %w[room_show messages_page sidebar search]
+   raise "mixed profile requires a read route" if selected_routes.empty?
+ end
+-runtimes = apps.to_h { |app| [app, app == "express-bun" ? "express" : app] }
++runtimes = apps.to_h { |app| [app, app == "express-bun" ? "express" : app == "go-before" ? "go" : app] }
+ env_name = ->(app) { app.upcase.tr("-", "_") }
+ labels = JSON.parse(File.read(File.join(options[:seed], "labels.json")))
+ original_seed_sha = Digest::SHA256.file(File.join(options[:seed], "db/production.sqlite3")).hexdigest
+@@ -91,7 +91,7 @@ begin
+       kind = runtimes.fetch(app)
+       images = { "rails" => "once-campfire:app", "rust" => "campfire-rust:app", "elixir" => "campfire-elixir:app", "express-bun" => "once-campfire-express:bun" }
+       image = ENV.fetch("#{env_name.(app)}_IMAGE", images.fetch(app, "once-campfire-#{app}:app"))
+-      source = File.join(options[:workspace], kind == "rails" ? "once-campfire" : "once-campfire-#{kind}")
++      source = File.join(options[:workspace], kind == "rails" ? "once-campfire" : "once-campfire-#{app == "go-before" ? app : kind}")
+       image_id = run("docker", "image", "inspect", "-f", "{{.Id}}", image).strip
+       raise "#{app}: image changed between rounds" if metadata[:images].key?(app) && metadata[:images][app] != image_id
+       metadata[:images][app] = image_id

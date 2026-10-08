@@ -345,31 +345,6 @@ func (d *DB) BannedIP(ctx context.Context, ip string) (bool, error) {
 	return n > 0, err
 }
 
-func (d *DB) RefreshSession(ctx context.Context, token, agent, ip string) (bool, error) {
-	now := d.Now()
-	var active time.Time
-	if err := d.Read.QueryRowContext(ctx, "SELECT last_active_at FROM sessions WHERE token=?", token).Scan(timestamp{&active}); err != nil {
-		return false, err
-	}
-	if !active.Before(now.Add(-time.Hour)) {
-		return false, nil
-	}
-	r, err := d.Write.ExecContext(
-		ctx,
-		"UPDATE sessions SET last_active_at=?,updated_at=?,user_agent=?,ip_address=? WHERE token=? AND last_active_at<?",
-		Stamp(now),
-		Stamp(now),
-		agent,
-		ip,
-		token,
-		Stamp(now.Add(-time.Hour)),
-	)
-	if err != nil {
-		return false, err
-	}
-	n, err := r.RowsAffected()
-	return n > 0, err
-}
 func (u User) BotKey() string { return fmt.Sprintf("%d-%s", u.ID, u.BotToken) }
 
 func (d *DB) AccountUsers(ctx context.Context, includeBanned bool) ([]User, error) {
