@@ -67,7 +67,7 @@ func (s *Server) createdMessageEffects(ctx context.Context, result application.M
 	// or publication's independently owned deadline.
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
-	views, err := s.messageViews(ctx, []database.Message{commit.Message})
+	views, err := s.MessageQueries.Views(ctx, s.presentationFacts(ctx), []database.Message{commit.Message})
 	if err != nil {
 		return "", errors.Join(result.Processing, err)
 	}
@@ -84,7 +84,7 @@ func (s *Server) updatedMessageEffects(ctx context.Context, result application.M
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	message := result.Commit.Message
-	views, err := s.messageViews(ctx, []database.Message{message})
+	views, err := s.MessageQueries.Views(ctx, s.presentationFacts(ctx), []database.Message{message})
 	if err != nil {
 		return errors.Join(result.Processing, err)
 	}

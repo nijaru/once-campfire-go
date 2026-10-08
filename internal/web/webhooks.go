@@ -26,7 +26,7 @@ func (s *Server) enqueueWebhooks(message database.Message, room database.Room) {
 		candidates, err = s.DB.Users(ctx, room.ID, true)
 	} else {
 		var ids []int64
-		ids, err = s.mentionedIDs(ctx, message.Body)
+		ids, err = s.ContentQueries.MentionedIDs(ctx, s.presentationFacts(ctx), message.Body)
 		for _, id := range ids {
 			u, e := s.DB.User(ctx, id)
 			if errors.Is(e, sql.ErrNoRows) {
@@ -73,7 +73,7 @@ func (s *Server) deliverWebhook(ctx context.Context, botID, messageID int64) err
 	if err != nil {
 		return err
 	}
-	plain, err := s.plainText(ctx, message.Body)
+	plain, err := s.ContentQueries.PlainText(ctx, s.presentationFacts(ctx), message.Body)
 	if err != nil {
 		return err
 	}

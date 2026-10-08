@@ -164,7 +164,7 @@ func TestMissingMessageAuthorKeepsPlaceholder(t *testing.T) {
 	if len(messages) != 1 {
 		t.Fatalf("orphan disappeared: %d messages", len(messages))
 	}
-	views, err := app.messageViews(ctx, messages)
+	views, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), messages)
 	if err != nil {
 		t.Fatal(err)
 	}

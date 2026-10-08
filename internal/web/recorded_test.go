@@ -13,8 +13,21 @@ import (
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
+
+func capturedMessagePart(ctx context.Context, app *Server, records []database.Message) (responsebody.Part, error) {
+	views, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), records)
+	if err != nil {
+		return responsebody.Part{}, err
+	}
+	fragments := make([]template.HTML, len(views))
+	for i, view := range views {
+		fragments[i] = view.Fragment
+	}
+	return presentation.FragmentList(fragments), nil
+}
 
 func TestMessageControllersRenderFreshRecords(t *testing.T) {
 	app, server, cookie, user := testApp(t)
@@ -66,7 +79,7 @@ func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 	app.fragments = newFragmentCache(0)
 	var want []template.HTML
 	for _, record := range records {
-		views, err := app.messageViews(ctx, []database.Message{record})
+		views, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), []database.Message{record})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -90,7 +103,7 @@ func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 			t.Fatal(err)
 		}
 		read.Close()
-		got, err := app.messageViews(ctx, records)
+		got, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), records)
 		if err != nil || len(got) != len(want) {
 			t.Fatal("batch size/error differs", err)
 		}
@@ -190,7 +203,7 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 		t.Fatal(err)
 	}
 	list := []database.Message{message.Message}
-	views, err := app.messageViews(ctx, list)
+	views, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), list)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +211,7 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 	if err := app.Presentation.ExecuteTemplate(&original, "messages", page{Messages: views}); err != nil {
 		t.Fatal(err)
 	}
-	fragment, err := app.messageList(ctx, list)
+	fragment, err := capturedMessagePart(ctx, app, list)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +246,7 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 	}
 	list[0].UpdatedAt = list[0].UpdatedAt.Add(time.Second)
 	list[0].Body = "<p>changed</p>"
-	changed, err := app.messageList(ctx, list)
+	changed, err := capturedMessagePart(ctx, app, list)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,7 +29,7 @@ func TestMentionPreparationKeepsLegacyRecipients(t *testing.T) {
 	if err = json.Unmarshal(raw, &fixture); err != nil {
 		t.Fatal(err)
 	}
-	app.Secrets, err = rails.NewSecrets(fixture.Secret)
+	app.ContentQueries.Secrets, err = rails.NewSecrets(fixture.Secret)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestMentionPreparationKeepsLegacyRecipients(t *testing.T) {
 			}
 			app.DB.Now = func() time.Time { return now }
 			body := fmt.Sprintf(`<action-text-attachment sgid="%s"></action-text-attachment>`, test.SGID)
-			ids, err := app.mentionedIDs(context.Background(), body)
+			ids, err := app.ContentQueries.MentionedIDs(context.Background(), app.presentationFacts(context.Background()), body)
 			if err != nil {
 				t.Fatal(err)
 			}

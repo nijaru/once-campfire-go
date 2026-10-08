@@ -7,41 +7,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 // The marker exists only during template execution. The actual response inserts
 // the cached message list without copying it through template/fmt/page buffers.
 
-func (s *Server) messageList(ctx context.Context, messages []database.Message) (responsebody.Part, error) {
-	views, err := s.messageViews(ctx, messages)
-	if err != nil {
-		return responsebody.Part{}, err
-	}
-	fragments := make([]template.HTML, len(views))
-	for i, view := range views {
-		fragments[i] = view.Fragment
-	}
-	return messageListPart(fragments), nil
-}
-
-func messageListPart(fragments []template.HTML) responsebody.Part {
-	size := 0
-	for _, fragment := range fragments {
-		size += len(fragment)
-	}
-	body := make([]byte, size)
-	offset := 0
-	for _, fragment := range fragments {
-		offset += copy(body[offset:], fragment)
-	}
-	// The Part owns unpooled bytes through eviction and outstanding responses.
-	return responsebody.NewPart(body)
-}
-
 func (s *Server) recordMessageList(ctx context.Context, key string, fragments []template.HTML) responsebody.Part {
-	entry := fragmentEntry{key: key, part: messageListPart(fragments)}
+	entry := fragmentEntry{key: key, part: presentation.FragmentList(fragments)}
 	if cacheFragments(ctx) {
 		entry = s.fragments.putEntry(entry)
 	}

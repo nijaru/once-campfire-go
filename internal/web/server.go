@@ -45,6 +45,8 @@ type Server struct {
 	Unfurler        *integrations.Unfurler
 	Storage         *storage.Store
 	MessageCommands *application.Messages
+	MessageQueries  *application.MessageQueries
+	ContentQueries  *application.ContentQueries
 	RoomCommands    *application.Rooms
 	AccountCommands *application.Accounts
 	SessionCommands *application.Sessions
@@ -71,9 +73,8 @@ type botView struct {
 	Rooms []database.Room
 }
 type page struct {
-	// Controller input: records or an already prepared immutable message list.
-	messageRecords []database.Message
-	messageBody    *responsebody.Part
+	// An already prepared immutable message list; rendering never loads records.
+	messageBody *responsebody.Part
 
 	MessagesHTML                 template.HTML
 	Version                      string
@@ -169,6 +170,8 @@ func New(
 	s.Webhooks = integrations.NewWebhookClient()
 	s.initJobs()
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
+	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
+	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
 	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
 	attachments := &application.Attachments{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
@@ -441,23 +444,8 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, sta
 	if a.CustomStyles != "" {
 		p.CustomStyles = template.HTML("<style>" + a.CustomStyles + "</style>")
 	}
-	raw := p.messageRecords
-	p.messageRecords = nil
 	recorded := p.messageBody
 	p.messageBody = nil
-	if len(raw) > 0 {
-		if name == "room" || name == "messages" || name == "search" {
-			var entry responsebody.Part
-			entry, err = s.messageList(r.Context(), raw)
-			recorded = &entry
-		} else {
-			p.Messages, err = s.messagePageViews(r.Context(), name, raw)
-		}
-		if err != nil {
-			s.fail(w, err)
-			return
-		}
-	}
 	if name == "search" {
 		p.ReturnRoom, _ = s.lastRoom(r, p.User.ID)
 	}

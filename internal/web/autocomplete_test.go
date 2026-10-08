@@ -45,11 +45,11 @@ func TestMentionAutocompleteAndRendering(t *testing.T) {
 	if response.StatusCode != 200 || !strings.Contains(string(raw), `class="mention"`) {
 		t.Fatalf("%d %s", response.StatusCode, raw)
 	}
-	result, err := app.richText(ctx, messages[0].Body)
+	result, err := app.ContentQueries.Content(ctx, app.presentationFacts(ctx), messages[0].Body)
 	if err != nil || result.Plain != "Hi @Owner" {
 		t.Fatal(result, err)
 	}
-	ids, err := app.mentionedIDs(ctx, messages[0].Body)
+	ids, err := app.ContentQueries.MentionedIDs(ctx, app.presentationFacts(ctx), messages[0].Body)
 	if err != nil || len(ids) != 1 || ids[0] != owner.ID {
 		t.Fatal(ids, err)
 	}

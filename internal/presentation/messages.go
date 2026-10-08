@@ -36,9 +36,13 @@ type Facts struct {
 func ViewMessages(records []database.Message) []MessageView {
 	views := make([]MessageView, len(records))
 	for i, m := range records {
-		views[i] = MessageView{ID: m.ID, RoomID: m.RoomID, CreatorID: m.CreatorID, ClientID: m.ClientID, Body: m.Body, Creator: m.Creator, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt}
+		views[i] = ViewMessage(m)
 	}
 	return views
+}
+
+func ViewMessage(m database.Message) MessageView {
+	return MessageView{ID: m.ID, RoomID: m.RoomID, CreatorID: m.CreatorID, ClientID: m.ClientID, Body: m.Body, Creator: m.Creator, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt}
 }
 
 // PreparedMessages owns the bodies and parsed documents used by the association

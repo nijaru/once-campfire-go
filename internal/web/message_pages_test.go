@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 )
 
@@ -52,20 +53,29 @@ func TestMessageFormsPreserveFullHydrationBytes(t *testing.T) {
 				}
 			}
 			for _, name := range []string{"edit-message", "new-boost", "boosts-index"} {
-				before, err := app.messageViews(ctx, []database.Message{m.Message})
+				before, err := app.MessageQueries.Views(ctx, app.presentationFacts(ctx), []database.Message{m.Message})
 				if err != nil {
 					t.Fatal(err)
 				}
 				if name == "edit-message" {
 					doc := richtext.Prepare(m.Body)
-					resolved, err := app.resolveDocument(ctx, doc.EditorAttachables())
+					resolved, err := app.ContentQueries.Resolve(ctx, app.presentationFacts(ctx), doc.EditorAttachables())
 					if err != nil {
 						t.Fatal(err)
 					}
 					before[0].Editable, _ = doc.Editable(resolved)
 				}
-				after, err := app.messagePageViews(ctx, name, []database.Message{m.Message})
-				if err != nil || len(after) != 1 {
+				var view presentation.MessageView
+				switch name {
+				case "edit-message":
+					view, err = app.MessageQueries.Edit(ctx, app.presentationFacts(ctx), m.Message)
+				case "boosts-index":
+					view, err = app.MessageQueries.Boosts(ctx, m.Message)
+				case "new-boost":
+					view = presentation.ViewMessage(m.Message)
+				}
+				after := []presentation.MessageView{view}
+				if err != nil {
 					t.Fatalf("%s: %v", name, err)
 				}
 				var expected, actual bytes.Buffer

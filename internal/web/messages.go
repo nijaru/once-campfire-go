@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,7 +12,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
-	"github.com/basecamp/once-campfire-go/internal/richtext"
 )
 
 func (s *Server) registerMessageRoutes() {
@@ -64,79 +62,6 @@ func (s *Server) findMessage(
 	return m, nil
 }
 
-func (s *Server) messageViews(
-	ctx context.Context,
-	messages []database.Message,
-) ([]presentation.MessageView, error) {
-	// Receipts and separately captured records have no query-owned observation.
-	prepared := presentation.PrepareMessages(messages)
-	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
-	if err != nil {
-		return nil, err
-	}
-	return s.Presentation.Messages(s.presentationFacts(ctx), prepared, data, users)
-}
-
-// Single-message forms consume different data from a displayed message. Keep
-// their reads fresh without rendering and retaining an unused message fragment.
-func (s *Server) messagePageViews(
-	ctx context.Context,
-	name string,
-	records []database.Message,
-) ([]presentation.MessageView, error) {
-	if name != "edit-message" && name != "boosts-index" && name != "new-boost" {
-		return s.messageViews(ctx, records)
-	}
-	views := presentation.ViewMessages(records)
-	var creators map[int64]database.UserDisplay
-	if name != "new-boost" {
-		ids := make([]int64, len(records))
-		for i, record := range records {
-			ids[i] = record.CreatorID
-		}
-		var err error
-		creators, err = s.DB.UserDisplays(ctx, ids)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for i := range views {
-		if name == "new-boost" {
-			continue
-		}
-		// Missing creators suppress attachment/boost presentation in the
-		// reference. This observation is required even by these narrow views.
-		_, exists := creators[views[i].CreatorID]
-		missingCreator := !exists
-		switch name {
-		case "edit-message":
-			if !missingCreator {
-				if err := s.messageAttachment(ctx, &views[i]); err != nil {
-					return nil, err
-				}
-			}
-			if views[i].Attachment == nil {
-				doc := richtext.Prepare(views[i].Body)
-				resolved, err := s.resolveDocument(ctx, doc.EditorAttachables())
-				if err != nil {
-					return nil, err
-				}
-				views[i].Editable, _ = doc.Editable(resolved)
-			}
-		case "boosts-index":
-			if missingCreator {
-				continue
-			}
-			var err error
-			views[i].Boosts, err = s.DB.Boosts(ctx, views[i].ID)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return views, nil
-}
-
 func (s *Server) presentationFacts(ctx context.Context) presentation.Facts {
 	facts := presentation.Facts{Now: s.DB.Now()}
 	if info := requestMetadata(ctx); info != nil {
@@ -164,17 +89,6 @@ func (s *Server) presentMessages(ctx context.Context, prepared presentation.Prep
 	return views, nil
 }
 
-func (s *Server) messageAttachment(ctx context.Context, view *presentation.MessageView) error {
-	blob, err := s.DB.AttachedBlob(ctx, "Message", view.ID, "attachment")
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	return s.Presentation.MessageAttachment(view, blob)
-}
-
 func (s *Server) publish(room int64, markup string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -192,7 +106,15 @@ func (s *Server) showMessage(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "show-message", 200, page{User: u, messageRecords: []database.Message{m}})
+	if respondFormat(w, r, "html") == "" {
+		return
+	}
+	views, err := s.MessageQueries.Views(r.Context(), s.presentationFacts(r.Context()), []database.Message{m})
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	s.render(w, r, "show-message", 200, page{User: u, Messages: views})
 }
 
 func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -201,7 +123,15 @@ func (s *Server) editMessage(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "edit-message", 200, page{User: u, messageRecords: []database.Message{m}})
+	if respondFormat(w, r, "html") == "" {
+		return
+	}
+	view, err := s.MessageQueries.Edit(r.Context(), s.presentationFacts(r.Context()), m)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	s.render(w, r, "edit-message", 200, page{User: u, Messages: []presentation.MessageView{view}})
 }
 
 func (s *Server) updateMessage(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -263,7 +193,15 @@ func (s *Server) boosts(w http.ResponseWriter, r *http.Request, u database.User)
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "boosts-index", 200, page{User: u, messageRecords: []database.Message{m}})
+	if respondFormat(w, r, "html") == "" {
+		return
+	}
+	view, err := s.MessageQueries.Boosts(r.Context(), m)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	s.render(w, r, "boosts-index", 200, page{User: u, Messages: []presentation.MessageView{view}})
 }
 
 func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -272,7 +210,7 @@ func (s *Server) newBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
-	s.render(w, r, "new-boost", 200, page{User: u, messageRecords: []database.Message{m}})
+	s.render(w, r, "new-boost", 200, page{User: u, Messages: []presentation.MessageView{presentation.ViewMessage(m)}})
 }
 
 func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -333,7 +271,7 @@ func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.
 		action   string
 		messages []database.Message
 	}{{"append", created}, {"replace", updated}} {
-		views, err := s.messageViews(r.Context(), group.messages)
+		views, err := s.MessageQueries.Views(r.Context(), s.presentationFacts(r.Context()), group.messages)
 		if err != nil {
 			s.fail(w, err)
 			return

@@ -9,8 +9,13 @@ import (
 
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/httpcompat"
+	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 )
+
+func (s *Server) mention(u database.User) richtext.Mention {
+	return presentation.Mention(s.Secrets, database.UserDisplay{ID: u.ID, Name: u.Name, Bio: u.Bio, UpdatedAt: u.UpdatedAt})
+}
 
 func (s *Server) autocomplete(w http.ResponseWriter, r *http.Request, u database.User) {
 	room := int64(0)

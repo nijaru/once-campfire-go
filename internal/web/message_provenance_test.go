@@ -33,7 +33,7 @@ func TestCapturedMessageCannotPopulateNewObservation(t *testing.T) {
 	}
 	// Background publication can still hold an older committed receipt. Its
 	// response may use that receipt, but it cannot admit it as a newer observation.
-	if _, err := app.messageList(ctx, []database.Message{captured.Message}); err != nil {
+	if _, err := capturedMessagePart(ctx, app, []database.Message{captured.Message}); err != nil {
 		t.Fatal(err)
 	}
 	part, count, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)

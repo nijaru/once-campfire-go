@@ -229,7 +229,7 @@ func (s *Server) messageCreated(message database.Message, room database.Room) {
 	if s.Push.VAPID == nil {
 		return
 	}
-	mentions, err := s.mentionedIDs(ctx, message.Body)
+	mentions, err := s.ContentQueries.MentionedIDs(ctx, s.presentationFacts(ctx), message.Body)
 	if err != nil {
 		slog.Error("push mentions failed", "error", err)
 		return
@@ -242,7 +242,7 @@ func (s *Server) messageCreated(message database.Message, room database.Room) {
 	if len(subscriptions) == 0 {
 		return
 	}
-	body, err := s.plainText(ctx, message.Body)
+	body, err := s.ContentQueries.PlainText(ctx, s.presentationFacts(ctx), message.Body)
 	if err != nil {
 		slog.Error("push body failed", "error", err)
 		return
