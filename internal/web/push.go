@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -18,7 +17,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/integrations"
 	"github.com/basecamp/once-campfire-go/internal/jobs"
-	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 const pushPath = "/users/me/push_subscriptions"
@@ -160,54 +158,15 @@ func (s *Server) deletePushSubscription(w http.ResponseWriter, r *http.Request, 
 	http.Redirect(w, r, s.origin(r)+pushPath, 302)
 }
 
-func notificationJSON(title, body, path string, badge int64) []byte {
-	var b bytes.Buffer
-	e := json.NewEncoder(&b)
-	e.SetEscapeHTML(false)
-	e.Encode(struct {
-		Title   string `json:"title"`
-		Options struct {
-			Body string `json:"body"`
-			Icon string `json:"icon"`
-			Data struct {
-				Path  string `json:"path"`
-				Badge int64  `json:"badge"`
-			} `json:"data"`
-		} `json:"options"`
-	}{title, struct {
-		Body string `json:"body"`
-		Icon string `json:"icon"`
-		Data struct {
-			Path  string `json:"path"`
-			Badge int64  `json:"badge"`
-		} `json:"data"`
-	}{body, "/account/logo", struct {
-		Path  string `json:"path"`
-		Badge int64  `json:"badge"`
-	}{path, badge}}})
-	encoded, _ := rails.CanonicalJSON(bytes.TrimSpace(b.Bytes()), false)
-	return encoded
-}
-
 func (s *Server) testPushNotification(w http.ResponseWriter, r *http.Request, u database.User) {
 	id, _ := strconv.ParseInt(r.PathValue("subscription"), 10, 64)
-	subscription, err := s.DB.PushSubscription(r.Context(), u.ID, id)
+	delivery, err := s.NotificationQueries.TestPush(r.Context(), u.ID, id, "Campfire Test", uuid.NewV4().String(), s.origin(r)+pushPath)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	badge, err := s.DB.UnreadCount(r.Context(), u.ID)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	err = s.Push.Send(
-		r.Context(),
-		subscription.Endpoint,
-		subscription.Key,
-		subscription.Auth,
-		notificationJSON("Campfire Test", uuid.NewV4().String(), s.origin(r)+pushPath, badge),
-	)
+	subscription := delivery.Subscription
+	err = s.Push.Send(r.Context(), subscription.Endpoint, subscription.Key, subscription.Auth, delivery.Payload)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -229,44 +188,13 @@ func (s *Server) messageCreated(message database.Message, room database.Room) {
 	if s.Push.VAPID == nil {
 		return
 	}
-	mentions, err := s.ContentQueries.MentionedIDs(ctx, s.presentationFacts(ctx), message.Body)
+	deliveries, err := s.NotificationQueries.Push(ctx, s.presentationFacts(ctx), message, room)
 	if err != nil {
-		slog.Error("push mentions failed", "error", err)
+		slog.Error("push preparation failed", "error", err)
 		return
 	}
-	subscriptions, err := s.DB.PushRecipients(ctx, room.ID, message.CreatorID, mentions)
-	if err != nil {
-		slog.Error("push recipients failed", "error", err)
-		return
-	}
-	if len(subscriptions) == 0 {
-		return
-	}
-	body, err := s.ContentQueries.PlainText(ctx, s.presentationFacts(ctx), message.Body)
-	if err != nil {
-		slog.Error("push body failed", "error", err)
-		return
-	}
-	if attachment, err := s.DB.AttachedBlob(ctx, "Message", message.ID, "attachment"); err == nil &&
-		attachment.ID != 0 &&
-		strings.TrimSpace(body) == "" {
-		body = attachment.Filename
-	}
-	title := room.Name
-	if room.Type == "Rooms::Direct" {
-		title = message.Creator
-	} else {
-		body = message.Creator + ": " + body
-	}
-	title = integrations.TruncatePush(title, 256)
-	body = integrations.TruncatePush(body, 3072)
-	for _, subscription := range subscriptions {
-		badge, err := s.DB.UnreadCount(ctx, subscription.UserID)
-		if err != nil {
-			slog.Error("push badge failed", "error", err)
-			continue
-		}
-		payload := notificationJSON(title, body, fmt.Sprintf("/rooms/%d", room.ID), badge)
+	for _, delivery := range deliveries {
+		subscription, payload := delivery.Subscription, delivery.Payload
 		s.Jobs.Enqueue("push", func(ctx context.Context) error {
 			err := s.Push.Send(
 				ctx,

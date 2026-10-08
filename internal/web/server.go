@@ -37,29 +37,30 @@ const (
 )
 
 type Server struct {
-	Fragments       *presentation.Fragments
-	responses       *responseCache
-	Webhooks        *integrations.WebhookClient
-	Jobs            *jobs.Runner
-	Push            *integrations.PushSender
-	Unfurler        *integrations.Unfurler
-	Storage         *storage.Store
-	MessageCommands *application.Messages
-	MessageQueries  *application.MessageQueries
-	ContentQueries  *application.ContentQueries
-	PageQueries     *application.PageQueries
-	RoomCommands    *application.Rooms
-	AccountCommands *application.Accounts
-	SessionCommands *application.Sessions
-	Cable           *cable.Hub
-	DB              *database.DB
-	Secrets         *rails.Secrets
-	Secure          bool
-	mux             *router
-	Presentation    *presentation.Renderer
-	attemptsMu      sync.Mutex
-	attempts        map[string]attempt
-	dummyHash       []byte
+	Fragments           *presentation.Fragments
+	responses           *responseCache
+	Webhooks            *integrations.WebhookClient
+	Jobs                *jobs.Runner
+	Push                *integrations.PushSender
+	Unfurler            *integrations.Unfurler
+	Storage             *storage.Store
+	MessageCommands     *application.Messages
+	MessageQueries      *application.MessageQueries
+	ContentQueries      *application.ContentQueries
+	PageQueries         *application.PageQueries
+	NotificationQueries *application.NotificationQueries
+	RoomCommands        *application.Rooms
+	AccountCommands     *application.Accounts
+	SessionCommands     *application.Sessions
+	Cable               *cable.Hub
+	DB                  *database.DB
+	Secrets             *rails.Secrets
+	Secure              bool
+	mux                 *router
+	Presentation        *presentation.Renderer
+	attemptsMu          sync.Mutex
+	attempts            map[string]attempt
+	dummyHash           []byte
 }
 type attempt struct {
 	Count int
@@ -173,6 +174,7 @@ func New(
 	cleanup := &application.Cleanup{Storage: s.Storage, Jobs: s.Jobs}
 	s.PageQueries = &application.PageQueries{DB: db}
 	s.ContentQueries = &application.ContentQueries{DB: db, Secrets: secrets}
+	s.NotificationQueries = &application.NotificationQueries{DB: db, Content: s.ContentQueries}
 	s.MessageQueries = &application.MessageQueries{DB: db, Presentation: presenter, Content: s.ContentQueries, Fragments: s.Fragments}
 	s.MessageCommands = &application.Messages{DB: db, Storage: s.Storage, Jobs: s.Jobs, Cleanup: cleanup}
 	s.RoomCommands = &application.Rooms{DB: db, Cable: s.Cable, Cleanup: cleanup}
