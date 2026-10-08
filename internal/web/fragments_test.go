@@ -9,6 +9,7 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/rails"
+	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
 func TestMessageVersionMatchesStampIdentity(t *testing.T) {
@@ -72,29 +73,31 @@ func TestMessageFragmentVersionAndBound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := app.messageItems(ctx, []database.Message{m.Message})
+	first, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(first[0].Fragment), "before") {
+	body := func(part responsebody.Part) string {
+		t.Helper()
+		var b strings.Builder
+		if _, err := part.WriteTo(&b); err != nil {
+			t.Fatal(err)
+		}
+		return b.String()
+	}
+	if !strings.Contains(body(first), "before") {
 		t.Fatal("missing rendered message")
 	}
-	// A cache hit skips rich text, boosts and attachment hydration entirely.
-	cached, err := app.messageItems(ctx, []database.Message{m.Message})
-	if err != nil {
+	cached, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
+	if err != nil || body(cached) != body(first) || cached.Digest() != first.Digest() {
+		t.Fatal("scoped fragment bytes changed", err)
+	}
+	if _, err := app.DB.UpdateMessage(ctx, user.ID, m.ID, messageInput("", "<p>after</p>")); err != nil {
 		t.Fatal(err)
 	}
-	if cached[0].Fragment != first[0].Fragment || cached[0].HTML != "" {
-		t.Fatal("fragment was rebuilt")
-	}
-	m.UpdatedAt = m.UpdatedAt.Add(time.Microsecond)
-	m.Body = "<p>after</p>"
-	changed, err := app.messageItems(ctx, []database.Message{m.Message})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(changed[0].Fragment), "after") || changed[0].Fragment == first[0].Fragment {
-		t.Fatal("new message version reused stale fragment")
+	changed, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
+	if err != nil || !strings.Contains(body(changed), "after") || changed.Digest() == first.Digest() {
+		t.Fatal("new observation reused stale fragment", err)
 	}
 	cache := newFragmentCache(2048)
 	for _, key := range []string{"a", "b", "c", "d", "e", "f", "g", "h", "i"} {
@@ -161,7 +164,7 @@ func TestMissingMessageAuthorKeepsPlaceholder(t *testing.T) {
 	if len(messages) != 1 {
 		t.Fatalf("orphan disappeared: %d messages", len(messages))
 	}
-	views, err := app.messageItems(ctx, messages)
+	views, err := app.messageViews(ctx, messages)
 	if err != nil {
 		t.Fatal(err)
 	}

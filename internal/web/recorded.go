@@ -15,11 +15,7 @@ import (
 // the cached message list without copying it through template/fmt/page buffers.
 
 func (s *Server) messageList(ctx context.Context, messages []database.Message) (responsebody.Part, error) {
-	key := s.fragmentKey(ctx, messageListCacheKey(messageReferences(messages)))
-	if entry, ok := s.fragments.entry(key); cacheFragments(ctx) && ok {
-		return entry.part, nil
-	}
-	views, err := s.messageItems(ctx, messages)
+	views, err := s.messageViews(ctx, messages)
 	if err != nil {
 		return responsebody.Part{}, err
 	}
@@ -27,10 +23,10 @@ func (s *Server) messageList(ctx context.Context, messages []database.Message) (
 	for i, view := range views {
 		fragments[i] = view.Fragment
 	}
-	return s.recordMessageList(ctx, key, fragments), nil
+	return messageListPart(fragments), nil
 }
 
-func (s *Server) recordMessageList(ctx context.Context, key string, fragments []template.HTML) responsebody.Part {
+func messageListPart(fragments []template.HTML) responsebody.Part {
 	size := 0
 	for _, fragment := range fragments {
 		size += len(fragment)
@@ -41,7 +37,11 @@ func (s *Server) recordMessageList(ctx context.Context, key string, fragments []
 		offset += copy(body[offset:], fragment)
 	}
 	// The Part owns unpooled bytes through eviction and outstanding responses.
-	entry := fragmentEntry{key: key, part: responsebody.NewPart(body)}
+	return responsebody.NewPart(body)
+}
+
+func (s *Server) recordMessageList(ctx context.Context, key string, fragments []template.HTML) responsebody.Part {
+	entry := fragmentEntry{key: key, part: messageListPart(fragments)}
 	if cacheFragments(ctx) {
 		entry = s.fragments.putEntry(entry)
 	}

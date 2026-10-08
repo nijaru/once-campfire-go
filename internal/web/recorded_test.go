@@ -51,7 +51,7 @@ func TestMessageControllersRenderFreshRecords(t *testing.T) {
 	check("record after")
 }
 
-func TestMessageItemsBatchMissesKeepOrderAndBytes(t *testing.T) {
+func TestScopedMessageMissesKeepOrderAndBytes(t *testing.T) {
 	app, _, _, user := testApp(t)
 	ctx := context.Background()
 	rooms, _ := app.DB.Rooms(ctx, user.ID)
@@ -75,10 +75,22 @@ func TestMessageItemsBatchMissesKeepOrderAndBytes(t *testing.T) {
 	for _, limit := range []int{0, 32 << 20} {
 		app.fragments = newFragmentCache(limit)
 		// Nonadjacent fragment hits must not shift the positions of scoped misses.
-		if _, err := app.messageViews(ctx, []database.Message{records[0], records[2]}); err != nil {
+		warmCtx := app.messageQueryContext(ctx)
+		read, err := app.DB.BeginMessageRead(warmCtx)
+		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := app.messageItems(ctx, records)
+		refs, err := read.PageReferences(warmCtx, user.ID, rooms[0].ID, 0, "around")
+		if err != nil {
+			read.Close()
+			t.Fatal(err)
+		}
+		if _, err := app.readMessageList(warmCtx, read, []database.MessageReference{refs[0], refs[2]}); err != nil {
+			read.Close()
+			t.Fatal(err)
+		}
+		read.Close()
+		got, err := app.messageViews(ctx, records)
 		if err != nil || len(got) != len(want) {
 			t.Fatal("batch size/error differs", err)
 		}
@@ -118,7 +130,7 @@ func TestMessageListOwnershipAndAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	messages := []database.Message{message.Message}
-	original, err := app.messageList(ctx, messages)
+	original, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +143,7 @@ func TestMessageListOwnershipAndAdmission(t *testing.T) {
 		return b.String()
 	}
 	want := body(original)
-	key := app.fragmentKey(context.Background(), messageListCacheKey(messageReferences(messages)))
+	key := app.fragmentKey(app.messageQueryContext(ctx), messageListCacheKey(messageReferences(messages)))
 	cost := len(key) + len(want) + 240
 	for _, test := range []struct {
 		name     string
@@ -144,7 +156,7 @@ func TestMessageListOwnershipAndAdmission(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			app.fragments = newFragmentCache(test.limit)
-			part, err := app.messageList(ctx, messages)
+			part, _, err := app.readMessagePage(ctx, user.ID, rooms[0].ID, 0, "around", false)
 			if err != nil || body(part) != want || part.Digest() != original.Digest() {
 				t.Fatal("cache admission changed response", err)
 			}
@@ -178,7 +190,7 @@ func TestRecordedMessagesPreserveBodyAndInvalidate(t *testing.T) {
 		t.Fatal(err)
 	}
 	list := []database.Message{message.Message}
-	views, err := app.messageItems(ctx, list)
+	views, err := app.messageViews(ctx, list)
 	if err != nil {
 		t.Fatal(err)
 	}

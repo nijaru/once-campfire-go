@@ -3,7 +3,6 @@ package web
 import (
 	"container/list"
 	"context"
-	"crypto/rand"
 	"encoding/binary"
 	"html/template"
 	"strconv"
@@ -11,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
-	"github.com/basecamp/once-campfire-go/internal/presentation"
 	"github.com/basecamp/once-campfire-go/internal/responsebody"
 )
 
@@ -113,32 +111,23 @@ func messageListCacheKey(messages []database.MessageReference) string {
 	return key.String()
 }
 
-// Namespace timestamp fragments by the generation observed before request reads.
-// An older in-flight render cannot populate a newer generation after a commit.
+// Only a scoped query can establish the observation owning persisted records.
+// A receipt or separately captured full record has no such cache provenance.
 func (s *Server) fragmentKey(ctx context.Context, key string) string {
-	version := uint64(0)
+	observation, _ := ctx.Value(fragmentObservationKey{}).(fragmentObservation)
 	var host, origin string
 	if info := requestMetadata(ctx); info != nil {
-		version = info.databaseVersion
 		host, origin = info.host, info.origin
-	} else if _, ok := ctx.Value(fragmentObservationKey{}).(fragmentObservation); !ok {
-		version, _ = s.DB.ResponseVersion(ctx)
 	}
-	if observation, ok := ctx.Value(fragmentObservationKey{}).(fragmentObservation); ok {
-		version = observation.generation
+	if observation.generation == 0 {
+		return ""
 	}
-	if version == 0 {
-		return "uncached/" + rand.Text() + "/" + key
-	}
-	return strconv.FormatUint(version, 10) + "/" + strconv.Quote(host) + "/" + strconv.Quote(origin) + "/" + key
+	return strconv.FormatUint(observation.generation, 10) + "/" + strconv.Quote(host) + "/" + strconv.Quote(origin) + "/" + key
 }
 
 func cacheFragments(ctx context.Context) bool {
-	if observation, ok := ctx.Value(fragmentObservationKey{}).(fragmentObservation); ok {
-		return observation.generation != 0
-	}
-	info := requestMetadata(ctx)
-	return info == nil || info.databaseVersion != 0
+	observation, _ := ctx.Value(fragmentObservationKey{}).(fragmentObservation)
+	return observation.generation != 0
 }
 
 func messageReferences(records []database.Message) []database.MessageReference {
@@ -147,17 +136,4 @@ func messageReferences(records []database.Message) []database.MessageReference {
 		refs[i] = record.Reference()
 	}
 	return refs
-}
-
-func (s *Server) messageItems(ctx context.Context, messages []database.Message) ([]presentation.MessageView, error) {
-	views := presentation.ViewMessages(messages)
-	for i, m := range messages {
-		if html, ok := s.fragments.get(s.fragmentKey(ctx, messageCacheKey(m.Reference()))); cacheFragments(ctx) && ok {
-			views[i].Fragment = html
-		}
-	}
-	if err := s.hydrateMessageViews(ctx, messages, views); err != nil {
-		return nil, err
-	}
-	return views, nil
 }

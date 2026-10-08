@@ -68,11 +68,13 @@ func (s *Server) messageViews(
 	ctx context.Context,
 	messages []database.Message,
 ) ([]presentation.MessageView, error) {
-	views := presentation.ViewMessages(messages)
-	if err := s.hydrateMessageViews(ctx, messages, views); err != nil {
+	// Receipts and separately captured records have no query-owned observation.
+	prepared := presentation.PrepareMessages(messages)
+	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+	if err != nil {
 		return nil, err
 	}
-	return views, nil
+	return s.Presentation.Messages(s.presentationFacts(ctx), prepared, data, users)
 }
 
 // Single-message forms consume different data from a displayed message. Keep
@@ -133,31 +135,6 @@ func (s *Server) messagePageViews(
 		}
 	}
 	return views, nil
-}
-
-// Complete owned message inputs before invoking the pure presenter.
-func (s *Server) hydrateMessageViews(ctx context.Context, records []database.Message, views []presentation.MessageView) error {
-	var missing []database.Message
-	var positions []int
-	for i := range views {
-		if views[i].Fragment == "" {
-			missing = append(missing, records[i])
-			positions = append(positions, i)
-		}
-	}
-	prepared := presentation.PrepareMessages(missing)
-	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
-	if err != nil {
-		return err
-	}
-	presented, err := s.presentMessages(ctx, prepared, data, users)
-	if err != nil {
-		return err
-	}
-	for i, view := range presented {
-		views[positions[i]] = view
-	}
-	return nil
 }
 
 func (s *Server) presentationFacts(ctx context.Context) presentation.Facts {
