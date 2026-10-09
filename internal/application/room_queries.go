@@ -8,6 +8,14 @@ import (
 
 type RoomQueries struct{ DB *database.DB }
 
+func (q *RoomQueries) Involvement(ctx context.Context, user, room int64) (database.RoomInvolvement, error) {
+	return q.DB.RoomInvolvement(ctx, user, room)
+}
+
+func (q *RoomQueries) Index(ctx context.Context, user int64) (int64, error) {
+	return q.DB.NewestRoom(ctx, user)
+}
+
 type RoomFormRequest struct {
 	UserID, RoomID int64
 	Role           int

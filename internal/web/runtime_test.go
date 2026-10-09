@@ -82,6 +82,7 @@ func newTestRuntime(db *database.DB, secrets *rails.Secrets, root string) (*test
 		PageQueries:         &application.PageQueries{DB: db},
 		BotQueries:          &application.BotQueries{DB: db},
 		RoomQueries:         &application.RoomQueries{DB: db},
+		RoomPublications:    &application.RoomPublications{DB: db, Presentation: presenter, Cable: hub},
 		AccountQueries:      &application.AccountQueries{DB: db, Secrets: secrets},
 		Searches:            &application.Searches{DB: db, Messages: messages},
 		RoomCommands:        &application.Rooms{DB: db, Cable: hub, Cleanup: cleanup},

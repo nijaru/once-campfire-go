@@ -59,40 +59,22 @@ func (d *DB) RoomInvitation(ctx context.Context, room int64) (bool, error) {
 	return invitation, err
 }
 
-func (d *DB) Involvement(ctx context.Context, user, room int64) (string, error) {
-	var value sql.NullString
-	err := d.Read.QueryRowContext(ctx, "SELECT involvement FROM memberships WHERE user_id=? AND room_id=?", user, room).
-		Scan(&value)
-	return value.String, err
+// RoomInvolvement captures the room and membership setting in one observation.
+type RoomInvolvement struct {
+	Room
+	Value string
 }
 
-func (d *DB) SetInvolvement(ctx context.Context, user, room int64, value string) error {
-	var stored any
-	if strings.TrimSpace(value) != "" {
-		if !slices.Contains([]string{"invisible", "nothing", "mentions", "everything"}, value) {
-			return ErrValidation
-		}
-		stored = value
-	}
-	r, err := d.Write.ExecContext(
-		ctx,
-		"UPDATE memberships SET involvement=?,updated_at=? WHERE user_id=? AND room_id=?",
-		stored,
-		Stamp(d.Now()),
-		user,
-		room,
-	)
-	if err != nil {
-		return err
-	}
-	count, err := r.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
+const roomInvolvementSelect = "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,r.updated_at,coalesce(m.involvement,'') FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE m.user_id=? AND r.id=?"
+
+func scanRoomInvolvement(row *sql.Row) (RoomInvolvement, error) {
+	var state RoomInvolvement
+	err := row.Scan(&state.ID, &state.CreatorID, &state.Name, &state.Type, timestamp{&state.UpdatedAt}, &state.Value)
+	return state, err
+}
+
+func (d *DB) RoomInvolvement(ctx context.Context, user, room int64) (RoomInvolvement, error) {
+	return scanRoomInvolvement(d.Read.QueryRowContext(ctx, roomInvolvementSelect, user, room))
 }
 
 func (d *DB) Presence(ctx context.Context, user, room int64, action string) error {
@@ -129,6 +111,14 @@ func (d *DB) Presence(ctx context.Context, user, room int64, action string) erro
 		_, err := tx.ExecContext(ctx, query, cutoff, stamp, user, room)
 		return err
 	})
+}
+
+// NewestRoom preserves the index redirect's descending membership room ID,
+// independently of the creation-order fallback used by room navigation.
+func (d *DB) NewestRoom(ctx context.Context, user int64) (int64, error) {
+	var id int64
+	err := d.Read.QueryRowContext(ctx, "SELECT room_id FROM memberships WHERE user_id=? ORDER BY room_id DESC LIMIT 1", user).Scan(&id)
+	return id, err
 }
 
 // OriginalRoom follows Room.original (creation order, not the fixture ID order).

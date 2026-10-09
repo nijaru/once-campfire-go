@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
+	"strings"
 )
 
 type RoomCommit struct {
@@ -290,6 +292,45 @@ func (d *DB) deleteRoom(ctx context.Context, actor, id int64, direct bool) (Room
 		return RoomCommit{}, err
 	}
 	return result, nil
+}
+
+type InvolvementCommit struct {
+	RoomInvolvement
+	Previous string
+}
+
+// ChangeInvolvement selects current authority, room and previous value under the
+// same writer transaction as the update. Sidebar effects consume this receipt,
+// not an earlier HTTP read or a mandatory postcommit reconstruction.
+func (d *DB) ChangeInvolvement(ctx context.Context, user, room int64, value string) (InvolvementCommit, error) {
+	var commit InvolvementCommit
+	err := d.Transaction(ctx, func(tx *sql.Tx) error {
+		state, err := scanRoomInvolvement(tx.QueryRowContext(ctx, roomInvolvementSelect+
+			" AND EXISTS (SELECT 1 FROM users WHERE id=? AND status=0)", user, room, user))
+		if err != nil {
+			return err
+		}
+		var stored any
+		if strings.TrimSpace(value) != "" {
+			if !slices.Contains([]string{"invisible", "nothing", "mentions", "everything"}, value) {
+				return ErrValidation
+			}
+			stored = value
+		} else {
+			value = ""
+		}
+		if _, err = tx.ExecContext(ctx, "UPDATE memberships SET involvement=?,updated_at=? WHERE user_id=? AND room_id=?",
+			stored, Stamp(d.Now()), user, room); err != nil {
+			return err
+		}
+		commit = InvolvementCommit{RoomInvolvement: state, Previous: state.Value}
+		commit.Value = value
+		return nil
+	})
+	if err != nil {
+		return InvolvementCommit{}, err
+	}
+	return commit, nil
 }
 
 // commandRoom captures metadata before the transaction releases its observation.

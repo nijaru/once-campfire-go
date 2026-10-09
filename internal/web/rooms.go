@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -9,12 +8,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/application"
 	"github.com/basecamp/once-campfire-go/internal/database"
-	"github.com/basecamp/once-campfire-go/internal/presentation"
-	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err error) {
@@ -165,9 +161,7 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
 		}
 		saved = result.Commit.Room
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
-	defer cancel()
-	if err := s.broadcastRoom(ctx, saved, updating); err != nil {
+	if err := s.RoomPublications.Saved(r.Context(), saved, updating); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -216,63 +210,38 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
 		}
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
-	defer cancel()
-	s.Cable.PublishStream(ctx, "rooms", rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""))
-	if result.Processing != nil {
-		s.fail(w, result.Processing)
+	if err := s.RoomPublications.Removed(r.Context(), result); err != nil {
+		s.fail(w, err)
 		return
 	}
 	http.Redirect(w, r, "/", 302)
 }
 
 func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.User) {
-	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
 	if r.Method != "GET" && r.Method != "HEAD" {
-		previous, e := s.DB.Involvement(r.Context(), u.ID, room.ID)
-		if e != nil {
-			s.fail(w, e)
-			return
-		}
-		value := r.Form.Get("involvement")
-		if err = s.DB.SetInvolvement(r.Context(), u.ID, room.ID, r.Form.Get("involvement")); err != nil {
+		commit, err := s.RoomCommands.Involvement(r.Context(), u.ID, roomID(r), r.Form.Get("involvement"))
+		if err != nil {
 			s.fail(w, err)
 			return
 		}
-		if room.Type != "Rooms::Direct" {
-			if value == "invisible" {
-				s.Cable.PublishStream(
-					r.Context(),
-					rails.UserRoomsStream(u.ID),
-					rails.TurboStream("remove", room.DOM("list"), ""),
-				)
-			} else if previous == "invisible" {
-				markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
-				if err != nil {
-					s.fail(w, err)
-					return
-				}
-				s.Cable.PublishStream(r.Context(), rails.UserRoomsStream(u.ID), rails.TurboStream("prepend", "shared_rooms", markup))
-			}
+		if err = s.RoomPublications.Involvement(r.Context(), u.ID, commit); err != nil {
+			s.fail(w, err)
+			return
 		}
-		http.Redirect(w, r, fmt.Sprintf("/rooms/%d/involvement", room.ID), 302)
+		http.Redirect(w, r, fmt.Sprintf("/rooms/%d/involvement", commit.ID), 302)
 		return
 	}
-	value, err := s.DB.Involvement(r.Context(), u.ID, room.ID)
+	state, err := s.RoomQueries.Involvement(r.Context(), u.ID, roomID(r))
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
+	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: state.Room, Involvement: state.Value})
 }
 
 func (s *Server) roomsIndex(w http.ResponseWriter, r *http.Request, u database.User) {
-	var id int64
-	if err := s.DB.Read.QueryRowContext(r.Context(), "SELECT room_id FROM memberships WHERE user_id=? ORDER BY room_id DESC LIMIT 1", u.ID).Scan(&id); err != nil {
+	id, err := s.RoomQueries.Index(r.Context(), u.ID)
+	if err != nil {
 		http.Error(w, "Internal server error", 500)
 		return
 	}

@@ -73,14 +73,6 @@ func (d *DB) LoginHelpContact(ctx context.Context) (UserContact, error) {
 	return contact, err
 }
 
-func (d *DB) ActiveRoomParticipants(ctx context.Context, room int64) ([]RoomParticipant, error) {
-	rows, err := d.Read.QueryContext(ctx, "SELECT u.id,u.name,u.updated_at FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=? AND u.status=0 ORDER BY lower(u.name)", room)
-	if err != nil {
-		return nil, err
-	}
-	return participantsRows(rows)
-}
-
 func (d *DB) Bot(ctx context.Context, key string) (User, error) {
 	id, token, ok := strings.Cut(strings.TrimSpace(key), "-")
 	if !ok {

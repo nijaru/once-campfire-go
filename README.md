@@ -201,6 +201,11 @@ exemption; bot-key endpoints exempt authenticated bots only.
   `identity;q=0` exclusions are honored, including after a wildcard. Other private
   tie-breaking rules and the separate public gzip/zstd policy remain unchanged.
 
+- Room involvement updates recheck the current active user and membership inside
+  the writer transaction, including retained ping memberships after deactivation.
+  Sidebar visibility effects use the committed previous value and have their own
+  bounded lifetime rather than being lost to request cancellation.
+
 - Search follows current Go/Rust upstream: the newest 100 matching insertion IDs,
   displayed in ID order. Backdated messages can differ from Rails' timestamp order.
 

@@ -53,6 +53,7 @@ type Dependencies struct {
 	Searches            *application.Searches
 	RoomCommands        *application.Rooms
 	RoomQueries         *application.RoomQueries
+	RoomPublications    *application.RoomPublications
 	AccountCommands     *application.Accounts
 	SessionCommands     *application.Sessions
 	Cable               *cable.Hub

@@ -137,8 +137,8 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 		t.Fatalf("profile lost memberships: %v %v", profile, err)
 	}
 	for i, room := range profile {
-		involvement, err := d.Involvement(ctx, viewer.ID, room.ID)
-		if err != nil || room.Room != all[i] || room.Involvement != involvement {
+		involvement, err := d.RoomInvolvement(ctx, viewer.ID, room.ID)
+		if err != nil || room.Room != all[i] || room.Involvement != involvement.Value {
 			t.Fatalf("profile membership changed: %+v %v", room, err)
 		}
 		if room.Type == "Rooms::Direct" {

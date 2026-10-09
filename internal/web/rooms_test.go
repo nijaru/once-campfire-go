@@ -62,6 +62,43 @@ func TestRoomMutationRechecksCapturedAdministrator(t *testing.T) {
 	}
 }
 
+func TestInvolvementRechecksCapturedActiveUser(t *testing.T) {
+	app, _, _, owner := testApp(t)
+	ctx := context.Background()
+	member, err := app.DB.CreateUser(ctx, owner.ID, database.UserInput{Name: "Member", Email: "member@test", Password: "unused", Role: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Direct memberships survive deactivation for the remaining participants.
+	room, err := app.DB.CreateRoom(ctx, owner.ID, "Rooms::Direct", nil, []int64{member.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := app.DB.RoomInvolvement(ctx, member.ID, room.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = app.DB.DeactivateUser(ctx, owner.ID, member.ID); err != nil {
+		t.Fatal(err)
+	}
+	// Authentication captured an active user before deactivation committed.
+	r := httptest.NewRequest("PUT", fmt.Sprintf("/rooms/%d/involvement", room.ID), strings.NewReader("involvement=invisible"))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.SetPathValue("id", fmt.Sprint(room.ID))
+	if err = r.ParseForm(); err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	app.involvement(w, r, member.User)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("captured inactive user changed involvement: %d", w.Code)
+	}
+	after, err := app.DB.RoomInvolvement(ctx, member.ID, room.ID)
+	if err != nil || after != before {
+		t.Fatalf("rejected command changed involvement: %q => %q, %v", before.Value, after.Value, err)
+	}
+}
+
 func TestDirectRoomSettingsRetainInactiveParticipants(t *testing.T) {
 	for _, status := range []string{"active", "deactivated", "banned"} {
 		t.Run(status, func(t *testing.T) {
@@ -187,8 +224,8 @@ func TestInvolvementCanBeCleared(t *testing.T) {
 			stored.Valid {
 			t.Fatalf("%q: stored %+v, error %v", form, stored, err)
 		}
-		if value, err := app.DB.Involvement(ctx, owner.ID, room.ID); err != nil || value != "" {
-			t.Fatalf("nullable involvement: %q %v", value, err)
+		if value, err := app.DB.RoomInvolvement(ctx, owner.ID, room.ID); err != nil || value.Value != "" {
+			t.Fatalf("nullable involvement: %q %v", value.Value, err)
 		}
 	}
 }

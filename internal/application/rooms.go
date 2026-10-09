@@ -19,6 +19,10 @@ type RoomResult struct {
 	Processing error
 }
 
+func (s *Rooms) Involvement(ctx context.Context, user, room int64, value string) (database.InvolvementCommit, error) {
+	return s.DB.ChangeInvolvement(ctx, user, room, value)
+}
+
 func (s *Rooms) Create(ctx context.Context, actor int64, kind string, name *sql.NullString, users []int64) (database.Room, error) {
 	return s.DB.CreateRoom(ctx, actor, kind, name, users)
 }

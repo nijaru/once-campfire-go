@@ -1,0 +1,827 @@
+diff --git i/cmd/campfire/runtime.go w/cmd/campfire/runtime.go
+index de6adf1..1b5b07b 100644
+--- i/cmd/campfire/runtime.go
++++ w/cmd/campfire/runtime.go
+@@ -74,6 +74,7 @@ func openApplication(config serverConfig) (*applicationRuntime, error) {
+ 		PageQueries:         &application.PageQueries{DB: db},
+ 		BotQueries:          &application.BotQueries{DB: db},
+ 		RoomQueries:         &application.RoomQueries{DB: db},
++		RoomPublications:    &application.RoomPublications{DB: db, Presentation: presenter, Cable: hub},
+ 		AccountQueries:      &application.AccountQueries{DB: db, Secrets: secrets},
+ 		Searches:            &application.Searches{DB: db, Messages: messages},
+ 		RoomCommands:        &application.Rooms{DB: db, Cable: hub, Cleanup: cleanup},
+diff --git i/internal/application/room_publications.go w/internal/application/room_publications.go
+new file mode 100644
+index 0000000..f7f5b0f
+--- /dev/null
++++ w/internal/application/room_publications.go
+@@ -0,0 +1,94 @@
++package application
++
++import (
++	"cmp"
++	"context"
++	"slices"
++	"time"
++
++	"github.com/basecamp/once-campfire-go/internal/cable"
++	"github.com/basecamp/once-campfire-go/internal/database"
++	"github.com/basecamp/once-campfire-go/internal/presentation"
++	"github.com/basecamp/once-campfire-go/internal/rails"
++)
++
++// RoomPublications owns postcommit sidebar effects without retaining HTTP state.
++type RoomPublications struct {
++	DB           *database.DB
++	Presentation *presentation.Renderer
++	Cable        *cable.Hub
++}
++
++func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update bool) error {
++	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
++	defer cancel()
++	action, target := "prepend", "shared_rooms"
++	if update {
++		action, target = "replace", room.DOM("list")
++	}
++	if room.Type == "Rooms::Open" {
++		markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
++		if err != nil {
++			return err
++		}
++		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
++		return nil
++	}
++	audience, err := s.DB.RoomPublicationAudience(ctx, room)
++	if err != nil || len(audience.Active) == 0 {
++		return err
++	}
++	if room.Type != "Rooms::Direct" {
++		// A shared-room entry has no viewer-dependent data. Render it once for
++		// the selected recipient set, rather than once per membership.
++		markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
++		if err != nil {
++			return err
++		}
++		output := rails.TurboStream(action, target, markup)
++		for _, id := range audience.Active {
++			s.Cable.PublishStream(ctx, rails.UserRoomsStream(id), output)
++		}
++		return nil
++	}
++	for _, id := range audience.Active {
++		// DisplayRoom needs the actual viewer for a self-ping's retained name.
++		i, _ := slices.BinarySearchFunc(audience.Participants, id, func(member database.RoomParticipant, id int64) int {
++			return cmp.Compare(member.ID, id)
++		})
++		view := presentation.DisplayRoom(room, audience.Participants, audience.Participants[i])
++		markup, err := s.Presentation.Markup("sidebar-direct", view)
++		if err != nil {
++			return err
++		}
++		s.Cable.PublishStream(ctx, rails.UserRoomsStream(id), rails.TurboStream("prepend", "direct_rooms", markup))
++	}
++	return nil
++}
++
++func (s *RoomPublications) Removed(ctx context.Context, result RoomResult) error {
++	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
++	defer cancel()
++	s.Cable.PublishStream(ctx, "rooms", rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""))
++	return result.Processing
++}
++
++func (s *RoomPublications) Involvement(ctx context.Context, user int64, commit database.InvolvementCommit) error {
++	if commit.Type == "Rooms::Direct" || commit.Value != "invisible" && commit.Previous != "invisible" {
++		return nil
++	}
++	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
++	defer cancel()
++	var output string
++	if commit.Value == "invisible" {
++		output = rails.TurboStream("remove", commit.DOM("list"), "")
++	} else {
++		markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: commit.Room})
++		if err != nil {
++			return err
++		}
++		output = rails.TurboStream("prepend", "shared_rooms", markup)
++	}
++	s.Cable.PublishStream(ctx, rails.UserRoomsStream(user), output)
++	return nil
++}
+diff --git i/internal/application/room_queries.go w/internal/application/room_queries.go
+index 163f221..fa1f9dd 100644
+--- i/internal/application/room_queries.go
++++ w/internal/application/room_queries.go
+@@ -8,6 +8,14 @@ import (
+ 
+ type RoomQueries struct{ DB *database.DB }
+ 
++func (q *RoomQueries) Involvement(ctx context.Context, user, room int64) (database.RoomInvolvement, error) {
++	return q.DB.RoomInvolvement(ctx, user, room)
++}
++
++func (q *RoomQueries) Index(ctx context.Context, user int64) (int64, error) {
++	return q.DB.NewestRoom(ctx, user)
++}
++
+ type RoomFormRequest struct {
+ 	UserID, RoomID int64
+ 	Role           int
+diff --git i/internal/application/rooms.go w/internal/application/rooms.go
+index d250fb3..7c7182d 100644
+--- i/internal/application/rooms.go
++++ w/internal/application/rooms.go
+@@ -19,6 +19,10 @@ type RoomResult struct {
+ 	Processing error
+ }
+ 
++func (s *Rooms) Involvement(ctx context.Context, user, room int64, value string) (database.InvolvementCommit, error) {
++	return s.DB.ChangeInvolvement(ctx, user, room, value)
++}
++
+ func (s *Rooms) Create(ctx context.Context, actor int64, kind string, name *sql.NullString, users []int64) (database.Room, error) {
+ 	return s.DB.CreateRoom(ctx, actor, kind, name, users)
+ }
+diff --git i/internal/database/accounts.go w/internal/database/accounts.go
+index 107a6c3..7b34e7e 100644
+--- i/internal/database/accounts.go
++++ w/internal/database/accounts.go
+@@ -73,14 +73,6 @@ func (d *DB) LoginHelpContact(ctx context.Context) (UserContact, error) {
+ 	return contact, err
+ }
+ 
+-func (d *DB) ActiveRoomParticipants(ctx context.Context, room int64) ([]RoomParticipant, error) {
+-	rows, err := d.Read.QueryContext(ctx, "SELECT u.id,u.name,u.updated_at FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=? AND u.status=0 ORDER BY lower(u.name)", room)
+-	if err != nil {
+-		return nil, err
+-	}
+-	return participantsRows(rows)
+-}
+-
+ func (d *DB) Bot(ctx context.Context, key string) (User, error) {
+ 	id, token, ok := strings.Cut(strings.TrimSpace(key), "-")
+ 	if !ok {
+diff --git i/internal/database/room_commands.go w/internal/database/room_commands.go
+index ddef803..9574a8d 100644
+--- i/internal/database/room_commands.go
++++ w/internal/database/room_commands.go
+@@ -5,6 +5,8 @@ import (
+ 	"database/sql"
+ 	"encoding/json"
+ 	"errors"
++	"slices"
++	"strings"
+ )
+ 
+ type RoomCommit struct {
+@@ -292,6 +294,45 @@ func (d *DB) deleteRoom(ctx context.Context, actor, id int64, direct bool) (Room
+ 	return result, nil
+ }
+ 
++type InvolvementCommit struct {
++	RoomInvolvement
++	Previous string
++}
++
++// ChangeInvolvement selects current authority, room and previous value under the
++// same writer transaction as the update. Sidebar effects consume this receipt,
++// not an earlier HTTP read or a mandatory postcommit reconstruction.
++func (d *DB) ChangeInvolvement(ctx context.Context, user, room int64, value string) (InvolvementCommit, error) {
++	var commit InvolvementCommit
++	err := d.Transaction(ctx, func(tx *sql.Tx) error {
++		state, err := scanRoomInvolvement(tx.QueryRowContext(ctx, roomInvolvementSelect+
++			" AND EXISTS (SELECT 1 FROM users WHERE id=? AND status=0)", user, room, user))
++		if err != nil {
++			return err
++		}
++		var stored any
++		if strings.TrimSpace(value) != "" {
++			if !slices.Contains([]string{"invisible", "nothing", "mentions", "everything"}, value) {
++				return ErrValidation
++			}
++			stored = value
++		} else {
++			value = ""
++		}
++		if _, err = tx.ExecContext(ctx, "UPDATE memberships SET involvement=?,updated_at=? WHERE user_id=? AND room_id=?",
++			stored, Stamp(d.Now()), user, room); err != nil {
++			return err
++		}
++		commit = InvolvementCommit{RoomInvolvement: state, Previous: state.Value}
++		commit.Value = value
++		return nil
++	})
++	if err != nil {
++		return InvolvementCommit{}, err
++	}
++	return commit, nil
++}
++
+ // commandRoom captures metadata before the transaction releases its observation.
+ func commandRoom(ctx context.Context, tx *sql.Tx, id int64, room *Room) error {
+ 	return tx.QueryRowContext(ctx, "SELECT id,creator_id,coalesce(name,''),type,updated_at FROM rooms WHERE id=?", id).Scan(&room.ID, &room.CreatorID, &room.Name, &room.Type, timestamp{&room.UpdatedAt})
+diff --git i/internal/database/room_involvement_test.go w/internal/database/room_involvement_test.go
+new file mode 100644
+index 0000000..e60444a
+--- /dev/null
++++ w/internal/database/room_involvement_test.go
+@@ -0,0 +1,84 @@
++package database
++
++import (
++	"context"
++	"database/sql"
++	"testing"
++	"time"
++)
++
++func TestInvolvementReceiptUsesWriterObservationWithoutReaders(t *testing.T) {
++	d := testDB(t)
++	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
++	defer cancel()
++	actor, err := d.Setup(ctx, "User", "user@test", "digest")
++	if err != nil {
++		t.Fatal(err)
++	}
++	room, err := d.CreateRoom(ctx, actor.ID, "Rooms::Closed", &sql.NullString{String: "Earlier", Valid: true}, []int64{actor.ID})
++	if err != nil {
++		t.Fatal(err)
++	}
++	before, err := d.RoomInvolvement(ctx, actor.ID, room.ID)
++	if err != nil || before.Value != "mentions" {
++		t.Fatal(before, err)
++	}
++	// No query or postcommit reconstruction may borrow a reader for this command.
++	for range d.Read.Stats().MaxOpenConnections {
++		conn, err := d.Read.Conn(ctx)
++		if err != nil {
++			t.Fatal(err)
++		}
++		defer conn.Close()
++	}
++	writer, err := d.Write.Conn(ctx)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer writer.Close()
++	tx, err := writer.BeginTx(ctx, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer tx.Rollback()
++	if _, err = tx.ExecContext(ctx, "UPDATE memberships SET involvement='invisible' WHERE room_id=? AND user_id=?", room.ID, actor.ID); err != nil {
++		t.Fatal(err)
++	}
++	if _, err = tx.ExecContext(ctx, "UPDATE rooms SET name='Current' WHERE id=?", room.ID); err != nil {
++		t.Fatal(err)
++	}
++	type result struct {
++		commit InvolvementCommit
++		err    error
++	}
++	done := make(chan result, 1)
++	waits := d.Write.Stats().WaitCount
++	go func() {
++		commit, err := d.ChangeInvolvement(ctx, actor.ID, room.ID, "  ")
++		done <- result{commit, err}
++	}()
++	ticker := time.NewTicker(time.Millisecond)
++	defer ticker.Stop()
++	for d.Write.Stats().WaitCount == waits {
++		select {
++		case <-ticker.C:
++		case <-ctx.Done():
++			<-done
++			t.Fatal("command did not reach writer", ctx.Err())
++		}
++	}
++	if err = tx.Commit(); err != nil {
++		t.Fatal(err)
++	}
++	if err = writer.Close(); err != nil {
++		t.Fatal(err)
++	}
++	got := <-done
++	if got.err != nil || got.commit.Previous != "invisible" || got.commit.Value != "" || got.commit.Name != "Current" || got.commit.ID != room.ID {
++		t.Fatalf("receipt used earlier state: %+v %v", got.commit, got.err)
++	}
++	var stored sql.NullString
++	if err = d.Write.QueryRowContext(ctx, "SELECT involvement FROM memberships WHERE room_id=? AND user_id=?", room.ID, actor.ID).Scan(&stored); err != nil || stored.Valid {
++		t.Fatalf("cleared involvement must retain SQL NULL: %+v %v", stored, err)
++	}
++}
+diff --git i/internal/database/room_publications.go w/internal/database/room_publications.go
+new file mode 100644
+index 0000000..d14cb2c
+--- /dev/null
++++ w/internal/database/room_publications.go
+@@ -0,0 +1,56 @@
++package database
++
++import (
++	"cmp"
++	"context"
++	"slices"
++)
++
++// RoomAudience separates active recipients from retained ping participants.
++// Deactivated/banned users remain in a ping's display but receive no publication.
++type RoomAudience struct {
++	Active       []int64
++	Participants []RoomParticipant
++}
++
++func (d *DB) RoomPublicationAudience(ctx context.Context, room Room) (RoomAudience, error) {
++	var audience RoomAudience
++	if room.Type != "Rooms::Direct" {
++		rows, err := d.Read.QueryContext(ctx, "SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=? AND u.status=0 ORDER BY lower(u.name)", room.ID)
++		if err != nil {
++			return audience, err
++		}
++		defer rows.Close()
++		for rows.Next() {
++			var id int64
++			if err := rows.Scan(&id); err != nil {
++				return RoomAudience{}, err
++			}
++			audience.Active = append(audience.Active, id)
++		}
++		return audience, rows.Err()
++	}
++	// One observation selects both sets. Recipient order remains name-based;
++	// retained participant order remains ID-based for personalized ping names.
++	rows, err := d.Read.QueryContext(ctx, "SELECT u.id,u.name,u.updated_at,u.status FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.room_id=? ORDER BY lower(u.name)", room.ID)
++	if err != nil {
++		return audience, err
++	}
++	defer rows.Close()
++	for rows.Next() {
++		var member RoomParticipant
++		var status int
++		if err := rows.Scan(&member.ID, &member.Name, timestamp{&member.UpdatedAt}, &status); err != nil {
++			return RoomAudience{}, err
++		}
++		audience.Participants = append(audience.Participants, member)
++		if status == 0 {
++			audience.Active = append(audience.Active, member.ID)
++		}
++	}
++	if err := rows.Err(); err != nil {
++		return RoomAudience{}, err
++	}
++	slices.SortFunc(audience.Participants, func(a, b RoomParticipant) int { return cmp.Compare(a.ID, b.ID) })
++	return audience, nil
++}
+diff --git i/internal/database/room_publications_test.go w/internal/database/room_publications_test.go
+new file mode 100644
+index 0000000..1f0b914
+--- /dev/null
++++ w/internal/database/room_publications_test.go
+@@ -0,0 +1,45 @@
++package database
++
++import (
++	"context"
++	"reflect"
++	"testing"
++)
++
++func TestRoomAudienceRetainsInactivePingNamesButNotRecipients(t *testing.T) {
++	d := testDB(t)
++	ctx := context.Background()
++	owner, err := d.Setup(ctx, "Zulu", "owner@test", "digest")
++	if err != nil {
++		t.Fatal(err)
++	}
++	active, err := d.CreateUser(ctx, owner.ID, UserInput{Name: "Alpha", Email: "active@test", Password: "digest"})
++	if err != nil {
++		t.Fatal(err)
++	}
++	inactive, err := d.CreateUser(ctx, owner.ID, UserInput{Name: "Beta", Email: "inactive@test", Password: "digest"})
++	if err != nil {
++		t.Fatal(err)
++	}
++	room, err := d.CreateRoom(ctx, owner.ID, "Rooms::Direct", nil, []int64{active.ID, inactive.ID})
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err = d.DeactivateUser(ctx, owner.ID, inactive.ID); err != nil {
++		t.Fatal(err)
++	}
++	audience, err := d.RoomPublicationAudience(ctx, room)
++	if err != nil || !reflect.DeepEqual(audience.Active, []int64{active.ID, owner.ID}) {
++		t.Fatalf("active name-ordered recipients: %+v %v", audience, err)
++	}
++	want := []RoomParticipant{owner.Participant(), active.Participant(), inactive.Participant()}
++	// Deactivation changes the user's timestamp, not their retained identity/name.
++	if len(audience.Participants) != len(want) {
++		t.Fatal("retained participants lost", audience)
++	}
++	for i, member := range audience.Participants {
++		if member.ID != want[i].ID || member.Name != want[i].Name {
++			t.Fatalf("ID-ordered retained participant: %+v instead of %+v", member, want[i])
++		}
++	}
++}
+diff --git i/internal/database/rooms.go w/internal/database/rooms.go
+index 8d87277..c98957f 100644
+--- i/internal/database/rooms.go
++++ w/internal/database/rooms.go
+@@ -59,40 +59,22 @@ func (d *DB) RoomInvitation(ctx context.Context, room int64) (bool, error) {
+ 	return invitation, err
+ }
+ 
+-func (d *DB) Involvement(ctx context.Context, user, room int64) (string, error) {
+-	var value sql.NullString
+-	err := d.Read.QueryRowContext(ctx, "SELECT involvement FROM memberships WHERE user_id=? AND room_id=?", user, room).
+-		Scan(&value)
+-	return value.String, err
++// RoomInvolvement captures the room and membership setting in one observation.
++type RoomInvolvement struct {
++	Room
++	Value string
+ }
+ 
+-func (d *DB) SetInvolvement(ctx context.Context, user, room int64, value string) error {
+-	var stored any
+-	if strings.TrimSpace(value) != "" {
+-		if !slices.Contains([]string{"invisible", "nothing", "mentions", "everything"}, value) {
+-			return ErrValidation
+-		}
+-		stored = value
+-	}
+-	r, err := d.Write.ExecContext(
+-		ctx,
+-		"UPDATE memberships SET involvement=?,updated_at=? WHERE user_id=? AND room_id=?",
+-		stored,
+-		Stamp(d.Now()),
+-		user,
+-		room,
+-	)
+-	if err != nil {
+-		return err
+-	}
+-	count, err := r.RowsAffected()
+-	if err != nil {
+-		return err
+-	}
+-	if count == 0 {
+-		return sql.ErrNoRows
+-	}
+-	return nil
++const roomInvolvementSelect = "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,r.updated_at,coalesce(m.involvement,'') FROM rooms r JOIN memberships m ON m.room_id=r.id WHERE m.user_id=? AND r.id=?"
++
++func scanRoomInvolvement(row *sql.Row) (RoomInvolvement, error) {
++	var state RoomInvolvement
++	err := row.Scan(&state.ID, &state.CreatorID, &state.Name, &state.Type, timestamp{&state.UpdatedAt}, &state.Value)
++	return state, err
++}
++
++func (d *DB) RoomInvolvement(ctx context.Context, user, room int64) (RoomInvolvement, error) {
++	return scanRoomInvolvement(d.Read.QueryRowContext(ctx, roomInvolvementSelect, user, room))
+ }
+ 
+ func (d *DB) Presence(ctx context.Context, user, room int64, action string) error {
+@@ -131,6 +113,14 @@ func (d *DB) Presence(ctx context.Context, user, room int64, action string) erro
+ 	})
+ }
+ 
++// NewestRoom preserves the index redirect's descending membership room ID,
++// independently of the creation-order fallback used by room navigation.
++func (d *DB) NewestRoom(ctx context.Context, user int64) (int64, error) {
++	var id int64
++	err := d.Read.QueryRowContext(ctx, "SELECT room_id FROM memberships WHERE user_id=? ORDER BY room_id DESC LIMIT 1", user).Scan(&id)
++	return id, err
++}
++
+ // OriginalRoom follows Room.original (creation order, not the fixture ID order).
+ func (d *DB) OriginalRoom(ctx context.Context, user int64) (int64, error) {
+ 	var id int64
+diff --git i/internal/database/sidebar_test.go w/internal/database/sidebar_test.go
+index 522ba86..e1da64a 100644
+--- i/internal/database/sidebar_test.go
++++ w/internal/database/sidebar_test.go
+@@ -137,8 +137,8 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
+ 		t.Fatalf("profile lost memberships: %v %v", profile, err)
+ 	}
+ 	for i, room := range profile {
+-		involvement, err := d.Involvement(ctx, viewer.ID, room.ID)
+-		if err != nil || room.Room != all[i] || room.Involvement != involvement {
++		involvement, err := d.RoomInvolvement(ctx, viewer.ID, room.ID)
++		if err != nil || room.Room != all[i] || room.Involvement != involvement.Value {
+ 			t.Fatalf("profile membership changed: %+v %v", room, err)
+ 		}
+ 		if room.Type == "Rooms::Direct" {
+diff --git i/internal/web/room_publications_test.go w/internal/web/room_publications_test.go
+new file mode 100644
+index 0000000..0489f2f
+--- /dev/null
++++ w/internal/web/room_publications_test.go
+@@ -0,0 +1,56 @@
++package web
++
++import (
++	"context"
++	"database/sql"
++	"fmt"
++	"net/http"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/basecamp/once-campfire-go/internal/rails"
++	"github.com/coder/websocket"
++	"github.com/coder/websocket/wsjson"
++)
++
++func TestInvolvementPublishesAfterRequestCancellation(t *testing.T) {
++	app, server, cookie, owner := testApp(t)
++	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
++	defer cancel()
++	room, err := app.DB.CreateRoom(ctx, owner.ID, "Rooms::Open", &sql.NullString{String: "Visibility", Valid: true}, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	conn, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(server.URL, "http")+"/cable", &websocket.DialOptions{
++		Subprotocols: []string{"actioncable-v1-json"}, HTTPHeader: http.Header{"Cookie": {cookie.String()}},
++	})
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer conn.CloseNow()
++	var frame map[string]any
++	if err = wsjson.Read(ctx, conn, &frame); err != nil || frame["type"] != "welcome" {
++		t.Fatal("welcome", frame, err)
++	}
++	identifier := fmt.Sprintf(`{"channel":"Turbo::StreamsChannel","signed_stream_name":%q}`, app.Secrets.SignStream(rails.UserRoomsStream(owner.ID)))
++	if err = wsjson.Write(ctx, conn, map[string]string{"command": "subscribe", "identifier": identifier}); err != nil {
++		t.Fatal(err)
++	}
++	if err = wsjson.Read(ctx, conn, &frame); err != nil || frame["type"] != "confirm_subscription" {
++		t.Fatal("subscription", frame, err)
++	}
++	commit, err := app.RoomCommands.Involvement(ctx, owner.ID, room.ID, "invisible")
++	if err != nil {
++		t.Fatal(err)
++	}
++	request, requestCancel := context.WithCancel(ctx)
++	requestCancel()
++	if err = app.RoomPublications.Involvement(request, owner.ID, commit); err != nil {
++		t.Fatal(err)
++	}
++	want := rails.TurboStream("remove", room.DOM("list"), "")
++	if err = wsjson.Read(ctx, conn, &frame); err != nil || frame["identifier"] != identifier || frame["message"] != want {
++		t.Fatalf("committed visibility effect lost to request cancellation: %v %v", frame, err)
++	}
++}
+diff --git i/internal/web/rooms.go w/internal/web/rooms.go
+index 580799a..92a6b79 100644
+--- i/internal/web/rooms.go
++++ w/internal/web/rooms.go
+@@ -1,7 +1,6 @@
+ package web
+ 
+ import (
+-	"context"
+ 	"database/sql"
+ 	"encoding/json"
+ 	"errors"
+@@ -9,12 +8,9 @@ import (
+ 	"net/http"
+ 	"strconv"
+ 	"strings"
+-	"time"
+ 
+ 	"github.com/basecamp/once-campfire-go/internal/application"
+ 	"github.com/basecamp/once-campfire-go/internal/database"
+-	"github.com/basecamp/once-campfire-go/internal/presentation"
+-	"github.com/basecamp/once-campfire-go/internal/rails"
+ )
+ 
+ func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err error) {
+@@ -165,9 +161,7 @@ func (s *Server) saveRoom(w http.ResponseWriter, r *http.Request, u database.Use
+ 		}
+ 		saved = result.Commit.Room
+ 	}
+-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+-	defer cancel()
+-	if err := s.broadcastRoom(ctx, saved, updating); err != nil {
++	if err := s.RoomPublications.Saved(r.Context(), saved, updating); err != nil {
+ 		s.fail(w, err)
+ 		return
+ 	}
+@@ -216,63 +210,38 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
+ 		}
+ 		return
+ 	}
+-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+-	defer cancel()
+-	s.Cable.PublishStream(ctx, "rooms", rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""))
+-	if result.Processing != nil {
+-		s.fail(w, result.Processing)
++	if err := s.RoomPublications.Removed(r.Context(), result); err != nil {
++		s.fail(w, err)
+ 		return
+ 	}
+ 	http.Redirect(w, r, "/", 302)
+ }
+ 
+ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.User) {
+-	room, err := s.DB.Room(r.Context(), u.ID, roomID(r))
+-	if err != nil {
+-		s.fail(w, err)
+-		return
+-	}
+ 	if r.Method != "GET" && r.Method != "HEAD" {
+-		previous, e := s.DB.Involvement(r.Context(), u.ID, room.ID)
+-		if e != nil {
+-			s.fail(w, e)
+-			return
+-		}
+-		value := r.Form.Get("involvement")
+-		if err = s.DB.SetInvolvement(r.Context(), u.ID, room.ID, r.Form.Get("involvement")); err != nil {
++		commit, err := s.RoomCommands.Involvement(r.Context(), u.ID, roomID(r), r.Form.Get("involvement"))
++		if err != nil {
+ 			s.fail(w, err)
+ 			return
+ 		}
+-		if room.Type != "Rooms::Direct" {
+-			if value == "invisible" {
+-				s.Cable.PublishStream(
+-					r.Context(),
+-					rails.UserRoomsStream(u.ID),
+-					rails.TurboStream("remove", room.DOM("list"), ""),
+-				)
+-			} else if previous == "invisible" {
+-				markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
+-				if err != nil {
+-					s.fail(w, err)
+-					return
+-				}
+-				s.Cable.PublishStream(r.Context(), rails.UserRoomsStream(u.ID), rails.TurboStream("prepend", "shared_rooms", markup))
+-			}
++		if err = s.RoomPublications.Involvement(r.Context(), u.ID, commit); err != nil {
++			s.fail(w, err)
++			return
+ 		}
+-		http.Redirect(w, r, fmt.Sprintf("/rooms/%d/involvement", room.ID), 302)
++		http.Redirect(w, r, fmt.Sprintf("/rooms/%d/involvement", commit.ID), 302)
+ 		return
+ 	}
+-	value, err := s.DB.Involvement(r.Context(), u.ID, room.ID)
++	state, err := s.RoomQueries.Involvement(r.Context(), u.ID, roomID(r))
+ 	if err != nil {
+ 		s.fail(w, err)
+ 		return
+ 	}
+-	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
++	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: state.Room, Involvement: state.Value})
+ }
+ 
+ func (s *Server) roomsIndex(w http.ResponseWriter, r *http.Request, u database.User) {
+-	var id int64
+-	if err := s.DB.Read.QueryRowContext(r.Context(), "SELECT room_id FROM memberships WHERE user_id=? ORDER BY room_id DESC LIMIT 1", u.ID).Scan(&id); err != nil {
++	id, err := s.RoomQueries.Index(r.Context(), u.ID)
++	if err != nil {
+ 		http.Error(w, "Internal server error", 500)
+ 		return
+ 	}
+diff --git i/internal/web/rooms_test.go w/internal/web/rooms_test.go
+index a4ef7be..5c95d58 100644
+--- i/internal/web/rooms_test.go
++++ w/internal/web/rooms_test.go
+@@ -62,6 +62,43 @@ func TestRoomMutationRechecksCapturedAdministrator(t *testing.T) {
+ 	}
+ }
+ 
++func TestInvolvementRechecksCapturedActiveUser(t *testing.T) {
++	app, _, _, owner := testApp(t)
++	ctx := context.Background()
++	member, err := app.DB.CreateUser(ctx, owner.ID, database.UserInput{Name: "Member", Email: "member@test", Password: "unused", Role: 0})
++	if err != nil {
++		t.Fatal(err)
++	}
++	// Direct memberships survive deactivation for the remaining participants.
++	room, err := app.DB.CreateRoom(ctx, owner.ID, "Rooms::Direct", nil, []int64{member.ID})
++	if err != nil {
++		t.Fatal(err)
++	}
++	before, err := app.DB.RoomInvolvement(ctx, member.ID, room.ID)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err = app.DB.DeactivateUser(ctx, owner.ID, member.ID); err != nil {
++		t.Fatal(err)
++	}
++	// Authentication captured an active user before deactivation committed.
++	r := httptest.NewRequest("PUT", fmt.Sprintf("/rooms/%d/involvement", room.ID), strings.NewReader("involvement=invisible"))
++	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
++	r.SetPathValue("id", fmt.Sprint(room.ID))
++	if err = r.ParseForm(); err != nil {
++		t.Fatal(err)
++	}
++	w := httptest.NewRecorder()
++	app.involvement(w, r, member.User)
++	if w.Code != http.StatusNotFound {
++		t.Fatalf("captured inactive user changed involvement: %d", w.Code)
++	}
++	after, err := app.DB.RoomInvolvement(ctx, member.ID, room.ID)
++	if err != nil || after != before {
++		t.Fatalf("rejected command changed involvement: %q => %q, %v", before.Value, after.Value, err)
++	}
++}
++
+ func TestDirectRoomSettingsRetainInactiveParticipants(t *testing.T) {
+ 	for _, status := range []string{"active", "deactivated", "banned"} {
+ 		t.Run(status, func(t *testing.T) {
+@@ -187,8 +224,8 @@ func TestInvolvementCanBeCleared(t *testing.T) {
+ 			stored.Valid {
+ 			t.Fatalf("%q: stored %+v, error %v", form, stored, err)
+ 		}
+-		if value, err := app.DB.Involvement(ctx, owner.ID, room.ID); err != nil || value != "" {
+-			t.Fatalf("nullable involvement: %q %v", value, err)
++		if value, err := app.DB.RoomInvolvement(ctx, owner.ID, room.ID); err != nil || value.Value != "" {
++			t.Fatalf("nullable involvement: %q %v", value.Value, err)
+ 		}
+ 	}
+ }
+diff --git i/internal/web/runtime_test.go w/internal/web/runtime_test.go
+index bd2f5e2..2ab3ebf 100644
+--- i/internal/web/runtime_test.go
++++ w/internal/web/runtime_test.go
+@@ -82,6 +82,7 @@ func newTestRuntime(db *database.DB, secrets *rails.Secrets, root string) (*test
+ 		PageQueries:         &application.PageQueries{DB: db},
+ 		BotQueries:          &application.BotQueries{DB: db},
+ 		RoomQueries:         &application.RoomQueries{DB: db},
++		RoomPublications:    &application.RoomPublications{DB: db, Presentation: presenter, Cable: hub},
+ 		AccountQueries:      &application.AccountQueries{DB: db, Secrets: secrets},
+ 		Searches:            &application.Searches{DB: db, Messages: messages},
+ 		RoomCommands:        &application.Rooms{DB: db, Cable: hub, Cleanup: cleanup},
+diff --git i/internal/web/server.go w/internal/web/server.go
+index f133b52..dbe0e91 100644
+--- i/internal/web/server.go
++++ w/internal/web/server.go
+@@ -53,6 +53,7 @@ type Dependencies struct {
+ 	Searches            *application.Searches
+ 	RoomCommands        *application.Rooms
+ 	RoomQueries         *application.RoomQueries
++	RoomPublications    *application.RoomPublications
+ 	AccountCommands     *application.Accounts
+ 	SessionCommands     *application.Sessions
+ 	Cable               *cable.Hub
+diff --git i/internal/web/sidebar.go w/internal/web/sidebar.go
+deleted file mode 100644
+index 6d5dbb1..0000000
+--- i/internal/web/sidebar.go
++++ /dev/null
+@@ -1,48 +0,0 @@
+-package web
+-
+-import (
+-	"context"
+-
+-	"github.com/basecamp/once-campfire-go/internal/database"
+-	"github.com/basecamp/once-campfire-go/internal/presentation"
+-	"github.com/basecamp/once-campfire-go/internal/rails"
+-)
+-
+-func (s *Server) broadcastRoom(ctx context.Context, room database.Room, update bool) error {
+-	action, target := "prepend", "shared_rooms"
+-	if update {
+-		action, target = "replace", room.DOM("list")
+-	}
+-	if room.Type == "Rooms::Open" {
+-		markup, err := s.Presentation.Markup("sidebar-shared", presentation.RoomView{Room: room})
+-		if err != nil {
+-			return err
+-		}
+-		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
+-		return nil
+-	}
+-	members, err := s.DB.ActiveRoomParticipants(ctx, room.ID)
+-	if err != nil {
+-		return err
+-	}
+-	var participants []database.RoomParticipant
+-	if room.Type == "Rooms::Direct" {
+-		participants, err = s.DB.RoomParticipants(ctx, room.ID)
+-		if err != nil {
+-			return err
+-		}
+-	}
+-	for _, user := range members {
+-		view := presentation.DisplayRoom(room, participants, user)
+-		name := "sidebar-shared"
+-		if room.Type == "Rooms::Direct" {
+-			name, target, action = "sidebar-direct", "direct_rooms", "prepend"
+-		}
+-		markup, err := s.Presentation.Markup(name, view)
+-		if err != nil {
+-			return err
+-		}
+-		s.Cable.PublishStream(ctx, rails.UserRoomsStream(user.ID), rails.TurboStream(action, target, markup))
+-	}
+-	return nil
+-}
