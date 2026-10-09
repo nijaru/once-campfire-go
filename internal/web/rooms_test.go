@@ -281,6 +281,11 @@ func TestRoomUpdatesRejectMissingRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Compare persisted snapshots, not the creation receipt's higher-precision clock.
+	room, err = app.DB.FindRoom(ctx, room.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	before, err := app.DB.RoomParticipants(ctx, room.ID)
 	if err != nil {
 		t.Fatal(err)
