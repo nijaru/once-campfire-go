@@ -161,7 +161,11 @@ improve. It also records a rejected query-fusion experiment rather than hiding i
 The [shared-contract comparison](bench/results/shared-contracts-20261008/README.md) validates
 every timed response and exact acknowledged write, combines duplicate session reads, and improves
 read medians by another 3.7–5.4%. Fresh Rust comparisons still favor Rust on every measured route.
-These local measurements differ from the upstream table in machine, revisions and methodology.
+The [current-upstream comparison](bench/results/current-upstream-20261008/README.md) records
+connection-local reader plans and fresh generation batching, including read gains and posting
+regressions. The [ordered-routing comparison](bench/results/ordered-routing-20261008/README.md)
+removes duplicate dispatch and records smaller, variable gains. These local measurements differ
+from the upstream table in machine, revisions and methodology.
 
 ## Known differences
 
@@ -181,6 +185,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
 
 - Sidebar connection refresh waits for the current Turbo frame to finish loading,
   preventing an aborted response on startup or reconnect. Obsolete connections and removed frames do not reload.
+
+- Bot APIs select actions from the ordered route table, not substrings of the bot key.
+  A key beginning with `boosts` no longer turns a message request into a boost request.
 
 - Search follows current Go/Rust upstream: the newest 100 matching insertion IDs,
   displayed in ID order. Backdated messages can differ from Rails' timestamp order.

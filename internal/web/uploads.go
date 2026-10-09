@@ -16,30 +16,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
-func (s *Server) registerStorageRoutes() {
-	s.mux.HandleFunc(
-		"GET /rails/active_storage/representations/redirect/{token}/{variation}/{filename...}",
-		s.representation,
-	)
-	s.mux.HandleFunc(
-		"GET /rails/active_storage/representations/proxy/{token}/{variation}/{filename...}",
-		s.representation,
-	)
-	s.mux.HandleFunc(
-		"GET /rails/active_storage/representations/{token}/{variation}/{filename...}",
-		s.representation,
-	)
-	s.mux.HandleFunc("POST /rails/active_storage/direct_uploads", s.storageAuth(s.directUpload))
-	s.mux.HandleFunc("PUT /rails/active_storage/disk/{token}", s.storageAuth(s.diskUpload))
-	s.mux.HandleFunc("GET /rails/active_storage/disk/{token}/{filename...}", s.diskDownload)
-	s.mux.HandleFunc(
-		"GET /rails/active_storage/blobs/redirect/{token}/{filename...}",
-		s.blobDownload,
-	)
-	s.mux.HandleFunc("GET /rails/active_storage/blobs/proxy/{token}/{filename...}", s.blobDownload)
-	s.mux.HandleFunc("GET /rails/active_storage/blobs/{token}/{filename...}", s.blobDownload)
-}
-
 func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
 	attributes := make(map[string]any)
 	if params, ok := r.Context().Value(structuredParamsKey{}).(map[string]any); ok {
@@ -142,7 +118,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
 
 func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
 	var token storage.DiskToken
-	if err := s.Storage.Verifier.Verify(r.PathValue("token"), "blob_token", s.DB.Now(), &token); err != nil {
+	if err := s.Storage.Verifier.Verify(r.PathValue("encoded_token"), "blob_token", s.DB.Now(), &token); err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -173,7 +149,7 @@ func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.U
 func (s *Server) diskDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=3600, public")
 	var key storage.DiskKey
-	if err := s.Storage.Verifier.Verify(r.PathValue("token"), "blob_key", s.DB.Now(), &key); err != nil {
+	if err := s.Storage.Verifier.Verify(r.PathValue("encoded_key"), "blob_key", s.DB.Now(), &key); err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -190,14 +166,14 @@ func (s *Server) diskDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
-	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("token"))
+	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("signed_id"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	disposition := r.URL.Query().Get("disposition")
 	// Blob byte ranges are sent inline unless the MIME type forces a download.
-	if strings.Contains(r.URL.Path, "/proxy/") && strings.TrimSpace(r.Header.Get("Range")) != "" {
+	if r.PathValue("controller") == "active_storage/blobs/proxy" && strings.TrimSpace(r.Header.Get("Range")) != "" {
 		disposition = "inline"
 	}
 	if disposition != "attachment" {
@@ -206,7 +182,7 @@ func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
 	if !storage.Inline(b.Type()) {
 		disposition = "attachment"
 	}
-	if strings.Contains(r.URL.Path, "/proxy/") {
+	if r.PathValue("controller") == "active_storage/blobs/proxy" {
 		path, err := s.Storage.Path(b.Key)
 		if err != nil {
 			http.NotFound(w, r)
@@ -316,12 +292,12 @@ func (s *Server) storageAuth(
 }
 
 func (s *Server) representation(w http.ResponseWriter, r *http.Request) {
-	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("token"))
+	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("signed_blob_id"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	v, err := s.Storage.DecodeVariation(r.PathValue("variation"))
+	v, err := s.Storage.DecodeVariation(r.PathValue("variation_key"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -331,7 +307,7 @@ func (s *Server) representation(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	if strings.Contains(r.URL.Path, "/proxy/") {
+	if r.PathValue("controller") == "active_storage/representations/proxy" {
 		path, err := s.Storage.Path(b.Key)
 		if err != nil {
 			s.fail(w, err)

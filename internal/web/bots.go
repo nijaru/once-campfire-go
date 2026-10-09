@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,25 +17,20 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
-var botRoute = regexp.MustCompile(`^/rooms/([^/]+)/([^/]+)/messages(?:/([^/]+))?(?:/boosts(?:/([^/]+))?)?$`)
-
-func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
-	values := botRoute.FindStringSubmatch(r.URL.Path)
-	if values == nil {
-		return false
+func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("bot_key")
+	// These are single path segments. Preserve the bot boundary's rejection of
+	// decoded slashes and the reserved nested-message segment before authority.
+	for _, name := range []string{"room_id", "bot_key", "message_id", "id"} {
+		if strings.Contains(r.PathValue(name), "/") {
+			publicError(w, r, 404)
+			return
+		}
 	}
-	// The normal nested message route comes first in config/routes.rb.
-	if values[2] == "messages" {
-		return false
+	if key == "messages" {
+		publicError(w, r, 404)
+		return
 	}
-	switch r.Method {
-	case "GET", "HEAD", "POST", "PATCH", "PUT", "DELETE":
-	default:
-		return false
-	}
-	r.SetPathValue("id", values[1])
-	r.SetPathValue("message", values[3])
-	r.SetPathValue("boost", values[4])
 	var user database.User
 	var err error
 	fromCookie := false
@@ -48,22 +42,22 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 		}
 	}
 	if !fromCookie {
-		user, err = s.DB.Bot(r.Context(), values[2])
+		user, err = s.DB.Bot(r.Context(), key)
 		if err != nil {
 			s.requestAuthentication(w, r)
-			return true
+			return
 		}
 	} else if r.Method != "GET" && r.Method != "HEAD" && !s.browserWriteAllowed(r) {
 		http.Error(w, "Invalid request origin", 422)
-		return true
+		return
 	}
 	if s.blockBrowser(w, r) {
-		return true
+		return
 	}
 	room, err := s.DB.Room(r.Context(), user.ID, roomID(r))
 	if err != nil {
 		http.NotFound(w, r)
-		return true
+		return
 	}
 	var raw []byte
 	if boundary := multipartBoundary(r); boundary != "" {
@@ -74,27 +68,28 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			var limit *http.MaxBytesError
 			if errors.As(e, &limit) {
 				http.Error(w, "Request too large", 413)
-				return true
+				return
 			}
 			http.Error(w, "Invalid upload", 400)
-			return true
+			return
 		}
 	} else {
 		r.Body = http.MaxBytesReader(w, r.Body, MaxBody)
 		raw, err = io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Request too large", 413)
-			return true
+			return
 		}
 		r.Body = io.NopCloser(bytes.NewReader(raw))
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Invalid form", 400)
-			return true
+			return
 		}
 	}
-	if strings.Contains(r.URL.Path, "/boosts") {
+	route, _, _ := recognizeRequest(r)
+	if strings.Contains(route.Action, "::boosts::") {
 		s.botBoost(w, r, user, room, string(raw))
-		return true
+		return
 	}
 	switch r.Method {
 	case "GET", "HEAD":
@@ -108,7 +103,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 		result, err := s.MessageQueries.APIPage(r.Context(), s.presentationFacts(r.Context()), user.ID, room.ID, before, direction, linkAfter)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		w.Header().Set("X-Total-Count", strconv.Itoa(result.Count))
 		if result.Next != 0 {
@@ -116,7 +111,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			if linkAfter {
 				param = "after"
 			}
-			w.Header().Set("Link", fmt.Sprintf(`<%s/rooms/%d/%s/messages?%s=%d>; rel="next"`, s.origin(r), room.ID, values[2], param, result.Next))
+			w.Header().Set("Link", fmt.Sprintf(`<%s/rooms/%d/%s/messages?%s=%d>; rel="next"`, s.origin(r), room.ID, key, param, result.Next))
 		}
 		writeJSON(w, 200, result.Messages)
 	case "POST":
@@ -126,14 +121,14 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 			staged, err = s.stageAttachment(r, "attachment")
 			if err != nil {
 				s.fail(w, err)
-				return true
+				return
 			}
 		} else if r.Form.Get("attachment") != "" {
 			http.Error(w, "Invalid attachment", 500)
-			return true
+			return
 		} else if strings.TrimSpace(string(raw)) == "" {
 			w.WriteHeader(422)
-			return true
+			return
 		} else {
 			value := strings.ToValidUTF8(string(raw), "�")
 			body = &value
@@ -141,11 +136,11 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 		result, err := s.MessageCommands.Create(r.Context(), user.ID, room.ID, "", body, staged)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		if _, err = s.MessageEffects.Created(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		message := result.Commit.Message
 		w.Header().Set("Location", fmt.Sprintf("%s/messages/%d", s.origin(r), message.ID))
@@ -154,7 +149,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 		message, err := s.findMessage(r, user, true)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		body := strings.ToValidUTF8(string(raw), "�")
 		var rawBody *string = &body
@@ -164,39 +159,39 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
 		result, err := s.updateMessageAttributes(r, user, message, "", "attachment", rawBody)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		message = result.Commit.Message
 		if err = s.MessagePublications.Updated(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		value, err := s.MessageQueries.APIRecord(r.Context(), s.presentationFacts(r.Context()), message)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		writeJSON(w, 200, value)
 	case "DELETE":
 		message, err := s.findMessage(r, user, true)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		result, err := s.MessageCommands.Delete(r.Context(), user.ID, message.ID)
 		if err != nil {
 			s.fail(w, err)
-			return true
+			return
 		}
 		message = result.Commit.Message
 		s.publish(message.RoomID, rails.TurboStream("remove", "message_"+message.ClientID, ""))
 		if result.Processing != nil {
 			s.fail(w, result.Processing)
-			return true
+			return
 		}
 		w.WriteHeader(204)
 	}
-	return true
+	return
 }
 func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.User, room database.Room, body string) {
 	message, err := s.findMessage(r, u, false)
@@ -205,7 +200,7 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		return
 	}
 	if r.Method == "DELETE" {
-		id := pathInt(r, "boost")
+		id := pathInt(r, "id")
 		if err = s.DB.DeleteBoost(r.Context(), u.ID, message.ID, id); err != nil {
 			s.fail(w, err)
 			return

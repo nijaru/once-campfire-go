@@ -13,6 +13,24 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/presentation"
 )
 
+func TestBotAPISelectsActionIndependentlyOfKeyText(t *testing.T) {
+	app, server, cookie, owner := testApp(t)
+	rooms, err := app.DB.Rooms(context.Background(), owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := fmt.Sprintf("/rooms/%d/boosts-key/messages", rooms[0].ID)
+	response, _ := perform(t, server, "POST", path, "text/plain", strings.NewReader("Selected message action"), cookie)
+	if response.StatusCode != 201 {
+		t.Fatalf("key text selected a boost instead of a message: %s", response.Status)
+	}
+	response, body := perform(t, server, "GET", path, "", nil, cookie)
+	var messages []presentation.APIMessage
+	if err := json.Unmarshal(body, &messages); err != nil || response.StatusCode != 200 || len(messages) != 1 || messages[0].Body.Plain != "Selected message action" {
+		t.Fatalf("message action: %s %s, %v", response.Status, body, err)
+	}
+}
+
 func TestMessageAPIKeepsBodiesRolesAndStrictPagination(t *testing.T) {
 	app, server, cookie, owner := testApp(t)
 	ctx := context.Background()

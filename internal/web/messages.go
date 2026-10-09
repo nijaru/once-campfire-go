@@ -14,29 +14,17 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
-func (s *Server) registerMessageRoutes() {
-	s.mux.HandleFunc("GET /messages", s.auth(s.messages))
-	s.mux.HandleFunc("POST /messages", s.auth(s.createMessage))
-	s.mux.HandleFunc("GET /messages/{message}", s.auth(s.showMessage))
-	s.mux.HandleFunc("GET /messages/{message}/edit", s.auth(s.editMessage))
-	s.mux.HandleFunc("PATCH /messages/{message}", s.auth(s.updateMessage))
-	s.mux.HandleFunc("PUT /messages/{message}", s.auth(s.updateMessage))
-	s.mux.HandleFunc("DELETE /messages/{message}", s.auth(s.deleteMessage))
-	s.mux.HandleFunc("GET /rooms/{id}/messages/{message}", s.auth(s.showMessage))
-	s.mux.HandleFunc("GET /rooms/{id}/messages/{message}/edit", s.auth(s.editMessage))
-	s.mux.HandleFunc("PATCH /rooms/{id}/messages/{message}", s.auth(s.updateMessage))
-	s.mux.HandleFunc("PUT /rooms/{id}/messages/{message}", s.auth(s.updateMessage))
-	s.mux.HandleFunc("DELETE /rooms/{id}/messages/{message}", s.auth(s.deleteMessage))
-	s.mux.HandleFunc("GET /messages/{message}/boosts", s.auth(s.boosts))
-	s.mux.HandleFunc("GET /messages/{message}/boosts/new", s.auth(s.newBoost))
-	s.mux.HandleFunc("POST /messages/{message}/boosts", s.auth(s.createBoost))
-	s.mux.HandleFunc("DELETE /messages/{message}/boosts/{boost}", s.auth(s.deleteBoost))
-	s.mux.HandleFunc("GET /rooms/{id}/refresh", s.auth(s.refreshRoom))
-}
-
 func pathInt(r *http.Request, key string) int64 {
 	id, _ := strconv.ParseInt(r.PathValue(key), 10, 64)
 	return id
+}
+
+// Messages and boosts use different canonical capture names in the route table.
+func messageID(r *http.Request) int64 {
+	if r.PathValue("message_id") != "" {
+		return pathInt(r, "message_id")
+	}
+	return pathInt(r, "id")
 }
 
 func (s *Server) findMessage(
@@ -49,7 +37,7 @@ func (s *Server) findMessage(
 		roomID(r) == 0 {
 		return database.Message{}, sql.ErrNoRows
 	}
-	m, err := s.DB.ReachableMessage(r.Context(), u.ID, pathInt(r, "message"))
+	m, err := s.DB.ReachableMessage(r.Context(), u.ID, messageID(r))
 	if err != nil {
 		return m, err
 	}
@@ -220,7 +208,7 @@ func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	id := pathInt(r, "boost")
+	id := pathInt(r, "id")
 	if err = s.DB.DeleteBoost(r.Context(), u.ID, m.ID, id); err != nil {
 		s.fail(w, err)
 		return

@@ -1,0 +1,1261 @@
+diff --git i/internal/web/accounts.go w/internal/web/accounts.go
+index 721f30f..a4169bf 100644
+--- i/internal/web/accounts.go
++++ w/internal/web/accounts.go
+@@ -15,40 +15,6 @@ import (
+ 	"golang.org/x/crypto/bcrypt"
+ )
+ 
+-func (s *Server) registerAccountRoutes() {
+-	s.mux.HandleFunc("GET /account/edit", s.auth(s.accountForm))
+-	s.mux.HandleFunc("PATCH /account", s.auth(s.updateAccount))
+-	s.mux.HandleFunc("PUT /account", s.auth(s.updateAccount))
+-	s.mux.HandleFunc("POST /account/join_code", s.auth(s.resetJoinCode))
+-	s.mux.HandleFunc("GET /account/custom_styles/edit", s.auth(s.customStyles))
+-	s.mux.HandleFunc("PATCH /account/custom_styles", s.auth(s.customStyles))
+-	s.mux.HandleFunc("PUT /account/custom_styles", s.auth(s.customStyles))
+-	s.mux.HandleFunc("GET /users/{user}/profile", s.auth(s.profile))
+-	s.mux.HandleFunc("PATCH /users/{user}/profile", s.auth(s.profile))
+-	s.mux.HandleFunc("PUT /users/{user}/profile", s.auth(s.profile))
+-	s.mux.HandleFunc("GET /users/{user}", s.auth(s.showUser))
+-	s.mux.HandleFunc("POST /users/{user}/ban", s.auth(s.banUser))
+-	s.mux.HandleFunc("DELETE /users/{user}/ban", s.auth(s.banUser))
+-	s.mux.HandleFunc("GET /account/users", s.auth(s.accountUsers))
+-	s.mux.HandleFunc("PATCH /account/users/{user}", s.auth(s.manageUser))
+-	s.mux.HandleFunc("PUT /account/users/{user}", s.auth(s.manageUser))
+-	s.mux.HandleFunc("DELETE /account/users/{user}", s.auth(s.manageUser))
+-	s.mux.HandleFunc("GET /join/{code}", s.browserCheck(s.join))
+-	s.mux.HandleFunc("POST /join/{code}", s.browserCheck(s.join))
+-	s.mux.HandleFunc("GET /account/bots", s.auth(s.bots))
+-	s.mux.HandleFunc("GET /account/bots/new", s.auth(s.botForm))
+-	s.mux.HandleFunc("GET /account/bots/{bot}/edit", s.auth(s.botForm))
+-	s.mux.HandleFunc("POST /account/bots", s.auth(s.saveBot))
+-	s.mux.HandleFunc("PATCH /account/bots/{bot}", s.auth(s.saveBot))
+-	s.mux.HandleFunc("PUT /account/bots/{bot}", s.auth(s.saveBot))
+-	s.mux.HandleFunc("DELETE /account/bots/{bot}", s.auth(s.saveBot))
+-	s.mux.HandleFunc("PATCH /account/bots/{bot}/key", s.auth(s.rotateBot))
+-	s.mux.HandleFunc("PUT /account/bots/{bot}/key", s.auth(s.rotateBot))
+-	s.mux.HandleFunc("GET /session/transfers/{token}", s.browserCheck(s.transfer))
+-	s.mux.HandleFunc("PATCH /session/transfers/{token}", s.browserCheck(s.transfer))
+-	s.mux.HandleFunc("PUT /session/transfers/{token}", s.browserCheck(s.transfer))
+-}
+-
+ // Account/profile effects are asynchronous in the reference. Preserve the
+ // committed redirect response while reporting processing/admission failures.
+ func logAccountProcessing(err error) {
+@@ -233,7 +199,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
+ }
+ 
+ func (s *Server) showUser(w http.ResponseWriter, r *http.Request, u database.User) {
+-	subject, err := s.DB.UserProfile(r.Context(), pathInt(r, "user"))
++	subject, err := s.DB.UserProfile(r.Context(), pathInt(r, "id"))
+ 	if err != nil {
+ 		s.fail(w, err)
+ 		return
+@@ -256,7 +222,7 @@ func (s *Server) manageUser(w http.ResponseWriter, r *http.Request, u database.U
+ 	if !administrator(w, u) {
+ 		return
+ 	}
+-	id := pathInt(r, "user")
++	id := pathInt(r, "id")
+ 	subject, err := s.DB.User(r.Context(), id)
+ 	if err != nil {
+ 		s.fail(w, err)
+@@ -286,7 +252,7 @@ func (s *Server) banUser(w http.ResponseWriter, r *http.Request, u database.User
+ 	if !administrator(w, u) {
+ 		return
+ 	}
+-	id := pathInt(r, "user")
++	id := pathInt(r, "user_id")
+ 	if _, err := s.DB.User(r.Context(), id); err != nil {
+ 		s.fail(w, err)
+ 		return
+@@ -309,7 +275,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
+ 		s.fail(w, err)
+ 		return
+ 	}
+-	if account.JoinCode != r.PathValue("code") {
++	if account.JoinCode != r.PathValue("join_code") {
+ 		w.WriteHeader(http.StatusNotFound)
+ 		return
+ 	}
+@@ -342,7 +308,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
+ 		s.fail(w, err)
+ 		return
+ 	}
+-	result, err := s.AccountCommands.Join(r.Context(), r.PathValue("code"), remoteIP(r), database.UserInput{Name: r.Form.Get("user[name]"), Email: email, Password: string(digest)}, application.Attachment{File: upload})
++	result, err := s.AccountCommands.Join(r.Context(), r.PathValue("join_code"), remoteIP(r), database.UserInput{Name: r.Form.Get("user[name]"), Email: email, Password: string(digest)}, application.Attachment{File: upload})
+ 	if err != nil {
+ 		if existing, e := s.DB.UserByEmail(r.Context(), email); e == nil && existing.ID != 0 {
+ 			http.Redirect(w, r, "/session/new?email_address="+url.QueryEscape(email), 302)
+@@ -372,7 +338,7 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
+ 	if !administrator(w, u) {
+ 		return
+ 	}
+-	data, err := s.BotQueries.Form(r.Context(), pathInt(r, "bot"))
++	data, err := s.BotQueries.Form(r.Context(), pathInt(r, "id"))
+ 	if errors.Is(err, application.ErrNotBot) {
+ 		http.NotFound(w, r)
+ 		return
+@@ -398,7 +364,7 @@ func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User
+ 	if !administrator(w, u) {
+ 		return
+ 	}
+-	id := pathInt(r, "bot")
++	id := pathInt(r, "id")
+ 	webhook := r.Form.Get("user[webhook_url]")
+ 	name := r.Form.Get("user[name]")
+ 	upload, err := s.optionalUpload(r, "user[avatar]")
+@@ -471,7 +437,7 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
+ 	if !administrator(w, u) {
+ 		return
+ 	}
+-	id := pathInt(r, "bot")
++	id := pathInt(r, "bot_id")
+ 	bot, err := s.DB.User(r.Context(), id)
+ 	if err != nil {
+ 		s.fail(w, err)
+@@ -491,10 +457,10 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
+ 
+ func (s *Server) transfer(w http.ResponseWriter, r *http.Request) {
+ 	if r.Method == "GET" || r.Method == "HEAD" {
+-		s.respondPage(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("token")})
++		s.respondPage(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("id")})
+ 		return
+ 	}
+-	id, err := s.Secrets.VerifyID("User", r.PathValue("token"), "transfer", s.DB.Now())
++	id, err := s.Secrets.VerifyID("User", r.PathValue("id"), "transfer", s.DB.Now())
+ 	if err != nil {
+ 		http.Error(w, "Bad request", 400)
+ 		return
+diff --git i/internal/web/bots.go w/internal/web/bots.go
+index 7972a54..1032a9b 100644
+--- i/internal/web/bots.go
++++ w/internal/web/bots.go
+@@ -7,7 +7,6 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"net/http"
+-	"regexp"
+ 	"strconv"
+ 	"strings"
+ 	"time"
+@@ -18,25 +17,20 @@ import (
+ 	"github.com/basecamp/once-campfire-go/internal/storage"
+ )
+ 
+-var botRoute = regexp.MustCompile(`^/rooms/([^/]+)/([^/]+)/messages(?:/([^/]+))?(?:/boosts(?:/([^/]+))?)?$`)
+-
+-func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+-	values := botRoute.FindStringSubmatch(r.URL.Path)
+-	if values == nil {
+-		return false
++func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
++	key := r.PathValue("bot_key")
++	// These are single path segments. Preserve the bot boundary's rejection of
++	// decoded slashes and the reserved nested-message segment before authority.
++	for _, name := range []string{"room_id", "bot_key", "message_id", "id"} {
++		if strings.Contains(r.PathValue(name), "/") {
++			publicError(w, r, 404)
++			return
++		}
+ 	}
+-	// The normal nested message route comes first in config/routes.rb.
+-	if values[2] == "messages" {
+-		return false
++	if key == "messages" {
++		publicError(w, r, 404)
++		return
+ 	}
+-	switch r.Method {
+-	case "GET", "HEAD", "POST", "PATCH", "PUT", "DELETE":
+-	default:
+-		return false
+-	}
+-	r.SetPathValue("id", values[1])
+-	r.SetPathValue("message", values[3])
+-	r.SetPathValue("boost", values[4])
+ 	var user database.User
+ 	var err error
+ 	fromCookie := false
+@@ -48,22 +42,22 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 		}
+ 	}
+ 	if !fromCookie {
+-		user, err = s.DB.Bot(r.Context(), values[2])
++		user, err = s.DB.Bot(r.Context(), key)
+ 		if err != nil {
+ 			s.requestAuthentication(w, r)
+-			return true
++			return
+ 		}
+ 	} else if r.Method != "GET" && r.Method != "HEAD" && !s.browserWriteAllowed(r) {
+ 		http.Error(w, "Invalid request origin", 422)
+-		return true
++		return
+ 	}
+ 	if s.blockBrowser(w, r) {
+-		return true
++		return
+ 	}
+ 	room, err := s.DB.Room(r.Context(), user.ID, roomID(r))
+ 	if err != nil {
+ 		http.NotFound(w, r)
+-		return true
++		return
+ 	}
+ 	var raw []byte
+ 	if boundary := multipartBoundary(r); boundary != "" {
+@@ -74,27 +68,28 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 			var limit *http.MaxBytesError
+ 			if errors.As(e, &limit) {
+ 				http.Error(w, "Request too large", 413)
+-				return true
++				return
+ 			}
+ 			http.Error(w, "Invalid upload", 400)
+-			return true
++			return
+ 		}
+ 	} else {
+ 		r.Body = http.MaxBytesReader(w, r.Body, MaxBody)
+ 		raw, err = io.ReadAll(r.Body)
+ 		if err != nil {
+ 			http.Error(w, "Request too large", 413)
+-			return true
++			return
+ 		}
+ 		r.Body = io.NopCloser(bytes.NewReader(raw))
+ 		if err := r.ParseForm(); err != nil {
+ 			http.Error(w, "Invalid form", 400)
+-			return true
++			return
+ 		}
+ 	}
+-	if strings.Contains(r.URL.Path, "/boosts") {
++	route, _, _ := recognizeRequest(r)
++	if strings.Contains(route.Action, "::boosts::") {
+ 		s.botBoost(w, r, user, room, string(raw))
+-		return true
++		return
+ 	}
+ 	switch r.Method {
+ 	case "GET", "HEAD":
+@@ -108,7 +103,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 		result, err := s.MessageQueries.APIPage(r.Context(), s.presentationFacts(r.Context()), user.ID, room.ID, before, direction, linkAfter)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		w.Header().Set("X-Total-Count", strconv.Itoa(result.Count))
+ 		if result.Next != 0 {
+@@ -116,7 +111,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 			if linkAfter {
+ 				param = "after"
+ 			}
+-			w.Header().Set("Link", fmt.Sprintf(`<%s/rooms/%d/%s/messages?%s=%d>; rel="next"`, s.origin(r), room.ID, values[2], param, result.Next))
++			w.Header().Set("Link", fmt.Sprintf(`<%s/rooms/%d/%s/messages?%s=%d>; rel="next"`, s.origin(r), room.ID, key, param, result.Next))
+ 		}
+ 		writeJSON(w, 200, result.Messages)
+ 	case "POST":
+@@ -126,14 +121,14 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 			staged, err = s.stageAttachment(r, "attachment")
+ 			if err != nil {
+ 				s.fail(w, err)
+-				return true
++				return
+ 			}
+ 		} else if r.Form.Get("attachment") != "" {
+ 			http.Error(w, "Invalid attachment", 500)
+-			return true
++			return
+ 		} else if strings.TrimSpace(string(raw)) == "" {
+ 			w.WriteHeader(422)
+-			return true
++			return
+ 		} else {
+ 			value := strings.ToValidUTF8(string(raw), "�")
+ 			body = &value
+@@ -141,11 +136,11 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 		result, err := s.MessageCommands.Create(r.Context(), user.ID, room.ID, "", body, staged)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		if _, err = s.MessageEffects.Created(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		message := result.Commit.Message
+ 		w.Header().Set("Location", fmt.Sprintf("%s/messages/%d", s.origin(r), message.ID))
+@@ -154,7 +149,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 		message, err := s.findMessage(r, user, true)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		body := strings.ToValidUTF8(string(raw), "�")
+ 		var rawBody *string = &body
+@@ -164,39 +159,39 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) bool {
+ 		result, err := s.updateMessageAttributes(r, user, message, "", "attachment", rawBody)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		message = result.Commit.Message
+ 		if err = s.MessagePublications.Updated(r.Context(), s.presentationFacts(r.Context()), result); err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		value, err := s.MessageQueries.APIRecord(r.Context(), s.presentationFacts(r.Context()), message)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		writeJSON(w, 200, value)
+ 	case "DELETE":
+ 		message, err := s.findMessage(r, user, true)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		result, err := s.MessageCommands.Delete(r.Context(), user.ID, message.ID)
+ 		if err != nil {
+ 			s.fail(w, err)
+-			return true
++			return
+ 		}
+ 		message = result.Commit.Message
+ 		s.publish(message.RoomID, rails.TurboStream("remove", "message_"+message.ClientID, ""))
+ 		if result.Processing != nil {
+ 			s.fail(w, result.Processing)
+-			return true
++			return
+ 		}
+ 		w.WriteHeader(204)
+ 	}
+-	return true
++	return
+ }
+ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.User, room database.Room, body string) {
+ 	message, err := s.findMessage(r, u, false)
+@@ -205,7 +200,7 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
+ 		return
+ 	}
+ 	if r.Method == "DELETE" {
+-		id := pathInt(r, "boost")
++		id := pathInt(r, "id")
+ 		if err = s.DB.DeleteBoost(r.Context(), u.ID, message.ID, id); err != nil {
+ 			s.fail(w, err)
+ 			return
+diff --git i/internal/web/media.go w/internal/web/media.go
+index be7e238..5329d60 100644
+--- i/internal/web/media.go
++++ w/internal/web/media.go
+@@ -19,15 +19,8 @@ import (
+ 	"github.com/basecamp/once-campfire-go/internal/storage"
+ )
+ 
+-func (s *Server) registerMediaRoutes() {
+-	s.mux.HandleFunc("GET /users/{token}/avatar", s.auth(s.avatar))
+-	s.mux.HandleFunc("DELETE /users/{user}/avatar", s.auth(s.deleteAvatar))
+-	s.mux.HandleFunc("GET /account/logo", s.browserCheck(s.logo))
+-	s.mux.HandleFunc("DELETE /account/logo", s.auth(s.deleteLogo))
+-}
+-
+ func (s *Server) avatar(w http.ResponseWriter, r *http.Request, _ database.User) {
+-	id, err := s.Secrets.VerifyID("User", r.PathValue("token"), "avatar", s.DB.Now())
++	id, err := s.Secrets.VerifyID("User", r.PathValue("user_id"), "avatar", s.DB.Now())
+ 	if err != nil {
+ 		http.NotFound(w, r)
+ 		return
+diff --git i/internal/web/message_api_test.go w/internal/web/message_api_test.go
+index c4c3a19..d9d7ca6 100644
+--- i/internal/web/message_api_test.go
++++ w/internal/web/message_api_test.go
+@@ -13,6 +13,24 @@ import (
+ 	"github.com/basecamp/once-campfire-go/internal/presentation"
+ )
+ 
++func TestBotAPISelectsActionIndependentlyOfKeyText(t *testing.T) {
++	app, server, cookie, owner := testApp(t)
++	rooms, err := app.DB.Rooms(context.Background(), owner.ID)
++	if err != nil {
++		t.Fatal(err)
++	}
++	path := fmt.Sprintf("/rooms/%d/boosts-key/messages", rooms[0].ID)
++	response, _ := perform(t, server, "POST", path, "text/plain", strings.NewReader("Selected message action"), cookie)
++	if response.StatusCode != 201 {
++		t.Fatalf("key text selected a boost instead of a message: %s", response.Status)
++	}
++	response, body := perform(t, server, "GET", path, "", nil, cookie)
++	var messages []presentation.APIMessage
++	if err := json.Unmarshal(body, &messages); err != nil || response.StatusCode != 200 || len(messages) != 1 || messages[0].Body.Plain != "Selected message action" {
++		t.Fatalf("message action: %s %s, %v", response.Status, body, err)
++	}
++}
++
+ func TestMessageAPIKeepsBodiesRolesAndStrictPagination(t *testing.T) {
+ 	app, server, cookie, owner := testApp(t)
+ 	ctx := context.Background()
+diff --git i/internal/web/messages.go w/internal/web/messages.go
+index 647184f..12e4822 100644
+--- i/internal/web/messages.go
++++ w/internal/web/messages.go
+@@ -14,31 +14,19 @@ import (
+ 	"github.com/basecamp/once-campfire-go/internal/rails"
+ )
+ 
+-func (s *Server) registerMessageRoutes() {
+-	s.mux.HandleFunc("GET /messages", s.auth(s.messages))
+-	s.mux.HandleFunc("POST /messages", s.auth(s.createMessage))
+-	s.mux.HandleFunc("GET /messages/{message}", s.auth(s.showMessage))
+-	s.mux.HandleFunc("GET /messages/{message}/edit", s.auth(s.editMessage))
+-	s.mux.HandleFunc("PATCH /messages/{message}", s.auth(s.updateMessage))
+-	s.mux.HandleFunc("PUT /messages/{message}", s.auth(s.updateMessage))
+-	s.mux.HandleFunc("DELETE /messages/{message}", s.auth(s.deleteMessage))
+-	s.mux.HandleFunc("GET /rooms/{id}/messages/{message}", s.auth(s.showMessage))
+-	s.mux.HandleFunc("GET /rooms/{id}/messages/{message}/edit", s.auth(s.editMessage))
+-	s.mux.HandleFunc("PATCH /rooms/{id}/messages/{message}", s.auth(s.updateMessage))
+-	s.mux.HandleFunc("PUT /rooms/{id}/messages/{message}", s.auth(s.updateMessage))
+-	s.mux.HandleFunc("DELETE /rooms/{id}/messages/{message}", s.auth(s.deleteMessage))
+-	s.mux.HandleFunc("GET /messages/{message}/boosts", s.auth(s.boosts))
+-	s.mux.HandleFunc("GET /messages/{message}/boosts/new", s.auth(s.newBoost))
+-	s.mux.HandleFunc("POST /messages/{message}/boosts", s.auth(s.createBoost))
+-	s.mux.HandleFunc("DELETE /messages/{message}/boosts/{boost}", s.auth(s.deleteBoost))
+-	s.mux.HandleFunc("GET /rooms/{id}/refresh", s.auth(s.refreshRoom))
+-}
+-
+ func pathInt(r *http.Request, key string) int64 {
+ 	id, _ := strconv.ParseInt(r.PathValue(key), 10, 64)
+ 	return id
+ }
+ 
++// Messages and boosts use different canonical capture names in the route table.
++func messageID(r *http.Request) int64 {
++	if r.PathValue("message_id") != "" {
++		return pathInt(r, "message_id")
++	}
++	return pathInt(r, "id")
++}
++
+ func (s *Server) findMessage(
+ 	r *http.Request,
+ 	u database.User,
+@@ -49,7 +37,7 @@ func (s *Server) findMessage(
+ 		roomID(r) == 0 {
+ 		return database.Message{}, sql.ErrNoRows
+ 	}
+-	m, err := s.DB.ReachableMessage(r.Context(), u.ID, pathInt(r, "message"))
++	m, err := s.DB.ReachableMessage(r.Context(), u.ID, messageID(r))
+ 	if err != nil {
+ 		return m, err
+ 	}
+@@ -220,7 +208,7 @@ func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.
+ 		s.fail(w, err)
+ 		return
+ 	}
+-	id := pathInt(r, "boost")
++	id := pathInt(r, "id")
+ 	if err = s.DB.DeleteBoost(r.Context(), u.ID, m.ID, id); err != nil {
+ 		s.fail(w, err)
+ 		return
+diff --git i/internal/web/push.go w/internal/web/push.go
+index dd999a1..3b92659 100644
+--- i/internal/web/push.go
++++ w/internal/web/push.go
+@@ -14,19 +14,6 @@ import (
+ 
+ const pushPath = "/users/me/push_subscriptions"
+ 
+-func (s *Server) registerPushRoutes() {
+-	s.mux.HandleFunc("GET /users/{user}/push_subscriptions", s.auth(s.pushSubscriptions))
+-	s.mux.HandleFunc("POST /users/{user}/push_subscriptions", s.auth(s.pushSubscriptions))
+-	s.mux.HandleFunc(
+-		"DELETE /users/{user}/push_subscriptions/{subscription}",
+-		s.auth(s.deletePushSubscription),
+-	)
+-	s.mux.HandleFunc(
+-		"POST /users/{user}/push_subscriptions"+"/{subscription}/test_notifications",
+-		s.auth(s.testPushNotification),
+-	)
+-}
+-
+ func subscriptionParams(r *http.Request) (map[string]*string, error) {
+ 	attrs := map[string]*string{}
+ 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+@@ -119,7 +106,7 @@ func (s *Server) pushSubscriptions(w http.ResponseWriter, r *http.Request, u dat
+ }
+ 
+ func (s *Server) deletePushSubscription(w http.ResponseWriter, r *http.Request, u database.User) {
+-	id, _ := strconv.ParseInt(r.PathValue("subscription"), 10, 64)
++	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+ 	if err := s.DB.DeletePushSubscription(r.Context(), u.ID, id); err != nil {
+ 		s.fail(w, err)
+ 		return
+@@ -128,7 +115,7 @@ func (s *Server) deletePushSubscription(w http.ResponseWriter, r *http.Request,
+ }
+ 
+ func (s *Server) testPushNotification(w http.ResponseWriter, r *http.Request, u database.User) {
+-	id, _ := strconv.ParseInt(r.PathValue("subscription"), 10, 64)
++	id, _ := strconv.ParseInt(r.PathValue("push_subscription_id"), 10, 64)
+ 	delivery, err := s.NotificationQueries.TestPush(r.Context(), u.ID, id, "Campfire Test", uuid.NewV4().String(), s.origin(r)+pushPath)
+ 	if err != nil {
+ 		s.fail(w, err)
+diff --git i/internal/web/pwa.go w/internal/web/pwa.go
+index d741579..1f2996f 100644
+--- i/internal/web/pwa.go
++++ w/internal/web/pwa.go
+@@ -24,23 +24,20 @@ var manifestTemplate = template.Must(template.New("manifest.json").Funcs(templat
+ 	"image": func(origin, path string) string { return origin + assets.Path(path) },
+ }).ParseFS(pwaFiles, "pwa/manifest.json"))
+ 
+-func (s *Server) registerPWARoutes() {
+-	for _, path := range []string{"/webmanifest", "/webmanifest.json"} {
+-		s.mux.HandleFunc("GET "+path, s.browserCheck(s.manifest))
++var serviceWorkerBody = func() []byte {
++	body, err := pwaFiles.ReadFile("pwa/service_worker.js")
++	if err != nil {
++		panic(err)
+ 	}
+-	worker, _ := pwaFiles.ReadFile("pwa/service_worker.js")
+-	for _, path := range []string{"/service-worker", "/service-worker.js"} {
+-		s.mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+-			if s.blockBrowser(w, r) {
+-				return
+-			}
+-			if respondFormat(w, r, "js") == "" {
+-				return
+-			}
+-			w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+-			w.Write(worker)
+-		})
++	return body
++}()
++
++func (s *Server) serviceWorker(w http.ResponseWriter, r *http.Request) {
++	if respondFormat(w, r, "js") == "" {
++		return
+ 	}
++	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
++	w.Write(serviceWorkerBody)
+ }
+ func (s *Server) manifest(w http.ResponseWriter, r *http.Request) {
+ 	if respondFormat(w, r, "json") == "" {
+diff --git i/internal/web/qr.go w/internal/web/qr.go
+index 295c8cd..e876941 100644
+--- i/internal/web/qr.go
++++ w/internal/web/qr.go
+@@ -11,7 +11,7 @@ import (
+ var qrSlots = make(chan struct{}, 4)
+ 
+ func (s *Server) qrCode(w http.ResponseWriter, r *http.Request) {
+-	value := strings.NewReplacer("-", "+", "_", "/").Replace(r.PathValue("code"))
++	value := strings.NewReplacer("-", "+", "_", "/").Replace(r.PathValue("id"))
+ 	var data []byte
+ 	var err error
+ 	if strings.Contains(value, "=") {
+diff --git i/internal/web/rooms.go w/internal/web/rooms.go
+index ec1fc7e..580799a 100644
+--- i/internal/web/rooms.go
++++ w/internal/web/rooms.go
+@@ -17,24 +17,6 @@ import (
+ 	"github.com/basecamp/once-campfire-go/internal/rails"
+ )
+ 
+-func (s *Server) registerRoomRoutes() {
+-	for _, namespace := range []string{"opens", "closeds", "directs"} {
+-		prefix := "/rooms/" + namespace
+-		s.mux.HandleFunc("GET "+prefix+"/new", s.auth(s.roomForm))
+-		s.mux.HandleFunc("POST "+prefix, s.auth(s.saveRoom))
+-		s.mux.HandleFunc("GET "+prefix+"/{id}/edit", s.auth(s.roomForm))
+-		s.mux.HandleFunc("GET "+prefix+"/{id}", s.auth(s.redirectRoom))
+-		s.mux.HandleFunc("PATCH "+prefix+"/{id}", s.auth(s.saveRoom))
+-		s.mux.HandleFunc("PUT "+prefix+"/{id}", s.auth(s.saveRoom))
+-		s.mux.HandleFunc("DELETE "+prefix+"/{id}", s.auth(s.deleteRoom))
+-	}
+-	s.mux.HandleFunc("DELETE /rooms/{id}", s.auth(s.deleteRoom))
+-	s.mux.HandleFunc("GET /rooms/{id}/involvement", s.auth(s.involvement))
+-	s.mux.HandleFunc("PATCH /rooms/{id}/involvement", s.auth(s.involvement))
+-	s.mux.HandleFunc("PUT /rooms/{id}/involvement", s.auth(s.involvement))
+-	s.mux.HandleFunc("GET /rooms/{id}/{anchor}", s.auth(s.roomAt))
+-}
+-
+ func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err error) {
+ 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, database.ErrForbidden) {
+ 		s.flash(r, "alert", "Room not found or inaccessible")
+@@ -45,10 +27,11 @@ func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err e
+ }
+ 
+ func namespaceKind(r *http.Request) string {
+-	switch strings.Split(r.URL.Path, "/")[2] {
+-	case "closeds":
++	_, params, _ := recognizeRequest(r)
++	switch params["controller"] {
++	case "rooms/closeds":
+ 		return "Rooms::Closed"
+-	case "directs":
++	case "rooms/directs":
+ 		return "Rooms::Direct"
+ 	default:
+ 		return "Rooms::Open"
+@@ -210,7 +193,7 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
+ 		s.roomLookupFailure(w, r, err)
+ 		return
+ 	}
+-	directNamespace := strings.HasPrefix(r.URL.Path, "/rooms/directs/")
++	directNamespace := r.PathValue("controller") == "rooms/directs"
+ 	if directNamespace && room.Type != "Rooms::Direct" {
+ 		s.roomLookupFailure(w, r, sql.ErrNoRows)
+ 		return
+@@ -287,14 +270,6 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
+ 	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
+ }
+ 
+-func (s *Server) roomAt(w http.ResponseWriter, r *http.Request, u database.User) {
+-	if !strings.HasPrefix(r.PathValue("anchor"), "@") {
+-		http.NotFound(w, r)
+-		return
+-	}
+-	s.room(w, r, u)
+-}
+-
+ func (s *Server) roomsIndex(w http.ResponseWriter, r *http.Request, u database.User) {
+ 	var id int64
+ 	if err := s.DB.Read.QueryRowContext(r.Context(), "SELECT room_id FROM memberships WHERE user_id=? ORDER BY room_id DESC LIMIT 1", u.ID).Scan(&id); err != nil {
+diff --git i/internal/web/route_contract.go w/internal/web/route_contract.go
+index 5c6a98b..32da863 100644
+--- i/internal/web/route_contract.go
++++ w/internal/web/route_contract.go
+@@ -7,8 +7,6 @@ import (
+ 	"regexp"
+ 	"strings"
+ 	"unicode/utf8"
+-
+-	"github.com/basecamp/once-campfire-go/internal/database"
+ )
+ 
+ type routeContract struct {
+@@ -16,6 +14,21 @@ type routeContract struct {
+ 	regex                             *regexp.Regexp
+ 	names                             []string
+ 	bot                               bool
++	index                             int
++	controller, endpointAction        string
++}
++
++// Cable is a protocol endpoint, not part of the Rails controller vector. Its
++// exact path is deliberately not normalized into a new upgrade target.
++var cableRoute = routeContract{Method: "GET", Pattern: "/cable", Endpoint: "cable#show", Action: "cable::show"}
++
++type routeGroup struct{ method, segment string }
++
++var routeGroups = make(map[routeGroup][]*routeContract)
++
++func firstSegment(path string) string {
++	segment, _, _ := strings.Cut(strings.TrimPrefix(path, "/"), "/")
++	return segment
+ }
+ 
+ func compileContract(pattern string) (*regexp.Regexp, []string) {
+@@ -52,20 +65,23 @@ func compileContract(pattern string) (*regexp.Regexp, []string) {
+ var escapedHex = regexp.MustCompile(`%[a-fA-F0-9]{2}`)
+ 
+ func normalizedPath(path string) string {
++	if strings.HasPrefix(path, "/") && (len(path) == 1 || !strings.HasSuffix(path, "/")) &&
++		!strings.Contains(path, "//") && !strings.Contains(path, "%") {
++		return path
++	}
+ 	parts := strings.FieldsFunc(path, func(r rune) bool { return r == '/' })
+ 	return escapedHex.ReplaceAllStringFunc("/"+strings.Join(parts, "/"), strings.ToUpper)
+ }
+ 
+ func recognize(method, path string) (*routeContract, map[string]string, error) {
+-	path = normalizedPath(path)
+ 	if method == "HEAD" {
+ 		method = "GET"
+ 	}
+-	for i := range contracts {
+-		route := &contracts[i]
+-		if route.Method != method {
+-			continue
+-		}
++	path = normalizedPath(path)
++	// Every controller route has a literal first segment. This index excludes
++	// impossible matches without changing declaration order within a group.
++	segment, _, _ := strings.Cut(firstSegment(path), ".")
++	for _, route := range routeGroups[routeGroup{method, segment}] {
+ 		captures := route.regex.FindStringSubmatch(path)
+ 		if captures == nil {
+ 			continue
+@@ -87,16 +103,15 @@ func recognize(method, path string) (*routeContract, map[string]string, error) {
+ 			}
+ 			params[name] = value
+ 		}
+-		parts := strings.SplitN(route.Endpoint, "#", 2)
+-		params["controller"] = parts[0]
+-		params["action"] = parts[1]
++		params["controller"] = route.controller
++		params["action"] = route.endpointAction
+ 		return route, params, nil
+ 	}
+ 	return nil, nil, nil
+ }
+ 
+-// Recognition is pure in method/path. Reuse it within a request; method
+-// overrides and normalized/format-stripped paths select a new match.
++// Recognition is pure in method/path. Method overrides select a new match;
++// dispatch leaves the original URL intact and reuses its selected captures.
+ type recognizedRoute struct {
+ 	method, path string
+ 	route        *routeContract
+@@ -107,6 +122,9 @@ type recognizedRoute struct {
+ func recognizeRequest(r *http.Request) (*routeContract, map[string]string, error) {
+ 	info := requestMetadata(r.Context())
+ 	path := r.URL.EscapedPath()
++	if r.URL.Path == cableRoute.Pattern {
++		return &cableRoute, nil, nil
++	}
+ 	if info == nil {
+ 		return recognize(r.Method, path)
+ 	}
+@@ -126,75 +144,30 @@ func recognizeRequest(r *http.Request) (*routeContract, map[string]string, error
+ 
+ func init() {
+ 	for i := range contracts {
+-		contracts[i].regex, contracts[i].names = compileContract(contracts[i].Pattern)
+-		contracts[i].bot = strings.Contains(contracts[i].Pattern, ":bot_key")
++		route := &contracts[i]
++		route.regex, route.names = compileContract(route.Pattern)
++		route.bot = strings.Contains(route.Pattern, ":bot_key")
++		route.index = i
++		route.controller, route.endpointAction, _ = strings.Cut(route.Endpoint, "#")
++		segment, _, _ := strings.Cut(firstSegment(route.Pattern), "(")
++		group := routeGroup{route.Method, segment}
++		routeGroups[group] = append(routeGroups[group], route)
+ 	}
++	cableRoute.index = len(contracts)
+ }
+ 
+ func (s *Server) routeHTTP(w http.ResponseWriter, r *http.Request) {
+-	if r.URL.Path == "/cable" {
+-		s.mux.ServeHTTP(w, r)
+-		return
+-	}
+ 	route, params, err := recognizeRequest(r)
+ 	if err != nil {
+ 		http.Error(w, "Invalid path parameters", 400)
+ 		return
+ 	}
+-	if route == nil || route.Action == "action_not_found" {
++	if route == nil {
+ 		publicError(w, r, 404)
+ 		return
+ 	}
+-	if route.Action == "missing_controller" {
+-		publicError(w, r, 500)
+-		return
+-	}
+ 	for key, value := range params {
+ 		r.SetPathValue(key, value)
+ 	}
+-	path := normalizedPath(r.URL.EscapedPath())
+-	if format := params["format"]; format != "" {
+-		suffix := "." + url.PathEscape(format)
+-		if strings.HasSuffix(path, suffix) {
+-			path = strings.TrimSuffix(path, suffix)
+-		}
+-	}
+-	clone := *r.URL
+-	clone.Path, _ = url.PathUnescape(path)
+-	clone.RawPath = path
+-	r.URL = &clone
+-	if strings.HasPrefix(route.Action, "mailbox::") {
+-		if route.Action == "mailbox::conductor" {
+-			w.WriteHeader(403)
+-		} else {
+-			w.WriteHeader(404)
+-		}
+-		return
+-	}
+-	if strings.HasPrefix(route.Action, "turbo_native::") {
+-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+-		text := map[string]string{"turbo_native::recede": "Going back…", "turbo_native::resume": "Staying put…", "turbo_native::refresh": "Refreshing…"}[route.Action]
+-		w.Write([]byte(text))
+-		return
+-	}
+-	if route.Action == "rooms::destroy_without_room" || route.Action == "rooms::directs::show" {
+-		s.auth(func(w http.ResponseWriter, r *http.Request, _ database.User) {
+-			publicError(w, r, 500)
+-		})(w, r)
+-		return
+-	}
+-	if route.Action == "rooms::index" {
+-		s.auth(s.roomsIndex)(w, r)
+-		return
+-	}
+-	if route.bot {
+-		if !s.botRequest(w, r) {
+-			publicError(w, r, 404)
+-		}
+-		return
+-	}
+-	if strings.HasPrefix(route.Endpoint, "messages#") && params["room_id"] == "" {
+-		r.SetPathValue("id", "")
+-	}
+-	s.mux.ServeHTTP(w, r)
++	s.dispatch[route.index](w, r)
+ }
+diff --git i/internal/web/route_contract_test.go w/internal/web/route_contract_test.go
+index 57efd0d..d0a0b5a 100644
+--- i/internal/web/route_contract_test.go
++++ w/internal/web/route_contract_test.go
+@@ -1,12 +1,48 @@
+ package web
+ 
+ import (
++	"context"
+ 	"encoding/json"
++	"fmt"
++	"net/http/httptest"
+ 	"os"
+ 	"reflect"
+ 	"testing"
+ )
+ 
++func TestRouteDispatchUsesDecodedFormat(t *testing.T) {
++	s := &Server{}
++	s.dispatch = s.bindRoutes()
++	for _, path := range []string{"/up.json", "//up.j%73on//"} {
++		r := s.normalizeRequest(httptest.NewRequest("GET", "http://chat.test"+path+"?probe=one", nil))
++		w := httptest.NewRecorder()
++		s.routeHTTP(w, r)
++		var body struct{ Status string }
++		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil || w.Code != 200 || body.Status != "up" {
++			t.Fatalf("%s: %d %s, %v", path, w.Code, w.Body.String(), err)
++		}
++	}
++}
++
++func TestProtocolRouteRejectionsPrecedeAuthentication(t *testing.T) {
++	app, server, _, owner := testApp(t)
++	rooms, err := app.DB.Rooms(context.Background(), owner.ID)
++	if err != nil {
++		t.Fatal(err)
++	}
++	for _, tc := range []struct{ method, path string }{
++		{"GET", "/%63able"},
++		{"POST", "/cable"},
++		{"POST", fmt.Sprintf("/rooms/%d/messages/messages", rooms[0].ID)},
++		{"POST", fmt.Sprintf("/rooms/%d/key%%2Fextra/messages", rooms[0].ID)},
++	} {
++		response, _ := perform(t, server, tc.method, tc.path, "", nil, nil)
++		if response.StatusCode != 404 {
++			t.Errorf("%s %s reached authentication: %s", tc.method, tc.path, response.Status)
++		}
++	}
++}
++
+ func TestReferenceRoutes(t *testing.T) {
+ 	raw, err := os.ReadFile("../../reference/vectors/campfire_routes.json")
+ 	if err != nil {
+diff --git i/internal/web/router.go w/internal/web/router.go
+index 447dfcc..3e5505a 100644
+--- i/internal/web/router.go
++++ w/internal/web/router.go
+@@ -2,63 +2,140 @@ package web
+ 
+ import (
+ 	"net/http"
+-	"net/url"
+-	"regexp"
+-	"strings"
++
++	"github.com/basecamp/once-campfire-go/internal/database"
+ )
+ 
+-// Rails resolves overlapping routes in declaration order. ServeMux rejects some
+-// of Campfire's valid overlaps (rooms/opens/:id/edit and rooms/:id/messages/:id).
+-// This small adapter retains that ordering while using standard HTTP handlers.
+-type router struct{ routes []route }
+-type route struct {
+-	method  string
+-	pattern *regexp.Regexp
+-	names   []string
+-	handler http.HandlerFunc
+-}
+-
+-func (m *router) HandleFunc(pattern string, handler http.HandlerFunc) {
+-	method, path, _ := strings.Cut(pattern, " ")
+-	parts := strings.Split(path, "/")
+-	names := []string{}
+-	for i, part := range parts {
+-		if part == "{$}" {
+-			parts[i] = ""
+-		} else if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
+-			name := strings.TrimSuffix(strings.TrimPrefix(part, "{"), "}")
+-			if strings.HasSuffix(name, "...") {
+-				names = append(names, strings.TrimSuffix(name, "..."))
+-				parts[i] = "(.+)"
+-			} else {
+-				names = append(names, name)
+-				parts[i] = "([^/]+)"
+-			}
+-		} else {
+-			parts[i] = regexp.QuoteMeta(part)
+-		}
+-	}
+-	m.routes = append(m.routes, route{method, regexp.MustCompile("^" + strings.Join(parts, "/") + "$"), names, handler})
+-}
+-func (m *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+-	for _, route := range m.routes {
+-		if route.method != r.Method && !(r.Method == "HEAD" && route.method == "GET") {
+-			continue
+-		}
+-		values := route.pattern.FindStringSubmatch(r.URL.EscapedPath())
+-		if values == nil {
+-			continue
+-		}
+-		for i, name := range route.names {
+-			value, err := url.PathUnescape(values[i+1])
+-			if err != nil {
+-				http.Error(w, "Invalid path", 400)
++// Bind protocol policy once to the ordered contract table. Dispatch never
++// recognizes a second path or decodes a second set of controller parameters.
++func (s *Server) bindRoutes() []http.HandlerFunc {
++	notFound := func(w http.ResponseWriter, r *http.Request) { publicError(w, r, 404) }
++	missing := func(w http.ResponseWriter, r *http.Request) { publicError(w, r, 500) }
++	authMissing := s.auth(func(w http.ResponseWriter, r *http.Request, _ database.User) {
++		missing(w, r)
++	})
++	cable := s.auth(s.serveCable)
++	actions := map[string]http.HandlerFunc{
++		"action_not_found":                                      notFound,
++		"missing_controller":                                    missing,
++		"welcome::show":                                         s.auth(s.home),
++		"first_runs::show":                                      s.browserCheck(s.setupForm),
++		"first_runs::create":                                    s.browserCheck(s.setup),
++		"sessions::new":                                         s.browserCheck(s.loginForm),
++		"sessions::create":                                      s.browserCheck(s.login),
++		"sessions::destroy":                                     s.auth(s.logout),
++		"sessions::transfers::show":                             s.browserCheck(s.transfer),
++		"sessions::transfers::update":                           s.browserCheck(s.transfer),
++		"accounts::edit":                                        s.auth(s.accountForm),
++		"accounts::update":                                      s.auth(s.updateAccount),
++		"accounts::users::index":                                s.auth(s.accountUsers),
++		"accounts::users::update":                               s.auth(s.manageUser),
++		"accounts::users::destroy":                              s.auth(s.manageUser),
++		"accounts::bots::index":                                 s.auth(s.bots),
++		"accounts::bots::new":                                   s.auth(s.botForm),
++		"accounts::bots::edit":                                  s.auth(s.botForm),
++		"accounts::bots::create":                                s.auth(s.saveBot),
++		"accounts::bots::update":                                s.auth(s.saveBot),
++		"accounts::bots::destroy":                               s.auth(s.saveBot),
++		"accounts::bots::keys::update":                          s.auth(s.rotateBot),
++		"accounts::join_codes::create":                          s.auth(s.resetJoinCode),
++		"accounts::logos::show":                                 s.browserCheck(s.logo),
++		"accounts::logos::destroy":                              s.auth(s.deleteLogo),
++		"accounts::custom_styles::edit":                         s.auth(s.customStyles),
++		"accounts::custom_styles::update":                       s.auth(s.customStyles),
++		"users::new":                                            s.browserCheck(s.join),
++		"users::create":                                         s.browserCheck(s.join),
++		"users::show":                                           s.auth(s.showUser),
++		"users::avatars::show":                                  s.auth(s.avatar),
++		"users::avatars::destroy":                               s.auth(s.deleteAvatar),
++		"users::bans::create":                                   s.auth(s.banUser),
++		"users::bans::destroy":                                  s.auth(s.banUser),
++		"users::sidebars::show":                                 s.auth(s.sidebar),
++		"users::profiles::show":                                 s.auth(s.profile),
++		"users::profiles::update":                               s.auth(s.profile),
++		"users::push_subscriptions::index":                      s.auth(s.pushSubscriptions),
++		"users::push_subscriptions::create":                     s.auth(s.pushSubscriptions),
++		"users::push_subscriptions::destroy":                    s.auth(s.deletePushSubscription),
++		"users::push_subscriptions::test_notifications::create": s.auth(s.testPushNotification),
++		"autocompletable::users::index":                         s.auth(s.autocomplete),
++		"qr_code::show":                                         s.browserCheck(s.qrCode),
++		"rooms::index":                                          s.auth(s.roomsIndex),
++		"rooms::show":                                           s.auth(s.room),
++		"rooms::destroy":                                        s.auth(s.deleteRoom),
++		"rooms::destroy_without_room":                           authMissing,
++		"rooms::opens::new":                                     s.auth(s.roomForm),
++		"rooms::opens::edit":                                    s.auth(s.roomForm),
++		"rooms::opens::create":                                  s.auth(s.saveRoom),
++		"rooms::opens::update":                                  s.auth(s.saveRoom),
++		"rooms::opens::show":                                    s.auth(s.redirectRoom),
++		"rooms::closeds::new":                                   s.auth(s.roomForm),
++		"rooms::closeds::edit":                                  s.auth(s.roomForm),
++		"rooms::closeds::create":                                s.auth(s.saveRoom),
++		"rooms::closeds::update":                                s.auth(s.saveRoom),
++		"rooms::closeds::show":                                  s.auth(s.redirectRoom),
++		"rooms::directs::new":                                   s.auth(s.roomForm),
++		"rooms::directs::edit":                                  s.auth(s.roomForm),
++		"rooms::directs::create":                                s.auth(s.saveRoom),
++		"rooms::directs::show":                                  authMissing,
++		"rooms::directs::destroy":                               s.auth(s.deleteRoom),
++		"rooms::involvements::show":                             s.auth(s.involvement),
++		"rooms::involvements::update":                           s.auth(s.involvement),
++		"rooms::refreshes::show":                                s.auth(s.refreshRoom),
++		"messages::index":                                       s.auth(s.messages),
++		"messages::create":                                      s.auth(s.createMessage),
++		"messages::show":                                        s.auth(s.showMessage),
++		"messages::edit":                                        s.auth(s.editMessage),
++		"messages::update":                                      s.auth(s.updateMessage),
++		"messages::destroy":                                     s.auth(s.deleteMessage),
++		"messages::boosts::index":                               s.auth(s.boosts),
++		"messages::boosts::new":                                 s.auth(s.newBoost),
++		"messages::boosts::create":                              s.auth(s.createBoost),
++		"messages::boosts::destroy":                             s.auth(s.deleteBoost),
++		"messages::by_bots::index":                              s.botRequest,
++		"messages::by_bots::create":                             s.botRequest,
++		"messages::by_bots::update":                             s.botRequest,
++		"messages::by_bots::destroy":                            s.botRequest,
++		"messages::boosts::by_bots::create":                     s.botRequest,
++		"messages::boosts::by_bots::destroy":                    s.botRequest,
++		"searches::index":                                       s.auth(s.search),
++		"searches::create":                                      s.auth(s.search),
++		"searches::clear":                                       s.auth(s.search),
++		"unfurl_links::create":                                  s.auth(s.unfurl),
++		"pwa::manifest":                                         s.browserCheck(s.manifest),
++		"pwa::service_worker":                                   s.browserCheck(s.serviceWorker),
++		"health::show":                                          s.health,
++		"active_storage::blobs_redirect":                        s.blobDownload,
++		"active_storage::blobs_proxy":                           s.blobDownload,
++		"active_storage::representations_redirect":              s.representation,
++		"active_storage::representations_proxy":                 s.representation,
++		"active_storage::disk_show":                             s.diskDownload,
++		"active_storage::disk_update":                           s.storageAuth(s.diskUpload),
++		"active_storage::direct_uploads_create":                 s.storageAuth(s.directUpload),
++		"mailbox::conductor":                                    func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(403) },
++		"mailbox::ingress_not_configured":                       func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(404) },
++		"cable::show": func(w http.ResponseWriter, r *http.Request) {
++			if r.URL.EscapedPath() != "/cable" || (r.Method != "GET" && r.Method != "HEAD") {
++				http.NotFound(w, r)
+ 				return
+ 			}
+-			r.SetPathValue(name, value)
+-		}
+-		route.handler(w, r)
+-		return
++			cable(w, r)
++		},
+ 	}
+-	http.NotFound(w, r)
++	for action, text := range map[string]string{
++		"turbo_native::recede": "Going back…", "turbo_native::resume": "Staying put…", "turbo_native::refresh": "Refreshing…",
++	} {
++		actions[action] = func(w http.ResponseWriter, _ *http.Request) {
++			w.Header().Set("Content-Type", "text/html; charset=utf-8")
++			w.Write([]byte(text))
++		}
++	}
++	dispatch := make([]http.HandlerFunc, len(contracts)+1)
++	for i := range contracts {
++		dispatch[i] = actions[contracts[i].Action]
++		if dispatch[i] == nil {
++			panic("unbound route action: " + contracts[i].Action)
++		}
++	}
++	dispatch[cableRoute.index] = actions[cableRoute.Action]
++	return dispatch
+ }
+diff --git i/internal/web/server.go w/internal/web/server.go
+index 8dd08c1..f133b52 100644
+--- i/internal/web/server.go
++++ w/internal/web/server.go
+@@ -69,7 +69,7 @@ type Server struct {
+ 	Dependencies
+ 	Secure     bool
+ 	responses  *responseCache
+-	mux        *router
++	dispatch   []http.HandlerFunc
+ 	intakeMu   sync.Mutex
+ 	closing    bool
+ 	handlers   sync.WaitGroup
+@@ -142,39 +142,10 @@ func New(deps Dependencies, config Config) *Server {
+ 		Dependencies: deps,
+ 		Secure:       config.Secure,
+ 		responses:    newResponseCache(config.ResponseCacheBytes),
+-		mux:          &router{},
+ 		attempts:     map[string]attempt{},
+ 		dummyHash:    []byte("$2a$12$FiKmSp4UhLvSB4Sd/ZUjQunyKP6.NjDRHdr5LnKUVk.BUn4Mq12WS"),
+ 	}
+-	s.registerStorageRoutes()
+-	s.registerPushRoutes()
+-	s.mux.HandleFunc("POST /unfurl_link", s.auth(s.unfurl))
+-	s.registerPWARoutes()
+-	s.mux.HandleFunc("GET /qr_code/{code}", s.browserCheck(s.qrCode))
+-	s.mux.HandleFunc("GET /autocompletable/users", s.auth(s.autocomplete))
+-	s.mux.HandleFunc("GET /autocompletable/users.json", s.auth(s.autocomplete))
+-	s.mux.HandleFunc("GET /cable", s.auth(s.serveCable))
+-	s.mux.HandleFunc("GET /up", s.health)
+-	s.mux.HandleFunc("GET /up.json", s.health)
+-	s.mux.HandleFunc("GET /session/new", s.browserCheck(s.loginForm))
+-	s.mux.HandleFunc("POST /session", s.browserCheck(s.login))
+-	s.mux.HandleFunc("DELETE /session", s.auth(s.logout))
+-	s.mux.HandleFunc("GET /first_run", s.browserCheck(s.setupForm))
+-	s.mux.HandleFunc("POST /first_run", s.browserCheck(s.setup))
+-	s.mux.HandleFunc("GET /{$}", s.auth(s.home))
+-	s.mux.HandleFunc("GET /rooms", s.auth(s.home))
+-	s.mux.HandleFunc("GET /rooms/{id}", s.auth(s.room))
+-	s.mux.HandleFunc("GET /rooms/{id}/messages", s.auth(s.messages))
+-	s.mux.HandleFunc("POST /rooms/{id}/messages", s.auth(s.createMessage))
+-	s.mux.HandleFunc("GET /users/{user}/sidebar", s.auth(s.sidebar))
+-	s.mux.HandleFunc("GET /users/sidebar", s.auth(s.sidebar))
+-	s.registerMessageRoutes()
+-	s.registerRoomRoutes()
+-	s.registerMediaRoutes()
+-	s.registerAccountRoutes()
+-	s.mux.HandleFunc("GET /searches", s.auth(s.search))
+-	s.mux.HandleFunc("POST /searches", s.auth(s.search))
+-	s.mux.HandleFunc("DELETE /searches/clear", s.auth(s.search))
++	s.dispatch = s.bindRoutes()
+ 	return s
+ }
+ 
+@@ -755,7 +726,10 @@ func roomID(r *http.Request) int64 {
+ 		value = r.Form.Get("room_id")
+ 	}
+ 	if value == "" {
+-		value = r.PathValue("id")
++		route, _, _ := recognizeRequest(r)
++		if route == nil || !strings.HasPrefix(route.Endpoint, "messages#") {
++			value = r.PathValue("id")
++		}
+ 	}
+ 	id, _ := strconv.ParseInt(value, 10, 64)
+ 	return id
+@@ -771,7 +745,7 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
+ 		hit.serve(w)
+ 		return
+ 	}
+-	anchor, _ := strconv.ParseInt(strings.TrimPrefix(r.PathValue("anchor"), "@"), 10, 64)
++	anchor, _ := strconv.ParseInt(r.PathValue("message_id"), 10, 64)
+ 	messageBody, _, err := s.MessageQueries.Page(r.Context(), s.messageScope(r.Context()), u.ID, room.ID, anchor, "around", true)
+ 	if err != nil {
+ 		s.fail(w, err)
+diff --git i/internal/web/structured_form.go w/internal/web/structured_form.go
+index 3b86452..e90e699 100644
+--- i/internal/web/structured_form.go
++++ w/internal/web/structured_form.go
+@@ -24,7 +24,9 @@ func needsStructuredParams(r *http.Request) bool {
+ 			}
+ 		}
+ 	}
+-	route, _, _ := recognize(method, r.URL.EscapedPath())
++	selection := *r
++	selection.Method = method
++	route, _, _ := recognizeRequest(&selection)
+ 	if route == nil {
+ 		return false
+ 	}
+diff --git i/internal/web/uploads.go w/internal/web/uploads.go
+index d2c11fd..2c8e750 100644
+--- i/internal/web/uploads.go
++++ w/internal/web/uploads.go
+@@ -16,30 +16,6 @@ import (
+ 	"github.com/basecamp/once-campfire-go/internal/storage"
+ )
+ 
+-func (s *Server) registerStorageRoutes() {
+-	s.mux.HandleFunc(
+-		"GET /rails/active_storage/representations/redirect/{token}/{variation}/{filename...}",
+-		s.representation,
+-	)
+-	s.mux.HandleFunc(
+-		"GET /rails/active_storage/representations/proxy/{token}/{variation}/{filename...}",
+-		s.representation,
+-	)
+-	s.mux.HandleFunc(
+-		"GET /rails/active_storage/representations/{token}/{variation}/{filename...}",
+-		s.representation,
+-	)
+-	s.mux.HandleFunc("POST /rails/active_storage/direct_uploads", s.storageAuth(s.directUpload))
+-	s.mux.HandleFunc("PUT /rails/active_storage/disk/{token}", s.storageAuth(s.diskUpload))
+-	s.mux.HandleFunc("GET /rails/active_storage/disk/{token}/{filename...}", s.diskDownload)
+-	s.mux.HandleFunc(
+-		"GET /rails/active_storage/blobs/redirect/{token}/{filename...}",
+-		s.blobDownload,
+-	)
+-	s.mux.HandleFunc("GET /rails/active_storage/blobs/proxy/{token}/{filename...}", s.blobDownload)
+-	s.mux.HandleFunc("GET /rails/active_storage/blobs/{token}/{filename...}", s.blobDownload)
+-}
+-
+ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
+ 	attributes := make(map[string]any)
+ 	if params, ok := r.Context().Value(structuredParamsKey{}).(map[string]any); ok {
+@@ -142,7 +118,7 @@ func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database
+ 
+ func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
+ 	var token storage.DiskToken
+-	if err := s.Storage.Verifier.Verify(r.PathValue("token"), "blob_token", s.DB.Now(), &token); err != nil {
++	if err := s.Storage.Verifier.Verify(r.PathValue("encoded_token"), "blob_token", s.DB.Now(), &token); err != nil {
+ 		http.NotFound(w, r)
+ 		return
+ 	}
+@@ -173,7 +149,7 @@ func (s *Server) diskUpload(w http.ResponseWriter, r *http.Request, _ database.U
+ func (s *Server) diskDownload(w http.ResponseWriter, r *http.Request) {
+ 	w.Header().Set("Cache-Control", "max-age=3600, public")
+ 	var key storage.DiskKey
+-	if err := s.Storage.Verifier.Verify(r.PathValue("token"), "blob_key", s.DB.Now(), &key); err != nil {
++	if err := s.Storage.Verifier.Verify(r.PathValue("encoded_key"), "blob_key", s.DB.Now(), &key); err != nil {
+ 		http.NotFound(w, r)
+ 		return
+ 	}
+@@ -190,14 +166,14 @@ func (s *Server) diskDownload(w http.ResponseWriter, r *http.Request) {
+ }
+ 
+ func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
+-	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("token"))
++	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("signed_id"))
+ 	if err != nil {
+ 		http.NotFound(w, r)
+ 		return
+ 	}
+ 	disposition := r.URL.Query().Get("disposition")
+ 	// Blob byte ranges are sent inline unless the MIME type forces a download.
+-	if strings.Contains(r.URL.Path, "/proxy/") && strings.TrimSpace(r.Header.Get("Range")) != "" {
++	if r.PathValue("controller") == "active_storage/blobs/proxy" && strings.TrimSpace(r.Header.Get("Range")) != "" {
+ 		disposition = "inline"
+ 	}
+ 	if disposition != "attachment" {
+@@ -206,7 +182,7 @@ func (s *Server) blobDownload(w http.ResponseWriter, r *http.Request) {
+ 	if !storage.Inline(b.Type()) {
+ 		disposition = "attachment"
+ 	}
+-	if strings.Contains(r.URL.Path, "/proxy/") {
++	if r.PathValue("controller") == "active_storage/blobs/proxy" {
+ 		path, err := s.Storage.Path(b.Key)
+ 		if err != nil {
+ 			http.NotFound(w, r)
+@@ -316,12 +292,12 @@ func (s *Server) storageAuth(
+ }
+ 
+ func (s *Server) representation(w http.ResponseWriter, r *http.Request) {
+-	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("token"))
++	b, err := s.Storage.FindSigned(r.Context(), r.PathValue("signed_blob_id"))
+ 	if err != nil {
+ 		http.NotFound(w, r)
+ 		return
+ 	}
+-	v, err := s.Storage.DecodeVariation(r.PathValue("variation"))
++	v, err := s.Storage.DecodeVariation(r.PathValue("variation_key"))
+ 	if err != nil {
+ 		http.NotFound(w, r)
+ 		return
+@@ -331,7 +307,7 @@ func (s *Server) representation(w http.ResponseWriter, r *http.Request) {
+ 		s.fail(w, err)
+ 		return
+ 	}
+-	if strings.Contains(r.URL.Path, "/proxy/") {
++	if r.PathValue("controller") == "active_storage/representations/proxy" {
+ 		path, err := s.Storage.Path(b.Key)
+ 		if err != nil {
+ 			s.fail(w, err)

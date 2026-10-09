@@ -17,24 +17,6 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
-func (s *Server) registerRoomRoutes() {
-	for _, namespace := range []string{"opens", "closeds", "directs"} {
-		prefix := "/rooms/" + namespace
-		s.mux.HandleFunc("GET "+prefix+"/new", s.auth(s.roomForm))
-		s.mux.HandleFunc("POST "+prefix, s.auth(s.saveRoom))
-		s.mux.HandleFunc("GET "+prefix+"/{id}/edit", s.auth(s.roomForm))
-		s.mux.HandleFunc("GET "+prefix+"/{id}", s.auth(s.redirectRoom))
-		s.mux.HandleFunc("PATCH "+prefix+"/{id}", s.auth(s.saveRoom))
-		s.mux.HandleFunc("PUT "+prefix+"/{id}", s.auth(s.saveRoom))
-		s.mux.HandleFunc("DELETE "+prefix+"/{id}", s.auth(s.deleteRoom))
-	}
-	s.mux.HandleFunc("DELETE /rooms/{id}", s.auth(s.deleteRoom))
-	s.mux.HandleFunc("GET /rooms/{id}/involvement", s.auth(s.involvement))
-	s.mux.HandleFunc("PATCH /rooms/{id}/involvement", s.auth(s.involvement))
-	s.mux.HandleFunc("PUT /rooms/{id}/involvement", s.auth(s.involvement))
-	s.mux.HandleFunc("GET /rooms/{id}/{anchor}", s.auth(s.roomAt))
-}
-
 func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, database.ErrForbidden) {
 		s.flash(r, "alert", "Room not found or inaccessible")
@@ -45,10 +27,11 @@ func (s *Server) roomLookupFailure(w http.ResponseWriter, r *http.Request, err e
 }
 
 func namespaceKind(r *http.Request) string {
-	switch strings.Split(r.URL.Path, "/")[2] {
-	case "closeds":
+	_, params, _ := recognizeRequest(r)
+	switch params["controller"] {
+	case "rooms/closeds":
 		return "Rooms::Closed"
-	case "directs":
+	case "rooms/directs":
 		return "Rooms::Direct"
 	default:
 		return "Rooms::Open"
@@ -210,7 +193,7 @@ func (s *Server) deleteRoom(w http.ResponseWriter, r *http.Request, u database.U
 		s.roomLookupFailure(w, r, err)
 		return
 	}
-	directNamespace := strings.HasPrefix(r.URL.Path, "/rooms/directs/")
+	directNamespace := r.PathValue("controller") == "rooms/directs"
 	if directNamespace && room.Type != "Rooms::Direct" {
 		s.roomLookupFailure(w, r, sql.ErrNoRows)
 		return
@@ -285,14 +268,6 @@ func (s *Server) involvement(w http.ResponseWriter, r *http.Request, u database.
 		return
 	}
 	s.respondPage(w, r, "involvement-page", 200, page{User: u, Room: room, Involvement: value})
-}
-
-func (s *Server) roomAt(w http.ResponseWriter, r *http.Request, u database.User) {
-	if !strings.HasPrefix(r.PathValue("anchor"), "@") {
-		http.NotFound(w, r)
-		return
-	}
-	s.room(w, r, u)
 }
 
 func (s *Server) roomsIndex(w http.ResponseWriter, r *http.Request, u database.User) {

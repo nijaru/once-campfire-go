@@ -1,0 +1,19 @@
+{
+  "before_revision": "98c69148d50efbf22d867d9f84eae2b0be9d53ad",
+  "candidate_patch_sha256": "0bf460a30d03b3e57c2f2ea823e5cc1f8d965f12158d4694c35749f2066d8304",
+  "candidate_binary_sha256": "90807237e76703515a4df9c1fe95eed884681f9e14ff1cdd4d70fddb6a687cbf",
+  "before_binary_sha256": "3c1edcf171e46cba2e752c4dc88eaddab7bef6459d2efb505b1866bfa5dbf76d",
+  "native_candidate_sha256": "183eb62b85bca7a0a983b3e96831c6f5978fcbc6ffeaa16d919accdf52ce1d94",
+  "rust_revision": "9872c1d9541551c0889a60e3d49a14488bd1e403",
+  "rust_binary_sha256": "250dfeae44c9bdbf478c15ae6d8cc4e55222d81c862162bec18c27ca7ed7f3dd",
+  "verification_revision": "e2440515d9093b8304da3d7662d8526f3234b047",
+  "go_upstream_revision": "9b0ef062ea9732c6f611b705d77b52aeec31301f",
+  "source_refresh": "Measured Go upstream, Rust and verification heads fetched after measurements and unchanged",
+  "method": "3 rounds x8 timed seconds,2 excluded warmup,16 clients,one viewer,server0-3/client4-7,4 readers/runtime workers,3 workers/job queue;forward/reverse interleaving,candidate always middle;TMPFS samehostVDocker",
+  "configuration": "completed64MiB/fragments32MiB plus inherited public/gzip budgets. No build,test or reviewer during timing. One viewer cache population not multiuser capacity; tails not matched-rate latency",
+  "compiler": "Go1.27.1 linux/arm64 CGO sqlite_fts5 trimpath;Rust1.98.1 linux/arm64 fatLTO onecodegen jemalloc;current shared lockedloadgen compiledRust1.98.0",
+  "profile": "2x5s reads only; graceful stop before container removal for existing GO_CPU_PROFILE;immediately copied both profiles;diagnostic,not matched-rate or allocation evidence",
+  "review": "d1f25abc-2876-4fcb-bafd-a87d9ebb9f98 read-only independent source review noP1/P2; followed by focused protocol-rejection coverage; no reviewer tests",
+  "limitations": "ARM64 OrbStack VM onmacOS;affinity NOTphysicallyisolated;one viewer;substantial hostvariance;tmpfs transaction/FTS audits not NVMe/crashdurability;nativeIntel unavailable;CLI30s forced exit unexercised;unchanged media not rechecked",
+  "verification_note": "Current shared browser retains disclosed persisted-echo wait before unchangedexact3 assertion;unmodified current HTTP/SQL/write oracle. Browser/public samples bounded verification not timings."
+}

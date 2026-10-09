@@ -24,7 +24,9 @@ func needsStructuredParams(r *http.Request) bool {
 			}
 		}
 	}
-	route, _, _ := recognize(method, r.URL.EscapedPath())
+	selection := *r
+	selection.Method = method
+	route, _, _ := recognizeRequest(&selection)
 	if route == nil {
 		return false
 	}

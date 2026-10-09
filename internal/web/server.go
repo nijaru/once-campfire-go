@@ -69,7 +69,7 @@ type Server struct {
 	Dependencies
 	Secure     bool
 	responses  *responseCache
-	mux        *router
+	dispatch   []http.HandlerFunc
 	intakeMu   sync.Mutex
 	closing    bool
 	handlers   sync.WaitGroup
@@ -142,39 +142,10 @@ func New(deps Dependencies, config Config) *Server {
 		Dependencies: deps,
 		Secure:       config.Secure,
 		responses:    newResponseCache(config.ResponseCacheBytes),
-		mux:          &router{},
 		attempts:     map[string]attempt{},
 		dummyHash:    []byte("$2a$12$FiKmSp4UhLvSB4Sd/ZUjQunyKP6.NjDRHdr5LnKUVk.BUn4Mq12WS"),
 	}
-	s.registerStorageRoutes()
-	s.registerPushRoutes()
-	s.mux.HandleFunc("POST /unfurl_link", s.auth(s.unfurl))
-	s.registerPWARoutes()
-	s.mux.HandleFunc("GET /qr_code/{code}", s.browserCheck(s.qrCode))
-	s.mux.HandleFunc("GET /autocompletable/users", s.auth(s.autocomplete))
-	s.mux.HandleFunc("GET /autocompletable/users.json", s.auth(s.autocomplete))
-	s.mux.HandleFunc("GET /cable", s.auth(s.serveCable))
-	s.mux.HandleFunc("GET /up", s.health)
-	s.mux.HandleFunc("GET /up.json", s.health)
-	s.mux.HandleFunc("GET /session/new", s.browserCheck(s.loginForm))
-	s.mux.HandleFunc("POST /session", s.browserCheck(s.login))
-	s.mux.HandleFunc("DELETE /session", s.auth(s.logout))
-	s.mux.HandleFunc("GET /first_run", s.browserCheck(s.setupForm))
-	s.mux.HandleFunc("POST /first_run", s.browserCheck(s.setup))
-	s.mux.HandleFunc("GET /{$}", s.auth(s.home))
-	s.mux.HandleFunc("GET /rooms", s.auth(s.home))
-	s.mux.HandleFunc("GET /rooms/{id}", s.auth(s.room))
-	s.mux.HandleFunc("GET /rooms/{id}/messages", s.auth(s.messages))
-	s.mux.HandleFunc("POST /rooms/{id}/messages", s.auth(s.createMessage))
-	s.mux.HandleFunc("GET /users/{user}/sidebar", s.auth(s.sidebar))
-	s.mux.HandleFunc("GET /users/sidebar", s.auth(s.sidebar))
-	s.registerMessageRoutes()
-	s.registerRoomRoutes()
-	s.registerMediaRoutes()
-	s.registerAccountRoutes()
-	s.mux.HandleFunc("GET /searches", s.auth(s.search))
-	s.mux.HandleFunc("POST /searches", s.auth(s.search))
-	s.mux.HandleFunc("DELETE /searches/clear", s.auth(s.search))
+	s.dispatch = s.bindRoutes()
 	return s
 }
 
@@ -755,7 +726,10 @@ func roomID(r *http.Request) int64 {
 		value = r.Form.Get("room_id")
 	}
 	if value == "" {
-		value = r.PathValue("id")
+		route, _, _ := recognizeRequest(r)
+		if route == nil || !strings.HasPrefix(route.Endpoint, "messages#") {
+			value = r.PathValue("id")
+		}
 	}
 	id, _ := strconv.ParseInt(value, 10, 64)
 	return id
@@ -771,7 +745,7 @@ func (s *Server) room(w http.ResponseWriter, r *http.Request, u database.User) {
 		hit.serve(w)
 		return
 	}
-	anchor, _ := strconv.ParseInt(strings.TrimPrefix(r.PathValue("anchor"), "@"), 10, 64)
+	anchor, _ := strconv.ParseInt(r.PathValue("message_id"), 10, 64)
 	messageBody, _, err := s.MessageQueries.Page(r.Context(), s.messageScope(r.Context()), u.ID, room.ID, anchor, "around", true)
 	if err != nil {
 		s.fail(w, err)

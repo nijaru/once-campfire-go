@@ -15,40 +15,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) registerAccountRoutes() {
-	s.mux.HandleFunc("GET /account/edit", s.auth(s.accountForm))
-	s.mux.HandleFunc("PATCH /account", s.auth(s.updateAccount))
-	s.mux.HandleFunc("PUT /account", s.auth(s.updateAccount))
-	s.mux.HandleFunc("POST /account/join_code", s.auth(s.resetJoinCode))
-	s.mux.HandleFunc("GET /account/custom_styles/edit", s.auth(s.customStyles))
-	s.mux.HandleFunc("PATCH /account/custom_styles", s.auth(s.customStyles))
-	s.mux.HandleFunc("PUT /account/custom_styles", s.auth(s.customStyles))
-	s.mux.HandleFunc("GET /users/{user}/profile", s.auth(s.profile))
-	s.mux.HandleFunc("PATCH /users/{user}/profile", s.auth(s.profile))
-	s.mux.HandleFunc("PUT /users/{user}/profile", s.auth(s.profile))
-	s.mux.HandleFunc("GET /users/{user}", s.auth(s.showUser))
-	s.mux.HandleFunc("POST /users/{user}/ban", s.auth(s.banUser))
-	s.mux.HandleFunc("DELETE /users/{user}/ban", s.auth(s.banUser))
-	s.mux.HandleFunc("GET /account/users", s.auth(s.accountUsers))
-	s.mux.HandleFunc("PATCH /account/users/{user}", s.auth(s.manageUser))
-	s.mux.HandleFunc("PUT /account/users/{user}", s.auth(s.manageUser))
-	s.mux.HandleFunc("DELETE /account/users/{user}", s.auth(s.manageUser))
-	s.mux.HandleFunc("GET /join/{code}", s.browserCheck(s.join))
-	s.mux.HandleFunc("POST /join/{code}", s.browserCheck(s.join))
-	s.mux.HandleFunc("GET /account/bots", s.auth(s.bots))
-	s.mux.HandleFunc("GET /account/bots/new", s.auth(s.botForm))
-	s.mux.HandleFunc("GET /account/bots/{bot}/edit", s.auth(s.botForm))
-	s.mux.HandleFunc("POST /account/bots", s.auth(s.saveBot))
-	s.mux.HandleFunc("PATCH /account/bots/{bot}", s.auth(s.saveBot))
-	s.mux.HandleFunc("PUT /account/bots/{bot}", s.auth(s.saveBot))
-	s.mux.HandleFunc("DELETE /account/bots/{bot}", s.auth(s.saveBot))
-	s.mux.HandleFunc("PATCH /account/bots/{bot}/key", s.auth(s.rotateBot))
-	s.mux.HandleFunc("PUT /account/bots/{bot}/key", s.auth(s.rotateBot))
-	s.mux.HandleFunc("GET /session/transfers/{token}", s.browserCheck(s.transfer))
-	s.mux.HandleFunc("PATCH /session/transfers/{token}", s.browserCheck(s.transfer))
-	s.mux.HandleFunc("PUT /session/transfers/{token}", s.browserCheck(s.transfer))
-}
-
 // Account/profile effects are asynchronous in the reference. Preserve the
 // committed redirect response while reporting processing/admission failures.
 func logAccountProcessing(err error) {
@@ -233,7 +199,7 @@ func (s *Server) profile(w http.ResponseWriter, r *http.Request, u database.User
 }
 
 func (s *Server) showUser(w http.ResponseWriter, r *http.Request, u database.User) {
-	subject, err := s.DB.UserProfile(r.Context(), pathInt(r, "user"))
+	subject, err := s.DB.UserProfile(r.Context(), pathInt(r, "id"))
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -256,7 +222,7 @@ func (s *Server) manageUser(w http.ResponseWriter, r *http.Request, u database.U
 	if !administrator(w, u) {
 		return
 	}
-	id := pathInt(r, "user")
+	id := pathInt(r, "id")
 	subject, err := s.DB.User(r.Context(), id)
 	if err != nil {
 		s.fail(w, err)
@@ -286,7 +252,7 @@ func (s *Server) banUser(w http.ResponseWriter, r *http.Request, u database.User
 	if !administrator(w, u) {
 		return
 	}
-	id := pathInt(r, "user")
+	id := pathInt(r, "user_id")
 	if _, err := s.DB.User(r.Context(), id); err != nil {
 		s.fail(w, err)
 		return
@@ -309,7 +275,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	if account.JoinCode != r.PathValue("code") {
+	if account.JoinCode != r.PathValue("join_code") {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -342,7 +308,7 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	result, err := s.AccountCommands.Join(r.Context(), r.PathValue("code"), remoteIP(r), database.UserInput{Name: r.Form.Get("user[name]"), Email: email, Password: string(digest)}, application.Attachment{File: upload})
+	result, err := s.AccountCommands.Join(r.Context(), r.PathValue("join_code"), remoteIP(r), database.UserInput{Name: r.Form.Get("user[name]"), Email: email, Password: string(digest)}, application.Attachment{File: upload})
 	if err != nil {
 		if existing, e := s.DB.UserByEmail(r.Context(), email); e == nil && existing.ID != 0 {
 			http.Redirect(w, r, "/session/new?email_address="+url.QueryEscape(email), 302)
@@ -372,7 +338,7 @@ func (s *Server) botForm(w http.ResponseWriter, r *http.Request, u database.User
 	if !administrator(w, u) {
 		return
 	}
-	data, err := s.BotQueries.Form(r.Context(), pathInt(r, "bot"))
+	data, err := s.BotQueries.Form(r.Context(), pathInt(r, "id"))
 	if errors.Is(err, application.ErrNotBot) {
 		http.NotFound(w, r)
 		return
@@ -398,7 +364,7 @@ func (s *Server) saveBot(w http.ResponseWriter, r *http.Request, u database.User
 	if !administrator(w, u) {
 		return
 	}
-	id := pathInt(r, "bot")
+	id := pathInt(r, "id")
 	webhook := r.Form.Get("user[webhook_url]")
 	name := r.Form.Get("user[name]")
 	upload, err := s.optionalUpload(r, "user[avatar]")
@@ -471,7 +437,7 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
 	if !administrator(w, u) {
 		return
 	}
-	id := pathInt(r, "bot")
+	id := pathInt(r, "bot_id")
 	bot, err := s.DB.User(r.Context(), id)
 	if err != nil {
 		s.fail(w, err)
@@ -491,10 +457,10 @@ func (s *Server) rotateBot(w http.ResponseWriter, r *http.Request, u database.Us
 
 func (s *Server) transfer(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" || r.Method == "HEAD" {
-		s.respondPage(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("token")})
+		s.respondPage(w, r, "transfer", 200, page{Title: "Sign in", Transfer: r.PathValue("id")})
 		return
 	}
-	id, err := s.Secrets.VerifyID("User", r.PathValue("token"), "transfer", s.DB.Now())
+	id, err := s.Secrets.VerifyID("User", r.PathValue("id"), "transfer", s.DB.Now())
 	if err != nil {
 		http.Error(w, "Bad request", 400)
 		return

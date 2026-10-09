@@ -14,19 +14,6 @@ import (
 
 const pushPath = "/users/me/push_subscriptions"
 
-func (s *Server) registerPushRoutes() {
-	s.mux.HandleFunc("GET /users/{user}/push_subscriptions", s.auth(s.pushSubscriptions))
-	s.mux.HandleFunc("POST /users/{user}/push_subscriptions", s.auth(s.pushSubscriptions))
-	s.mux.HandleFunc(
-		"DELETE /users/{user}/push_subscriptions/{subscription}",
-		s.auth(s.deletePushSubscription),
-	)
-	s.mux.HandleFunc(
-		"POST /users/{user}/push_subscriptions"+"/{subscription}/test_notifications",
-		s.auth(s.testPushNotification),
-	)
-}
-
 func subscriptionParams(r *http.Request) (map[string]*string, error) {
 	attrs := map[string]*string{}
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
@@ -119,7 +106,7 @@ func (s *Server) pushSubscriptions(w http.ResponseWriter, r *http.Request, u dat
 }
 
 func (s *Server) deletePushSubscription(w http.ResponseWriter, r *http.Request, u database.User) {
-	id, _ := strconv.ParseInt(r.PathValue("subscription"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err := s.DB.DeletePushSubscription(r.Context(), u.ID, id); err != nil {
 		s.fail(w, err)
 		return
@@ -128,7 +115,7 @@ func (s *Server) deletePushSubscription(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) testPushNotification(w http.ResponseWriter, r *http.Request, u database.User) {
-	id, _ := strconv.ParseInt(r.PathValue("subscription"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("push_subscription_id"), 10, 64)
 	delivery, err := s.NotificationQueries.TestPush(r.Context(), u.ID, id, "Campfire Test", uuid.NewV4().String(), s.origin(r)+pushPath)
 	if err != nil {
 		s.fail(w, err)

@@ -19,15 +19,8 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
-func (s *Server) registerMediaRoutes() {
-	s.mux.HandleFunc("GET /users/{token}/avatar", s.auth(s.avatar))
-	s.mux.HandleFunc("DELETE /users/{user}/avatar", s.auth(s.deleteAvatar))
-	s.mux.HandleFunc("GET /account/logo", s.browserCheck(s.logo))
-	s.mux.HandleFunc("DELETE /account/logo", s.auth(s.deleteLogo))
-}
-
 func (s *Server) avatar(w http.ResponseWriter, r *http.Request, _ database.User) {
-	id, err := s.Secrets.VerifyID("User", r.PathValue("token"), "avatar", s.DB.Now())
+	id, err := s.Secrets.VerifyID("User", r.PathValue("user_id"), "avatar", s.DB.Now())
 	if err != nil {
 		http.NotFound(w, r)
 		return
