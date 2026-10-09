@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -147,6 +148,7 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
 				map[string]string{"Accept-Encoding": "gzip"},
 			)
 			if zipped.Header().Get("Content-Encoding") != "gzip" ||
+				zipped.Header().Get("Content-Length") != strconv.Itoa(zipped.Body.Len()) ||
 				!bytes.Equal(zipped.Body.Bytes(), again.Body.Bytes()) ||
 				cacheHits(app) != hits+1 {
 				t.Fatal("completed gzip not retained")
@@ -160,6 +162,7 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
 			if err != nil || !bytes.Equal(plain, first.Body.Bytes()) {
 				t.Fatal("incomplete or different gzip", err)
 			}
+
 		})
 	}
 	path := paths[0]
@@ -174,6 +177,32 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
 	hit := cachedRequest(t, app, cookie, "GET", path, nil)
 	if !strings.Contains(hit.Header().Get("Set-Cookie"), "last_room=") {
 		t.Fatal("hit lost fresh room cookie")
+	}
+}
+
+func TestResponseCacheGzipMetadataDoesNotDependOnRetention(t *testing.T) {
+	app, _, cookie, user := testApp(t)
+	rooms, err := app.DB.Rooms(context.Background(), user.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := fmt.Sprintf("/rooms/%d", rooms[0].ID)
+	get := cachedRequest(t, app, cookie, "GET", path, map[string]string{"Accept-Encoding": "gzip"})
+	if get.Code != 200 || get.Header().Get("Content-Encoding") != "gzip" || get.Header().Get("Content-Length") != strconv.Itoa(get.Body.Len()) {
+		t.Fatal("incorrect selected-body length", get.Header())
+	}
+	limit := app.responses.limit
+	defer func() { app.responses.limit = limit }()
+	for _, capacity := range []int{0, limit} {
+		app.responses.limit = capacity
+		head := cachedRequest(t, app, cookie, "HEAD", path, map[string]string{"Accept-Encoding": "gzip"})
+		if head.Code != 200 || head.Body.Len() != 0 || head.Header().Get("Content-Encoding") != "gzip" || head.Header().Get("Content-Length") != get.Header().Get("Content-Length") {
+			t.Fatal("selected gzip length depends on retention", capacity, head.Header())
+		}
+		conditional := cachedRequest(t, app, cookie, "GET", path, map[string]string{"Accept-Encoding": "gzip", "If-None-Match": get.Header().Get("ETag")})
+		if conditional.Code != 304 || conditional.Body.Len() != 0 || conditional.Header().Get("Content-Encoding") != "gzip" || conditional.Header().Get("Vary") != get.Header().Get("Vary") {
+			t.Fatal("conditional coding depends on retention", capacity, conditional.Header())
+		}
 	}
 }
 

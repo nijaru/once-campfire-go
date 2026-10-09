@@ -1,0 +1,703 @@
+diff --git i/internal/front/compression.go w/internal/front/compression.go
+index 63c4659..b2b1536 100644
+--- i/internal/front/compression.go
++++ w/internal/front/compression.go
+@@ -12,8 +12,6 @@ import (
+ 	"strings"
+ 	"sync"
+ 	"time"
+-
+-	"github.com/basecamp/once-campfire-go/internal/responsebody"
+ )
+ 
+ var gzipPool = sync.Pool{New: func() any { writer, _ := gzip.NewWriterLevel(nil, 6); return writer }}
+@@ -179,48 +177,6 @@ func (w *gzipResponse) startGzip() {
+ 	}
+ }
+ 
+-// WriteBody accepts completed, immutable parts with trusted digests. A hit
+-// writes the gzip member directly, without hashing the full body. Ordinary
+-// Write/Flush callers retain streaming compression and never enter this cache.
+-func (w *gzipResponse) WriteBody(parts []responsebody.Part) (int, error) {
+-	size := 0
+-	for _, part := range parts {
+-		size += part.Len()
+-	}
+-	if w.status == 0 {
+-		w.WriteHeader(200)
+-	}
+-	if w.drop || w.request.Method == "HEAD" {
+-		return size, nil
+-	}
+-	if w.request.Method == "GET" && w.compress && w.writer == nil && w.cache != nil && w.cache.capacity > 0 &&
+-		(w.status == 200 || w.status == 201) && size >= 1024 && size <= gzipMaxBody &&
+-		!strings.Contains(strings.ToLower(w.Header().Get("Cache-Control")), "no-store") {
+-		w.complete = true
+-		body, err := w.cache.prepare(w.request.Context(), parts, w.mtime)
+-		if err != nil {
+-			return 0, err
+-		}
+-		n, err := w.ResponseWriter.Write(body)
+-		if err == nil && n != len(body) {
+-			err = io.ErrShortWrite
+-		}
+-		if err != nil {
+-			return 0, err
+-		}
+-		return size, nil
+-	}
+-	written := 0
+-	for _, part := range parts {
+-		n, err := part.WriteTo(w)
+-		written += int(n)
+-		if err != nil {
+-			return written, err
+-		}
+-	}
+-	return written, nil
+-}
+-
+ func (w *gzipResponse) Write(p []byte) (int, error) {
+ 	if w.status == 0 {
+ 		if w.Header().Get("Content-Type") == "" {
+diff --git i/internal/front/gzip_cache_test.go w/internal/front/gzip_cache_test.go
+index 17183f1..2900c8b 100644
+--- i/internal/front/gzip_cache_test.go
++++ w/internal/front/gzip_cache_test.go
+@@ -107,9 +107,11 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
+ 		w.Header().Set("Cache-Control", "private, max-age=0")
+ 		cookie := "session=" + string(rune('a'+i))
+ 		w.Header().Set("Set-Cookie", cookie)
+-		w.WriteHeader(200)
+-		n, err := w.WriteBody(gzipParts(data...))
+-		if err != nil || n != len(body) || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
++		completed, err := PrepareResponse(w, request, CompletedResponse{Status: 200, Parts: gzipParts(data...)})
++		if err == nil {
++			err = EmitResponse(w, request, completed)
++		}
++		if err != nil || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
+ 			t.Fatal("completed body did not roundtrip", err)
+ 		}
+ 		if response.Header().Get("Set-Cookie") != cookie || response.Header().Get("ETag") != `W/"same-resource-version"` {
+@@ -124,13 +126,13 @@ func TestCompletedGzipPreservesPerRequestState(t *testing.T) {
+ 		response := httptest.NewRecorder()
+ 		w := &gzipResponse{ResponseWriter: response, request: request, selected: "gzip", cache: cache}
+ 		w.Header().Set("Cache-Control", test.control)
+-		w.WriteHeader(200)
+ 		body := []byte(strings.Repeat("do not retain", 200))
+-		w.WriteBody(gzipParts(body))
+-		w.writer.Close()
+-		w.writer.Reset(nil)
+-		gzipPool.Put(w.writer)
+-		if cache.order.Len() != 4 || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
++		request.Header.Set("Accept-Encoding", "gzip")
++		completed, err := PrepareResponse(w, request, CompletedResponse{Status: 200, Parts: gzipParts(body)})
++		if err == nil {
++			err = EmitResponse(w, request, completed)
++		}
++		if err != nil || cache.order.Len() != 4 || !bytes.Equal(gunzip(t, response.Body.Bytes()), body) {
+ 			t.Fatal("one-off body was retained or corrupted", test)
+ 		}
+ 	}
+@@ -141,10 +143,13 @@ func TestCompletedAndStreamingGzipLifecycles(t *testing.T) {
+ 	handler := Deflate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ 		w.Header().Set("Content-Type", "text/html")
+ 		if r.URL.Path == "/completed" {
+-			w.WriteHeader(200)
+-			w.(interface {
+-				WriteBody([]responsebody.Part) (int, error)
+-			}).WriteBody(gzipParts([]byte(body)))
++			completed, err := PrepareResponse(w, r, CompletedResponse{Status: 200, Parts: gzipParts([]byte(body))})
++			if err == nil {
++				err = EmitResponse(w, r, completed)
++			}
++			if err != nil {
++				t.Error(err)
++			}
+ 		} else if r.URL.Path == "/stream" {
+ 			io.WriteString(w, body[:10])
+ 			w.(http.Flusher).Flush()
+diff --git i/internal/front/response.go w/internal/front/response.go
+new file mode 100644
+index 0000000..344f23c
+--- /dev/null
++++ w/internal/front/response.go
+@@ -0,0 +1,156 @@
++package front
++
++import (
++	"fmt"
++	"net/http"
++	"strconv"
++	"strings"
++	"time"
++
++	"github.com/basecamp/once-campfire-go/internal/responsebody"
++)
++
++// CompletedResponse is finite application output, not a file or upgraded socket.
++// Parts may borrow a request buffer until synchronous emission finishes. HTTP
++// caches must copy those bytes before retaining them. Cookies/security headers
++// remain on the live writer, outside the retained representation.
++type CompletedResponse struct {
++	Status    int
++	Parts     []responsebody.Part
++	Exception bool
++}
++
++func (response CompletedResponse) size() int {
++	size := 0
++	for _, part := range response.Parts {
++		size += part.Len()
++	}
++	return size
++}
++
++// PrepareResponse establishes validators, coding and selected-body length before
++// committing headers. The private compressor supplies its request-owned policy
++// and exact-byte memo; writers without that adapter emit identity representations.
++func PrepareResponse(w http.ResponseWriter, r *http.Request, response CompletedResponse) (CompletedResponse, error) {
++	if response.Status == 0 {
++		response.Status = http.StatusOK
++	}
++	h := w.Header()
++	size := response.size()
++	digested := false
++	if !response.Exception && (response.Status == 200 || response.Status == 201) && size > 0 && h.Get("ETag") == "" && h.Get("Last-Modified") == "" {
++		digest := response.Parts[0].Digest()
++		if len(response.Parts) > 1 {
++			digest = responsebody.Digest(response.Parts)
++		}
++		h.Set("ETag", fmt.Sprintf("W/\"%x\"", digest[:16]))
++		digested = true
++	}
++	if !response.Exception && h.Get("Cache-Control") == "" {
++		value := "no-cache"
++		if digested {
++			value = "max-age=0, private, must-revalidate"
++		}
++		h.Set("Cache-Control", value)
++	}
++	if h.Get("Content-Type") == "" && response.Status != 204 && response.Status != 304 {
++		h.Set("Content-Type", "text/html; charset=utf-8")
++	}
++
++	compressor, _ := w.(*gzipResponse)
++	if compressor != nil && compressor.status != 0 {
++		panic("completed response prepared after streaming output")
++	}
++	code := compressor != nil && response.Status >= 200 && response.Status != 204 && response.Status != 304 &&
++		!strings.Contains(h.Get("Cache-Control"), "no-transform") &&
++		(h.Get("Content-Encoding") == "" || h.Get("Content-Encoding") == "identity") && size > 0 && h.Get("Content-Length") != "0"
++	if code {
++		addVary(h, "Accept-Encoding")
++		if compressor.selected == "" {
++			response.Status = http.StatusNotAcceptable
++			h.Set("Content-Type", "text/plain")
++			response.Parts = []responsebody.Part{responsebody.NewPart([]byte(fmt.Sprintf("An acceptable encoding for the requested resource %s could not be found.", r.URL.RequestURI())))}
++			code = false
++		} else if compressor.selected == "gzip" {
++			h.Set("Content-Encoding", "gzip")
++		}
++	}
++	if response.Status == http.StatusOK {
++		modified, _ := http.ParseTime(h.Get("Last-Modified"))
++		if Fresh(r, h.Get("ETag"), modified) {
++			response.Status = http.StatusNotModified
++			response.Parts = nil
++		}
++	}
++	if response.Status == 204 || response.Status == 304 {
++		h.Del("Content-Length")
++		if response.Status == 304 {
++			h.Del("Content-Type")
++		}
++		response.Parts = nil
++		return response, nil
++	}
++	if code && compressor.selected == "gzip" {
++		mtime := uint32(0)
++		if stamp, err := http.ParseTime(h.Get("Last-Modified")); err == nil && stamp.Unix() > 0 {
++			mtime = uint32(stamp.Unix())
++		}
++		var body []byte
++		var err error
++		if (r.Method == "GET" || r.Method == "HEAD") && (response.Status == 200 || response.Status == 201) &&
++			size >= 1024 && size <= gzipMaxBody && compressor.cache.capacity > 0 &&
++			!strings.Contains(strings.ToLower(h.Get("Cache-Control")), "no-store") {
++			body, err = compressor.cache.prepare(r.Context(), response.Parts, mtime)
++		} else {
++			body, err = gzipBody(response.Parts, mtime)
++		}
++		if err != nil {
++			return response, err
++		}
++		response.Parts = []responsebody.Part{responsebody.NewPart(body)}
++	}
++	h.Set("Content-Length", strconv.Itoa(response.size()))
++	return response, nil
++}
++
++// EmitResponse bypasses streaming coding after completed coding has selected the
++// exact bytes. Marking completion also prevents an appended empty gzip member.
++func EmitResponse(w http.ResponseWriter, r *http.Request, response CompletedResponse) error {
++	if compressor, ok := w.(*gzipResponse); ok {
++		compressor.status = response.Status
++		compressor.complete = true
++		w = compressor.ResponseWriter
++	}
++	w.WriteHeader(response.Status)
++	if r.Method == "HEAD" || response.Status == 204 || response.Status == 304 {
++		return nil
++	}
++	for _, part := range response.Parts {
++		if _, err := part.WriteTo(w); err != nil {
++			return err
++		}
++	}
++	return nil
++}
++
++// Fresh is shared by finite application responses and file-specific emitters.
++// A supplied entity-tag condition takes precedence over modification dates.
++func Fresh(r *http.Request, etag string, modified time.Time) bool {
++	if r.Method != "GET" && r.Method != "HEAD" {
++		return false
++	}
++	if value, ok := r.Header["If-None-Match"]; ok {
++		for _, line := range value {
++			for _, tag := range strings.Split(line, ",") {
++				if strings.TrimSpace(tag) == etag || strings.TrimSpace(tag) == "*" {
++					return true
++				}
++			}
++		}
++		return false
++	}
++	if since, err := http.ParseTime(r.Header.Get("If-Modified-Since")); err == nil && !modified.IsZero() {
++		return !since.Before(modified.Truncate(time.Second))
++	}
++	return false
++}
+diff --git i/internal/web/conditional.go w/internal/web/conditional.go
+index 39cff84..8664c60 100644
+--- i/internal/web/conditional.go
++++ w/internal/web/conditional.go
+@@ -2,30 +2,18 @@ package web
+ 
+ import (
+ 	"net/http"
+-	"strings"
+ 	"time"
++
++	"github.com/basecamp/once-campfire-go/internal/front"
+ )
+ 
++// File controllers keep their own emission/range policy.
+ func notModified(w http.ResponseWriter, r *http.Request, etag string, modified time.Time) bool {
+-	if r.Method != "GET" && r.Method != "HEAD" {
++	if !front.Fresh(r, etag, modified) {
+ 		return false
+ 	}
+-	fresh := false
+-	if value, ok := r.Header["If-None-Match"]; ok {
+-		for _, line := range value {
+-			for _, tag := range strings.Split(line, ",") {
+-				if strings.TrimSpace(tag) == etag || strings.TrimSpace(tag) == "*" {
+-					fresh = true
+-				}
+-			}
+-		}
+-	} else if since, err := http.ParseTime(r.Header.Get("If-Modified-Since")); err == nil && !modified.IsZero() {
+-		fresh = !since.Before(modified.Truncate(time.Second))
+-	}
+-	if fresh {
+-		w.Header().Del("Content-Type")
+-		w.Header().Del("Content-Length")
+-		w.WriteHeader(http.StatusNotModified)
+-	}
+-	return fresh
++	w.Header().Del("Content-Type")
++	w.Header().Del("Content-Length")
++	w.WriteHeader(http.StatusNotModified)
++	return true
+ }
+diff --git i/internal/web/media.go w/internal/web/media.go
+index 5329d60..c876b69 100644
+--- i/internal/web/media.go
++++ w/internal/web/media.go
+@@ -155,6 +155,7 @@ func (s *Server) serveAsset(w http.ResponseWriter, r *http.Request, name, ct str
+ 	w.Header().Set("Content-Type", ct)
+ 	w.Header().
+ 		Set("Content-Disposition", storage.Disposition("inline", name[strings.LastIndex(name, "/")+1:]))
++	streamFileResponse(w)
+ 	http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(data))
+ }
+ 
+diff --git i/internal/web/response.go w/internal/web/response.go
+index cc6d0da..ef10ca7 100644
+--- i/internal/web/response.go
++++ w/internal/web/response.go
+@@ -2,12 +2,11 @@ package web
+ 
+ import (
+ 	"bytes"
+-	"fmt"
+-
++	"log/slog"
+ 	"net/http"
+-	"strconv"
+ 	"sync"
+ 
++	"github.com/basecamp/once-campfire-go/internal/front"
+ 	"github.com/basecamp/once-campfire-go/internal/responsebody"
+ )
+ 
+@@ -21,23 +20,32 @@ func releaseBuffer(b *bytes.Buffer) {
+ 	}
+ }
+ 
+-// Rack::ETag and Rack::ConditionalGet operate on completed, non-streaming bodies.
+-// Disk/representation downloads and upgraded sockets retain their streaming writers.
++// Finite output is prepared before emission. A successful file selection switches
++// to its own streaming policy; failures before selecting a file remain completed
++// application responses. Cookies still commit through the session writer.
+ type responseBuffer struct {
+ 	http.ResponseWriter
+ 	body      *bytes.Buffer
+ 	status    int
+ 	exception bool
++	streaming bool
+ 	parts     []responsebody.Part
+ 	server    *Server
+ }
+ 
+ func (w *responseBuffer) WriteHeader(status int) {
++	if w.streaming {
++		w.ResponseWriter.WriteHeader(status)
++		return
++	}
+ 	if w.status == 0 {
+ 		w.status = status
+ 	}
+ }
+ func (w *responseBuffer) Write(body []byte) (int, error) {
++	if w.streaming {
++		return w.ResponseWriter.Write(body)
++	}
+ 	if w.status == 0 {
+ 		w.status = 200
+ 	}
+@@ -46,64 +54,53 @@ func (w *responseBuffer) Write(body []byte) (int, error) {
+ 	}
+ 	return w.body.Write(body)
+ }
+-func (w *responseBuffer) finish(r *http.Request) {
+-	if w.body == nil {
+-		w.body = borrowBuffer()
++
++func streamFileResponse(w http.ResponseWriter) {
++	for {
++		if buffered, ok := w.(*responseBuffer); ok {
++			if buffered.status != 0 || buffered.body != nil || len(buffered.parts) != 0 {
++				panic("file selected after completed response output")
++			}
++			buffered.streaming = true
++			return
++		}
++		wrapper, ok := w.(interface{ Unwrap() http.ResponseWriter })
++		if !ok {
++			return
++		}
++		w = wrapper.Unwrap()
+ 	}
+-	defer releaseBuffer(w.body)
+-	if w.status == 0 {
+-		w.status = 200
++}
++
++func (w *responseBuffer) finish(r *http.Request) {
++	if w.streaming {
++		return
+ 	}
+ 	parts := w.parts
+ 	if len(parts) == 0 {
+-		// The buffer is not recycled until all writes below have completed.
++		if w.body == nil {
++			w.body = borrowBuffer()
++		}
++		// This buffer remains borrowed until synchronous emission finishes.
+ 		parts = []responsebody.Part{responsebody.NewPart(w.body.Bytes())}
+ 	}
+-	h := w.Header()
+-	digested := false
+-	if !w.exception && (w.status == 200 || w.status == 201) && w.body.Len() > 0 && h.Get("ETag") == "" && h.Get("Last-Modified") == "" {
+-		hash := parts[0].Digest()
+-		h.Set("ETag", fmt.Sprintf("W/\"%x\"", hash[:16]))
+-		digested = true
++	if w.body != nil {
++		defer releaseBuffer(w.body)
+ 	}
+-	if !w.exception && h.Get("Cache-Control") == "" {
+-		value := "no-cache"
+-		if digested {
+-			value = "max-age=0, private, must-revalidate"
++	alreadyEncoded := w.Header().Get("Content-Encoding") != ""
++	response, err := front.PrepareResponse(w.ResponseWriter, r, front.CompletedResponse{Status: w.status, Parts: parts, Exception: w.exception})
++	if err != nil {
++		w.Header().Del("Content-Encoding")
++		w.Header().Del("Content-Length")
++		w.Header().Del("ETag")
++		http.Error(w.ResponseWriter, "Internal server error", http.StatusInternalServerError)
++	} else {
++		if w.server != nil && !alreadyEncoded {
++			response = w.server.cacheResponse(r, w, response)
+ 		}
+-		h.Set("Cache-Control", value)
++		err = front.EmitResponse(w.ResponseWriter, r, response)
+ 	}
+-	if w.status == 200 {
+-		modified, _ := http.ParseTime(h.Get("Last-Modified"))
+-		if notModified(w.ResponseWriter, r, h.Get("ETag"), modified) {
+-			return
+-		}
+-	}
+-	if h.Get("Content-Type") == "" && w.status != 204 && w.status != 304 {
+-		h.Set("Content-Type", "text/html; charset=utf-8")
+-	}
+-	if w.server != nil {
+-		parts = w.server.cacheResponse(r, w, parts)
+-	}
+-	if len(parts) > 0 && w.status != 204 && w.status != 304 {
+-		size := 0
+-		for _, part := range parts {
+-			size += part.Len()
+-		}
+-		h.Set("Content-Length", strconv.Itoa(size))
+-	}
+-	w.ResponseWriter.WriteHeader(w.status)
+-	if r.Method != "HEAD" && w.status != 204 && w.status != 304 {
+-		// Hand completed bytes to the compressor without joining recorded parts.
+-		// Streaming/download writers do not use this optional contract.
+-		if writer, ok := w.ResponseWriter.(interface {
+-			WriteBody([]responsebody.Part) (int, error)
+-		}); ok {
+-			writer.WriteBody(parts)
+-		} else {
+-			for _, part := range parts {
+-				part.WriteTo(w.ResponseWriter)
+-			}
+-		}
++	if err != nil && r.Context().Err() == nil {
++		slog.Debug("response delivery failed", "error", err)
+ 	}
+ }
+diff --git i/internal/web/response_cache.go w/internal/web/response_cache.go
+index 18bc8b2..c867e1c 100644
+--- i/internal/web/response_cache.go
++++ w/internal/web/response_cache.go
+@@ -2,14 +2,12 @@ package web
+ 
+ import (
+ 	"bytes"
+-	"compress/gzip"
+ 	"container/list"
+ 	"encoding/json"
+ 	"net/http"
+ 	"os"
+ 	"strings"
+ 	"sync"
+-	"time"
+ 
+ 	"github.com/basecamp/once-campfire-go/internal/front"
+ 	"github.com/basecamp/once-campfire-go/internal/responsebody"
+@@ -159,70 +157,43 @@ func (entry *cachedResponse) serve(w http.ResponseWriter) {
+ 
+ // Only completed representations enter the cache; security and session headers
+ // stay on the live writer. The version was captured before authentication.
+-func (s *Server) cacheResponse(
+-	r *http.Request,
+-	w *responseBuffer,
+-	parts []responsebody.Part,
+-) []responsebody.Part {
++// Coding has already selected immutable bytes; this cache does not encode them.
++func (s *Server) cacheResponse(r *http.Request, w *responseBuffer, response front.CompletedResponse) front.CompletedResponse {
+ 	info := requestMetadata(r.Context())
+ 	if info == nil || info.response == nil {
+-		return parts
++		return response
+ 	}
+ 	round := info.response
+-	if round.hit || round.flash || round.key == "" || r.Method != "GET" || w.status != 200 ||
+-		w.exception ||
+-		w.Header().Get("Content-Encoding") != "" ||
+-		!strings.HasPrefix(w.Header().Get("Content-Type"), "text/html") ||
++	if round.hit || round.flash || round.key == "" || r.Method != "GET" || response.Status != 200 ||
++		w.exception || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/html") ||
+ 		strings.Contains(w.Header().Get("Cache-Control"), "no-store") ||
+ 		strings.Contains(w.Header().Get("Cache-Control"), "no-transform") {
+-		return parts
++		return response
+ 	}
+ 	version, err := s.DB.ResponseVersion(r.Context())
+ 	if err != nil || version != round.version {
+-		return parts
++		return response
+ 	}
+ 	size := 0
+-	for _, part := range parts {
++	for _, part := range response.Parts {
+ 		size += part.Len()
+ 	}
+ 	if size+len(round.key)+1024 > s.responses.limit/8 {
+-		return parts
++		return response
+ 	}
+ 	var body bytes.Buffer
+ 	body.Grow(size)
+-	for _, part := range parts {
++	for _, part := range response.Parts {
+ 		if _, err = part.WriteTo(&body); err != nil {
+-			return parts
++			return response
+ 		}
+ 	}
+-	if round.gzip {
+-		var compressed bytes.Buffer
+-		writer, _ := gzip.NewWriterLevel(&compressed, 6)
+-		writer.Header.OS = 3
+-		if stamp, err := http.ParseTime(w.Header().Get("Last-Modified")); err == nil &&
+-			stamp.Unix() > 0 {
+-			writer.Header.ModTime = time.Unix(stamp.Unix(), 0)
+-		}
+-		if _, err = writer.Write(body.Bytes()); err != nil {
+-			return parts
+-		}
+-		if err = writer.Close(); err != nil {
+-			return parts
+-		}
+-		body = compressed
+-	}
+ 	header := make(http.Header)
+-	for _, name := range []string{"Content-Type", "ETag", "Last-Modified", "Cache-Control", "Link", "Vary"} {
++	for _, name := range []string{"Content-Type", "Content-Encoding", "ETag", "Last-Modified", "Cache-Control", "Link", "Vary"} {
+ 		if values := w.Header().Values(name); len(values) > 0 {
+ 			header[http.CanonicalHeaderKey(name)] = append([]string(nil), values...)
+ 		}
+ 	}
+-	if !strings.Contains(header.Get("Vary"), "Accept-Encoding") {
+-		header.Add("Vary", "Accept-Encoding")
+-	}
+-	if round.gzip {
+-		header.Set("Content-Encoding", "gzip")
+-	}
+ 	entry := &cachedResponse{
+ 		key:     round.key,
+ 		version: round.version,
+@@ -240,8 +211,6 @@ func (s *Server) cacheResponse(
+ 	if err == nil && version == round.version {
+ 		s.responses.put(entry)
+ 	}
+-	for name, values := range header {
+-		w.Header()[name] = values
+-	}
+-	return []responsebody.Part{entry.body}
++	response.Parts = []responsebody.Part{entry.body}
++	return response
+ }
+diff --git i/internal/web/response_cache_test.go w/internal/web/response_cache_test.go
+index 7d02928..fc6f77c 100644
+--- i/internal/web/response_cache_test.go
++++ w/internal/web/response_cache_test.go
+@@ -9,6 +9,7 @@ import (
+ 	"io"
+ 	"net/http"
+ 	"net/http/httptest"
++	"strconv"
+ 	"strings"
+ 	"testing"
+ 	"time"
+@@ -147,6 +148,7 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
+ 				map[string]string{"Accept-Encoding": "gzip"},
+ 			)
+ 			if zipped.Header().Get("Content-Encoding") != "gzip" ||
++				zipped.Header().Get("Content-Length") != strconv.Itoa(zipped.Body.Len()) ||
+ 				!bytes.Equal(zipped.Body.Bytes(), again.Body.Bytes()) ||
+ 				cacheHits(app) != hits+1 {
+ 				t.Fatal("completed gzip not retained")
+@@ -160,6 +162,7 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
+ 			if err != nil || !bytes.Equal(plain, first.Body.Bytes()) {
+ 				t.Fatal("incomplete or different gzip", err)
+ 			}
++
+ 		})
+ 	}
+ 	path := paths[0]
+@@ -177,6 +180,32 @@ func TestResponseCacheFinishedBodiesHeadersAndVariants(t *testing.T) {
+ 	}
+ }
+ 
++func TestResponseCacheGzipMetadataDoesNotDependOnRetention(t *testing.T) {
++	app, _, cookie, user := testApp(t)
++	rooms, err := app.DB.Rooms(context.Background(), user.ID)
++	if err != nil {
++		t.Fatal(err)
++	}
++	path := fmt.Sprintf("/rooms/%d", rooms[0].ID)
++	get := cachedRequest(t, app, cookie, "GET", path, map[string]string{"Accept-Encoding": "gzip"})
++	if get.Code != 200 || get.Header().Get("Content-Encoding") != "gzip" || get.Header().Get("Content-Length") != strconv.Itoa(get.Body.Len()) {
++		t.Fatal("incorrect selected-body length", get.Header())
++	}
++	limit := app.responses.limit
++	defer func() { app.responses.limit = limit }()
++	for _, capacity := range []int{0, limit} {
++		app.responses.limit = capacity
++		head := cachedRequest(t, app, cookie, "HEAD", path, map[string]string{"Accept-Encoding": "gzip"})
++		if head.Code != 200 || head.Body.Len() != 0 || head.Header().Get("Content-Encoding") != "gzip" || head.Header().Get("Content-Length") != get.Header().Get("Content-Length") {
++			t.Fatal("selected gzip length depends on retention", capacity, head.Header())
++		}
++		conditional := cachedRequest(t, app, cookie, "GET", path, map[string]string{"Accept-Encoding": "gzip", "If-None-Match": get.Header().Get("ETag")})
++		if conditional.Code != 304 || conditional.Body.Len() != 0 || conditional.Header().Get("Content-Encoding") != "gzip" || conditional.Header().Get("Vary") != get.Header().Get("Vary") {
++			t.Fatal("conditional coding depends on retention", capacity, conditional.Header())
++		}
++	}
++}
++
+ func TestResponseCacheRechecksIdentityAndReachability(t *testing.T) {
+ 	app, _, cookie, user := testApp(t)
+ 	ctx := context.Background()
+diff --git i/internal/web/response_test.go w/internal/web/response_test.go
+index 5c3722c..6fdc594 100644
+--- i/internal/web/response_test.go
++++ w/internal/web/response_test.go
+@@ -6,6 +6,18 @@ import (
+ 	"testing"
+ )
+ 
++func TestFileResponsePreservesHEADLength(t *testing.T) {
++	_, server, _, _ := testApp(t)
++	get, body := perform(t, server, "GET", "/account/logo", "", nil, nil)
++	head, headBody := perform(t, server, "HEAD", "/account/logo", "", nil, nil)
++	if get.StatusCode != 200 || head.StatusCode != 200 || len(body) == 0 || len(headBody) != 0 {
++		t.Fatal(get.Status, head.Status, len(body), len(headBody))
++	}
++	if get.Header.Get("Content-Length") != head.Header.Get("Content-Length") || get.Header.Get("ETag") != head.Header.Get("ETag") {
++		t.Fatal("file representation changed on HEAD", get.Header, head.Header)
++	}
++}
++
+ func TestCompletedResponseValidators(t *testing.T) {
+ 	for _, method := range []string{"GET", "HEAD"} {
+ 		request := httptest.NewRequest(method, "/up", nil)
+diff --git i/internal/web/uploads.go w/internal/web/uploads.go
+index 2c8e750..5ca729e 100644
+--- i/internal/web/uploads.go
++++ w/internal/web/uploads.go
+@@ -241,6 +241,7 @@ func (s *Server) serveStored(
+ 	}
+ 	w.Header().Set("Content-Disposition", disposition)
+ 	if mode == contentFile {
++		streamFileResponse(w)
+ 		http.ServeContent(w, r, stat.Name(), time.Time{}, file)
+ 		return
+ 	}

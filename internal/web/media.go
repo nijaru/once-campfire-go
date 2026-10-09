@@ -155,6 +155,7 @@ func (s *Server) serveAsset(w http.ResponseWriter, r *http.Request, name, ct str
 	w.Header().Set("Content-Type", ct)
 	w.Header().
 		Set("Content-Disposition", storage.Disposition("inline", name[strings.LastIndex(name, "/")+1:]))
+	streamFileResponse(w)
 	http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(data))
 }
 

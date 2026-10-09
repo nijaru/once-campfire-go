@@ -241,6 +241,7 @@ func (s *Server) serveStored(
 	}
 	w.Header().Set("Content-Disposition", disposition)
 	if mode == contentFile {
+		streamFileResponse(w)
 		http.ServeContent(w, r, stat.Name(), time.Time{}, file)
 		return
 	}

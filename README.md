@@ -164,8 +164,10 @@ read medians by another 3.7–5.4%. Fresh Rust comparisons still favor Rust on e
 The [current-upstream comparison](bench/results/current-upstream-20261008/README.md) records
 connection-local reader plans and fresh generation batching, including read gains and posting
 regressions. The [ordered-routing comparison](bench/results/ordered-routing-20261008/README.md)
-removes duplicate dispatch and records smaller, variable gains. These local measurements differ
-from the upstream table in machine, revisions and methodology.
+removes duplicate dispatch and records smaller, variable gains. The
+[completed-emission comparison](bench/results/completed-emission-20261009/README.md) records
+file HEAD and coding-metadata fixes, including uncached regressions. These local measurements
+differ from the upstream table in machine, revisions and methodology.
 
 ## Known differences
 
@@ -188,6 +190,11 @@ exemption; bot-key endpoints exempt authenticated bots only.
 
 - Bot APIs select actions from the ordered route table, not substrings of the bot key.
   A key beginning with `boosts` no longer turns a message request into a boost request.
+
+- Completed gzip uses the selected byte length for GET and HEAD; conditional coding
+  metadata no longer depends on cache warmth. Successful avatar/logo files stream
+  under file-controller policy rather than acquiring a buffered-body validator,
+  and HEAD preserves their file length.
 
 - Search follows current Go/Rust upstream: the newest 100 matching insertion IDs,
   displayed in ID order. Backdated messages can differ from Rails' timestamp order.
