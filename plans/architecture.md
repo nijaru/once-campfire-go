@@ -1,11 +1,16 @@
 # Cohesive application refactor
 
-Design baseline: `38ab6c7`, reviewed 2026-10-08. Reference pins: Rust
+Design baseline: `38ab6c7`, reviewed 2026-10-08. Original review snapshots: Rust
 `64f86353021145b63849fb1cd93adeb08f3b8dbb`, Rails
 `90b330024dec3e757c79b6a7e6568f93da8e3148`.
 
 This is the accepted direction and execution plan for restructuring the Go port.
-It supersedes incremental, profile-led optimization as the approach to this work.
+Its ownership and correctness constraints guide each coherent migration. Current
+whole-application measurements determine performance priorities; completing every
+migration below is not a prerequisite for measuring an already coherent boundary.
+Refresh upstream Go, Rust and shared-verification `main` before integration or
+measurement. Record source revisions as evidence, not as a frozen acceptance target;
+retain `reference/` unchanged for reproducible fixture and compatibility work.
 The [implementation record](go-conversion.md) and [validation record](validation.md)
 remain historical evidence, not requirements or proof that the current design is
 optimal. Review this document when changing application boundaries. Update decisions
@@ -24,9 +29,9 @@ the resulting query architecture. Do not change references or media algorithms.
 Keep declared safety differences and document any new intentional differences in
 [README.md](../README.md#known-differences).
 
-Design and reconcile the affected architecture before further profiling. Verify
-correctness during implementation. Profile the complete application only after the
-structural migrations and their contracts are coherent. Principles establish
+Reconcile ownership and contracts for the affected paths before optimizing them.
+After correctness verification, measure and profile the complete application for
+warm, changed-data and write workloads to prioritize the remaining migrations. Principles establish
 ownership and algorithmic shape; they do not prove optimal pool sizes, indexes,
 cache admission or cross-language performance. Rust parity is not established.
 
@@ -311,8 +316,9 @@ boundaries are not permanent compatibility shims.
    with one strategy per pool. Review actual resulting access paths and compatible
    indexes, reader/page-cache budgets and active-work admission. Do not stack cache
    mechanisms or revive rejected driver/checkpoint experiments without new rationale.
-7. **Verification, then profiling.** Run the shared practical checks below. Once the
-   design is implemented coherently, take fresh complete-application profiles for
+7. **Verification, then profiling.** Run the current shared practical checks below
+   at coherent delivery boundaries, without waiting for every remaining migration.
+   Take fresh complete-application profiles for
    warm, changed and write workloads; evaluate remaining choices with matched,
    sequential measurements. Publish raw evidence and limitations, not optimality
    or parity claims unsupported by results.
