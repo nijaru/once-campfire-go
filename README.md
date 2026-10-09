@@ -220,6 +220,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
   stay fresh. GET and HEAD share bodies and preserve validators; flash responses bypass it.
 - The default version label and fallback VAPID subject identify `once-campfire-go`. Explicit version,
   VAPID keys and subject settings remain supported.
+- With `FORWARD_HEADERS=false`, the public listener strips `X-Forwarded-Ssl` and
+  `X-Forwarded-Scheme` along with the other forwarding headers. Unlike the inherited
+  behavior, these aliases cannot override the listener's scheme when forwarding is disabled.
 - Storage keys containing separators, NUL, or parent-directory shards are rejected before
   filesystem access. Valid keys retain the existing storage layout.
 - Media bytes depend on toolchain architecture as well as library versions. Unchanged goldens pass

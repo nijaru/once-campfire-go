@@ -18,6 +18,31 @@ import (
 	"time"
 )
 
+func TestForwardingPolicyCoversSchemeAliases(t *testing.T) {
+	for _, trust := range []bool{false, true} {
+		r := httptest.NewRequest("GET", "http://chat.test/webmanifest", nil)
+		r.RemoteAddr = "127.0.0.1:1234"
+		r.Header.Set("X-Forwarded-Ssl", "on")
+		r.Header.Set("X-Forwarded-Scheme", "https")
+		r.Header.Set("X-Forwarded-Proto", "https")
+		r.Header.Set("X-Forwarded-Host", "proxy.test")
+		next := http.HandlerFunc(func(w http.ResponseWriter, forwarded *http.Request) {
+			ssl, scheme := forwarded.Header.Get("X-Forwarded-Ssl"), forwarded.Header.Get("X-Forwarded-Scheme")
+			if trust {
+				if ssl != "on" || scheme != "https" || forwarded.Header.Get("X-Forwarded-Host") != "proxy.test" {
+					t.Fatal("trusted forwarding changed", forwarded.Header)
+				}
+			} else if ssl != "" || scheme != "" || forwarded.Header.Get("X-Forwarded-Proto") != "http" || forwarded.Header.Get("X-Forwarded-Host") != "chat.test" {
+				t.Fatal("untrusted scheme alias survived", forwarded.Header)
+			}
+		})
+		forward(next, Config{ForwardHeaders: trust}).ServeHTTP(httptest.NewRecorder(), r)
+		if r.Header.Get("X-Forwarded-Ssl") != "on" {
+			t.Fatal("forwarding modified the caller's request")
+		}
+	}
+}
+
 func TestCompressionNegotiation(t *testing.T) {
 	for _, c := range []struct{ header, want string }{{"", "identity"}, {"gzip", "gzip"}, {"gzip;q=0", "identity"}, {"gzip;q=.5,identity;q=.8", "identity"}, {"*;q=1", "gzip"}, {"gzip;q=0,identity;q=0", ""}, {"br", "identity"}} {
 		if got := encoding(c.header); got != c.want {
