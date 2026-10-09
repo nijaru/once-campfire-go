@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -35,27 +36,78 @@ func (d *DB) SearchReferences(ctx context.Context, user int64, query string) ([]
 	return refs, nil
 }
 
-// Search reads matching bodies in the same statement as result membership.
-// It is the uncached path when a references-only result cannot reuse known bytes.
+// Search completes selection and matching bodies in the same scoped observation.
 func (d *DB) Search(ctx context.Context, user int64, query string) ([]Message, error) {
-	terms := searchTerms(query)
-	if terms == "" {
-		return []Message{}, nil
-	}
-	rows, err := d.Read.QueryContext(
-		ctx,
-		messageSelect+"JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100",
-		user,
-		terms,
-	)
+	read, err := d.BeginMessageRead(ctx)
 	if err != nil {
 		return nil, err
 	}
-	messages, err := scanMessages(rows)
-	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-		messages[i], messages[j] = messages[j], messages[i]
+	defer read.Close()
+	refs, err := read.SearchReferences(ctx, user, query)
+	if err != nil {
+		return nil, err
 	}
-	return messages, err
+	records, err := read.Records(ctx, refs)
+	if err != nil {
+		return nil, err
+	}
+	return records, read.Finish()
+}
+
+const searchProbeLimit = 1000
+
+// Current upstream search selects the newest matching IDs, not timestamp windows.
+// Limit the global FTS probe; sparse membership then uses a scoped fallback, all
+// within the caller's transaction so selection cannot escape its matching bodies.
+func searchReferences(ctx context.Context, tx *sql.Tx, user int64, terms string) ([]MessageReference, error) {
+	rows, err := tx.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at,member.user_id IS NOT NULL FROM message_search_index idx JOIN messages m ON m.id=idx.rowid LEFT JOIN memberships member ON member.room_id=m.room_id AND member.user_id=? WHERE idx.body MATCH ? ORDER BY idx.rowid DESC LIMIT 1000", user, terms)
+	if err != nil {
+		return nil, err
+	}
+	refs, examined, err := searchReferenceRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(refs) < 100 && examined == searchProbeLimit {
+		rows, err = tx.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at,1 FROM messages m JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.id DESC LIMIT 100", user, terms)
+		if err != nil {
+			return nil, err
+		}
+		refs, _, err = searchReferenceRows(rows)
+		if err != nil {
+			return nil, err
+		}
+	}
+	slices.Reverse(refs)
+	return refs, nil
+}
+
+func searchReferenceRows(rows *sql.Rows) ([]MessageReference, int, error) {
+	defer rows.Close()
+	refs := []MessageReference{}
+	examined := 0
+	for rows.Next() {
+		examined++
+		var ref MessageReference
+		var version any
+		var reachable bool
+		if err := rows.Scan(&ref.ID, &ref.RoomID, &version, &reachable); err != nil {
+			return nil, examined, err
+		}
+		// Inaccessible rows, including malformed foreign timestamps, cannot
+		// affect a user's results or reveal their contents through an error.
+		if !reachable {
+			continue
+		}
+		if err := (timestamp{&ref.UpdatedAt}).Scan(version); err != nil {
+			return nil, examined, err
+		}
+		refs = append(refs, ref)
+		if len(refs) == 100 {
+			break
+		}
+	}
+	return refs, examined, rows.Err()
 }
 
 func searchTerms(query string) string {

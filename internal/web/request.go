@@ -114,9 +114,9 @@ func requestHTTPS(r *http.Request, secure bool) bool {
 	}
 	return r.TLS != nil || r.URL.Scheme == "https"
 }
-func normalizeOrigin(r *http.Request, secure bool) string {
+func normalizeOrigin(r *http.Request, https bool) string {
 	scheme, standardPort := "http", "80"
-	if requestHTTPS(r, secure) {
+	if https {
 		scheme, standardPort = "https", "443"
 	}
 	host := r.Host
@@ -138,9 +138,10 @@ func normalizeOrigin(r *http.Request, secure bool) string {
 
 func (s *Server) normalizeRequest(r *http.Request) *http.Request {
 	ip, err := normalizeRemoteIP(r)
+	https := requestHTTPS(r, s.Secure)
 	info := &requestInfo{
-		host: r.Host, origin: normalizeOrigin(r, s.Secure),
-		target: r.RequestURI, ip: ip, ipError: err,
+		host: r.Host, origin: normalizeOrigin(r, https),
+		target: r.RequestURI, ip: ip, ipError: err, https: https,
 	}
 	return r.WithContext(context.WithValue(r.Context(), requestInfoKey{}, info))
 }

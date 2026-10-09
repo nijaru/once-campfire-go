@@ -182,6 +182,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
 - Sidebar connection refresh waits for the current Turbo frame to finish loading,
   preventing an aborted response on startup or reconnect. Obsolete connections and removed frames do not reload.
 
+- Search follows current Go/Rust upstream: the newest 100 matching insertion IDs,
+  displayed in ID order. Backdated messages can differ from Rails' timestamp order.
+
 - Templates use `html/template`. Whitespace, attribute serialization, some canonical form-action
   URLs, some document titles, and response headers/validators differ from Rust. Strict server/live DOM and network layers
   therefore still fail in many inventory cells, even when screenshots, accessibility and workflows

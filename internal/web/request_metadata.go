@@ -15,6 +15,7 @@ type requestInfoKey struct{}
 type requestInfo struct {
 	host, origin    string
 	target, ip      string
+	https           bool
 	ipError         error
 	response        *responseRound
 	databaseVersion uint64

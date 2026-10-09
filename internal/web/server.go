@@ -35,6 +35,8 @@ const (
 	MaxBody    = 16 << 20
 )
 
+// Dependencies are prepared by the process owner. HTTP does not open resources,
+// construct application services, or start background workers.
 type Dependencies struct {
 	Fragments           *presentation.Fragments
 	MessageEffects      *application.MessageEffects
@@ -132,6 +134,7 @@ type page struct {
 	Query                        string
 	SearchResultCount            int
 }
+
 func New(deps Dependencies, config Config) *Server {
 	// Same cost-12 dummy digest as the reference. Unknown-user login still
 	// pays bcrypt; startup need not create a new hash.
@@ -314,12 +317,13 @@ func (s *Server) browserWriteAllowed(r *http.Request) bool {
 	}
 	values, provided := r.Header["Sec-Fetch-Site"]
 	if !provided {
-		return !s.Secure && !s.requestHTTPS(r)
+		return !requestMetadata(r.Context()).https
 	}
 	return len(values) > 0 && (values[0] == "same-origin" || values[0] == "same-site")
 }
 
-func (s *Server) sameOrigin(r *http.Request) bool {
+// Socket handshakes retain their origin policy independently of unsafe browser writes.
+func (s *Server) socketOriginAllowed(r *http.Request) bool {
 	site := r.Header.Get("Sec-Fetch-Site")
 	if site == "cross-site" || s.Secure && (site != "same-origin" && site != "same-site") {
 		return false
@@ -353,6 +357,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, HealthBody)
 }
 
+// respondPage prepares common application data and live protocol facts before rendering.
 func (s *Server) respondPage(w http.ResponseWriter, r *http.Request, name string, status int, p page) {
 	if name != "incompatible-browser" && respondFormat(w, r, "html") == "" {
 		return
@@ -420,6 +425,7 @@ func (s *Server) respondPage(w http.ResponseWriter, r *http.Request, name string
 	s.renderPage(w, name, status, p)
 }
 
+// renderPage consumes prepared data only, without consulting a request or query service.
 func (s *Server) renderPage(w http.ResponseWriter, name string, status int, p page) {
 	recorded := p.messageBody
 	p.messageBody = nil
@@ -721,6 +727,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, u database.User)
 	http.Redirect(w, r, "/", 302)
 }
 
+// Cookie parsing is protocol-owned; candidate authorization and fallback are application-owned.
 func lastRoomCandidate(r *http.Request) *int64 {
 	if cookie, err := r.Cookie("last_room"); err == nil {
 		if id, err := strconv.ParseInt(cookie.Value, 10, 64); err == nil {
@@ -935,7 +942,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u database.User)
 }
 
 func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.User) {
-	if !s.sameOrigin(r) {
+	if !s.socketOriginAllowed(r) {
 		http.Error(w, "Invalid request origin", 403)
 		return
 	}
@@ -952,6 +959,8 @@ func (s *Server) serveCable(w http.ResponseWriter, r *http.Request, u database.U
 	s.Cable.Serve(w, r, u, token)
 }
 
+// StopIntake is the cutoff for handler admission. The process owner closes
+// upgraded sockets before WaitHandlers, then joins workers before persistence.
 func (s *Server) StopIntake() {
 	s.intakeMu.Lock()
 	s.closing = true

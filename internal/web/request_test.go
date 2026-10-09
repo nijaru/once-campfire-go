@@ -59,19 +59,19 @@ func TestProxyRequestContracts(t *testing.T) {
 	r := httptest.NewRequest("GET", "http://internal:80/", nil)
 	r.Header.Set("X-Forwarded-Host", "first.example, chat.example:443")
 	r.Header.Set("X-Forwarded-Proto", "http, https")
-	if got := normalizeOrigin(r, false); got != "https://chat.example" {
+	if got := normalizeOrigin(r, requestHTTPS(r, false)); got != "https://chat.example" {
 		t.Fatal(got)
 	}
 	r.Header.Set("Forwarded", `for="[2001:db8::123]:443";proto=http`)
 	r.Header.Set("X-Forwarded-For", "10.0.0.1")
-	if got := normalizeOrigin(r, false); got != "http://chat.example:443" {
+	if got := normalizeOrigin(r, requestHTTPS(r, false)); got != "http://chat.example:443" {
 		t.Fatal(got)
 	}
 	if got, err := normalizeRemoteIP(r); got != "2001:db8::123" || err != nil {
 		t.Fatal(got, err)
 	}
 	r.Header.Set("X-Forwarded-Ssl", "on")
-	if got := normalizeOrigin(r, false); got != "https://chat.example" {
+	if got := normalizeOrigin(r, requestHTTPS(r, false)); got != "https://chat.example" {
 		t.Fatal(got)
 	}
 }

@@ -61,15 +61,10 @@ func (r *MessageRead) SearchReferences(ctx context.Context, user int64, query st
 	if terms == "" {
 		return r.selectReferences(nil), nil
 	}
-	rows, err := r.tx.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at FROM messages m JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.created_at DESC LIMIT 100", user, terms)
+	refs, err := searchReferences(ctx, r.tx, user, terms)
 	if err != nil {
 		return nil, err
 	}
-	refs, err := scanMessageReferences(rows)
-	if err != nil {
-		return nil, err
-	}
-	slices.Reverse(refs)
 	return r.selectReferences(refs), nil
 }
 
