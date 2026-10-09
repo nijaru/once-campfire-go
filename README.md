@@ -196,6 +196,11 @@ exemption; bot-key endpoints exempt authenticated bots only.
   under file-controller policy rather than acquiring a buffered-body validator,
   and HEAD preserves their file length.
 
+- Private encoding negotiation scans the complete Accept-Encoding field with constant
+  state rather than truncating at sixteen items. Late explicit `gzip;q=0` and
+  `identity;q=0` exclusions are honored, including after a wildcard. Other private
+  tie-breaking rules and the separate public gzip/zstd policy remain unchanged.
+
 - Search follows current Go/Rust upstream: the newest 100 matching insertion IDs,
   displayed in ID order. Backdated messages can differ from Rails' timestamp order.
 

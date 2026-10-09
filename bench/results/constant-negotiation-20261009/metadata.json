@@ -1,0 +1,32 @@
+{
+  "before_revision": "99d1cf89a0a6f5aa4e2b06a92a6a4bff5a92df15",
+  "candidate_patch_sha256": "a8a987f4e6d68b51e74dd385853618ab066e4b498489a7a53dbd83ba09116f58",
+  "candidate_binary_sha256": "ff071bc4c060eae110712fa402687793a20f4176a2261513d6228b368484ec5b",
+  "before_binary_sha256": "508e377088760916612ba182114ce7374c19d78453220a4047d047ddeb816a9a",
+  "native_candidate_sha256": "9455f5bd4546dcb317d1337b18eeecce942d718ac1b625070f9a28bd169c172a",
+  "verification_source_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+  "loadgen_build_revision": "e2440515d9093b8304da3d7662d8526f3234b047",
+  "loadgen_binary_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+  "go_upstream_revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+  "method": "Two builds, three sequential alternating rounds, eight timed seconds plus two excluded warmup, 16 clients/one viewer. Four runtime workers/readers, three workers per job queue. Server 0\u20133/client 4\u20137. No builds/tests/profilers/agents during timing.",
+  "configuration": "Completed64MiB/fragments32MiB plus inherited gzip32/public64MiB. Host shared tmpfs in ARM64 OrbStack.",
+  "compiler": "Go1.27.1 linux/arm64 CGO sqlite_fts5 trimpath; unchanged loadgen Rust1.98.0.",
+  "micro": "Apple M3 Max Go1.27.1, five isolated repetitions, common gzip/deflate/br field. Temporary probe also compares 20,000 deterministic short fields to unchanged original private/public selectors. Not a permanent test or full-app allocation claim.",
+  "verification": "Original late-exclusion regression fails with gzip200. New regression passes; native front/web races three; full native bin/check; fresh native/Linux builds; Linux vet and front/web races; browser; real public twenty shared responses, seven preflights and four exact write/FTS audits plus three requests validating warm identity and406 beyond sixteen entries. No weakened oracle.",
+  "source_reconciliation": "Shared ec02 adds source-size tools/check and docs only. Executable loadgen, HTTP/browser and benchmark inputs unchanged from e244. Full updated native shared check passed in preceding cookie cohort, VM copies refreshed.",
+  "profile": "Two separate five-second warm rounds, graceful profile flush; both profiles copied immediately. Percentages not normalized per-response costs.",
+  "primary_contract": "RFC9110 section12.5.3 fetched 2026-10-09: wildcard excludes explicitly listed codings; qvalue0 means not acceptable. Current Rust/Rack-derived selector truncates at16. Deliberate Go difference documented in root README. Existing Go quality/duplicate/wildcard/tie semantics retained for short fields; public policy unchanged.",
+  "limitations": "No general capacity claim: room/message medians regress about2%; sidebar/post+1.3%,search+4.3%. Two-build control, no fresh Rust comparison or mixed invalidation repeat. Observation/database work unchanged; suite includes uncached writes. One viewer; guest affinity not physical isolation; tmpfs not NVMe/crash durability; no matched-offered-rate latency. Intel unavailable; forced CLI exit unexercised; unchanged media not rerun.",
+  "counts": {
+    "warm": {
+      "valid_timed_responses": 6781120,
+      "audited_writes": 276894,
+      "peak_generator_cpu_percent": 56.24015153574145
+    },
+    "profile-warm": {
+      "valid_timed_responses": 1446086,
+      "audited_writes": 0,
+      "peak_generator_cpu_percent": 59.666238545820384
+    }
+  }
+}

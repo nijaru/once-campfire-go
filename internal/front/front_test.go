@@ -75,6 +75,34 @@ func TestCompressionNegotiation(t *testing.T) {
 		t.Fatal(response.Code)
 	}
 }
+func TestCompressionNegotiationHonorsLateRejection(t *testing.T) {
+	handler := Deflate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		io.WriteString(w, "hello")
+	}))
+	// The wildcard occupies the first slot and unknown codings fill the old
+	// sixteen-item limit. Explicit exclusions still govern the entire field.
+	prefix := "*," + strings.Repeat("unknown,", 15)
+	for _, c := range []struct {
+		accept string
+		status int
+	}{
+		{prefix + "gzip;q=0", 200},
+		{prefix + "gzip;q=0,identity;q=0", 406},
+	} {
+		r := httptest.NewRequest("GET", "/", nil)
+		r.Header.Set("Accept-Encoding", c.accept)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != c.status || w.Header().Get("Content-Encoding") != "" {
+			t.Fatalf("late exclusion: status %d, coding %q", w.Code, w.Header().Get("Content-Encoding"))
+		}
+		if c.status == 200 && w.Body.String() != "hello" {
+			t.Fatal("identity bytes changed")
+		}
+	}
+}
+
 func TestCacheVariantsLimitsAndCookies(t *testing.T) {
 	var calls atomic.Int32
 	c := NewCache(2048, 1024)
