@@ -8,13 +8,14 @@ import (
 	"sync"
 	"testing"
 	"testing/synctest"
+	"time"
 )
 
 func TestResponseVersionWaitingReadIsCancellable(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		d := testDB(t)
-		d.version.gate <- struct{}{}
-		defer func() { <-d.version.gate }()
+		d.version.admission <- struct{}{}
+		defer func() { <-d.version.admission }()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		result := make(chan error, 1)
@@ -28,9 +29,80 @@ func TestResponseVersionWaitingReadIsCancellable(t *testing.T) {
 				t.Fatal(err)
 			}
 		default:
-			t.Fatal("cancelled query waited for the active generation read")
+			t.Fatal("cancelled query waited for admission")
 		}
 	})
+}
+
+func TestVersionObserverCancellationDoesNotCancelSharedReader(t *testing.T) {
+	d := testDB(t)
+	entered, release := make(chan struct{}), make(chan struct{})
+	go func() {
+		d.version.connection.Raw(func(any) error { close(entered); <-release; return nil })
+	}()
+	<-entered
+	unblock := sync.OnceFunc(func() { close(release) })
+	defer unblock()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	first, err := d.version.request(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+	live := make(chan error, 1)
+	go func() { _, err := d.ResponseVersion(context.Background()); live <- err }()
+	unblock()
+	select {
+	case err := <-live:
+		if err != nil {
+			t.Fatal("another caller inherited cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("live observation did not finish")
+	}
+	if result := <-first; result.err != nil {
+		t.Fatal("waiter cancellation stopped the shared query", result.err)
+	}
+}
+
+func TestVersionObserverCloseJoinsResourceOwner(t *testing.T) {
+	d := testDB(t)
+	entered, release := make(chan struct{}), make(chan struct{})
+	go func() {
+		d.version.connection.Raw(func(any) error { close(entered); <-release; return nil })
+	}()
+	<-entered
+	unblock := sync.OnceFunc(func() { close(release) })
+	defer unblock()
+	observed := make(chan error, 1)
+	go func() { _, err := d.ResponseVersion(context.Background()); observed <- err }()
+	closed := make(chan error, 2)
+	for range 2 {
+		go func() { closed <- d.version.Close() }()
+	}
+	select {
+	case <-closed:
+		t.Fatal("close returned while the driver connection remained owned")
+	case <-time.After(20 * time.Millisecond):
+	}
+	unblock()
+	for range 2 {
+		select {
+		case err := <-closed:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("close did not join")
+		}
+	}
+	if err := <-observed; !errors.Is(err, context.Canceled) {
+		t.Fatal("waiting caller did not observe shutdown", err)
+	}
+	if _, err := d.ResponseVersion(context.Background()); !errors.Is(err, context.Canceled) {
+		t.Fatal("closed observer admitted a new request", err)
+	}
 }
 
 func TestResponseVersionObservesForeignCommitsDuringConcurrentReads(t *testing.T) {
