@@ -1,0 +1,34 @@
+{
+  "before_revision": "94c211830db9c4a8ddb149534580bd254e112e78",
+  "candidate_patch_sha256": "fe0f3fb1b25dbad0818676249cacebdb49ad3fbe93353658648c9bdaac32e6b9",
+  "candidate_binary_sha256": "508e377088760916612ba182114ce7374c19d78453220a4047d047ddeb816a9a",
+  "before_binary_sha256": "9e6b862c1d415727bfe1ff45bee3d18833f7125aafd7f73119f24e661e1e0f0f",
+  "native_candidate_sha256": "1a45068e7c724ab7d7e019f08d5a27998e868101c41317144fe9f99115e4f10c",
+  "rust_source_revision": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+  "rust_binary_build_revision": "9872c1d9541551c0889a60e3d49a14488bd1e403",
+  "rust_binary_sha256": "250dfeae44c9bdbf478c15ae6d8cc4e55222d81c862162bec18c27ca7ed7f3dd",
+  "verification_source_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+  "loadgen_build_revision": "e2440515d9093b8304da3d7662d8526f3234b047",
+  "loadgen_binary_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+  "go_upstream_revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+  "unchanged_inputs": "Go e6\u219294 merge and Rust 987\u21926dae change README only. Shared e244\u2192ec02 adds source-size extractor/tests/check entry and reporting docs only; HTTP, browser, benchmark and loadgen inputs unchanged. Full native shared check includes new test, base/temporal/profile VM copies refreshed. Reusing unchanged Rust/loadgen binaries is intentional. Baseline image campfire-framed-response-key reproduces 94 application code.",
+  "method": "Three sequential interleaved rounds, eight timed seconds plus two excluded warmup, 16 clients/one viewer. Four runtime workers/readers, three workers per job queue. Server 0\u20133/client 4\u20137. Forward/reverse order keeps candidate middle. No builds/tests/profilers/agents during timing.",
+  "configuration": "Completed64MiB/fragments32MiB plus inherited gzip32/public64MiB. Host shared tmpfs in ARM64 OrbStack.",
+  "compiler": "Go1.27.1 linux/arm64 CGO sqlite_fts5 trimpath; Rust1.98.1 linux/arm64 fatLTO one codegen jemalloc; loadgen Rust1.98.0.",
+  "micro": "Apple M3 Max Go1.27.1, five isolated repetitions before/after, fixed Rails-generated signed session cookie. Probe is temporary, not a permanent test. No whole-app allocation inference.",
+  "verification": "Rails vectors repeated races five; full native bin/check; fresh native/Linux builds; Linux vet and Rails/web races; browser; real public20responses/seven preflights/four exact ID/body/room/FTS audits/alias check. Browser only disclosed persisted wait before unchanged exact-three oracle.",
+  "profile": "Two separate five-second warm rounds, graceful profile flush; both profiles copied immediately. Percentages are not normalized per-response reductions.",
+  "limitations": "Warm before/candidate slowdowns retained; implausibly large median ratios not causal estimates. No mixed rerun: observation/invalidation/query/coding work unchanged; warm suite includes complete uncached writes. One viewer, affinity not isolation, tmpfs not NVMe/crash durability, no matched-offered-rate latency. Intel unavailable; forced CLI exit unexercised; unchanged media not rerun.",
+  "counts": {
+    "warm": {
+      "valid_timed_responses": 9217968,
+      "audited_writes": 418392,
+      "peak_generator_cpu_percent": 50.73504270081849
+    },
+    "profile-warm": {
+      "valid_timed_responses": 1202756,
+      "audited_writes": 0,
+      "peak_generator_cpu_percent": 51.212203822727105
+    }
+  }
+}

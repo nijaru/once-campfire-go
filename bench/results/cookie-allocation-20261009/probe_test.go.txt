@@ -1,0 +1,25 @@
+package rails
+
+import (
+	"testing"
+	"time"
+)
+
+func BenchmarkCookieProbe(b *testing.B) {
+	secrets, err := NewSecrets("cookie-verification-probe-not-a-production-secret")
+	if err != nil {
+		b.Fatal(err)
+	}
+	now := time.Date(2026, 10, 9, 0, 0, 0, 0, time.UTC)
+	cookie, err := secrets.SignCookie("session_token", "b7ad6c00095db5177cd064fb241bec815b9990a426bde5056b2aabda1cd3aeabc", time.Time{})
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		var value string
+		if err := secrets.VerifyCookie("session_token", cookie, now, &value); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
