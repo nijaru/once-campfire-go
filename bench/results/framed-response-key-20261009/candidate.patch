@@ -1,0 +1,151 @@
+diff --git i/internal/web/response_cache.go w/internal/web/response_cache.go
+index c867e1c..0b2cf5d 100644
+--- i/internal/web/response_cache.go
++++ w/internal/web/response_cache.go
+@@ -3,9 +3,7 @@ package web
+ import (
+ 	"bytes"
+ 	"container/list"
+-	"encoding/json"
+ 	"net/http"
+-	"os"
+ 	"strings"
+ 	"sync"
+ 
+@@ -131,16 +129,8 @@ func (s *Server) responseHit(r *http.Request) *cachedResponse {
+ 	if err != nil || version != round.version {
+ 		return nil
+ 	}
+-	key, _ := json.Marshal([]any{
+-		info.host, info.origin, info.target, r.URL.RequestURI(), r.Form, round.user,
+-		r.Header.Values(
+-			"Cookie",
+-		), r.Header.Values("Accept"), r.Header.Values("Content-Type"), r.Header.Values("Turbo-Frame"),
+-		r.UserAgent(), r.Header.Get("Origin"), r.Header.Get("X-Requested-With"), round.gzip,
+-		os.Getenv("GIT_REVISION"),
+-	})
+-	round.key = string(key)
+-	if len(round.key) > 8192 {
++	round.key = responseKey(r, info, round.user, round.gzip)
++	if round.key == "" {
+ 		return nil
+ 	}
+ 	entry := s.responses.get(round.key, version)
+diff --git i/internal/web/response_key.go w/internal/web/response_key.go
+new file mode 100644
+index 0000000..a9a0412
+--- /dev/null
++++ w/internal/web/response_key.go
+@@ -0,0 +1,65 @@
++package web
++
++import (
++	"encoding/binary"
++	"net/http"
++	"os"
++	"slices"
++)
++
++// The response identity is internal, not a wire format. Length framing preserves
++// arbitrary header bytes and field/list boundaries without JSON reflection,
++// escaping or temporary interface trees. Parsed form keys have canonical order;
++// repeated values retain their order. Nil collections remain distinct from empty.
++func responseKey(r *http.Request, info *requestInfo, user int64, gzip bool) string {
++	key := make([]byte, 0, 512)
++	for _, value := range []string{info.host, info.origin, info.target, r.URL.RequestURI()} {
++		key = appendKeyString(key, value)
++	}
++	if r.Form == nil {
++		key = binary.AppendUvarint(key, 0)
++	} else {
++		key = binary.AppendUvarint(key, uint64(len(r.Form))+1)
++		names := make([]string, 0, len(r.Form))
++		for name := range r.Form {
++			names = append(names, name)
++		}
++		slices.Sort(names)
++		for _, name := range names {
++			key = appendKeyString(key, name)
++			key = appendKeyStrings(key, r.Form[name])
++		}
++	}
++	key = binary.LittleEndian.AppendUint64(key, uint64(user))
++	for _, name := range []string{"Cookie", "Accept", "Content-Type", "Turbo-Frame"} {
++		key = appendKeyStrings(key, r.Header.Values(name))
++	}
++	for _, value := range []string{r.UserAgent(), r.Header.Get("Origin"), r.Header.Get("X-Requested-With"), os.Getenv("GIT_REVISION")} {
++		key = appendKeyString(key, value)
++	}
++	if gzip {
++		key = append(key, 1)
++	} else {
++		key = append(key, 0)
++	}
++	if len(key) > 8192 {
++		return ""
++	}
++	return string(key)
++}
++
++func appendKeyString(key []byte, value string) []byte {
++	key = binary.AppendUvarint(key, uint64(len(value)))
++	return append(key, value...)
++}
++
++func appendKeyStrings(key []byte, values []string) []byte {
++	if values == nil {
++		return binary.AppendUvarint(key, 0)
++	}
++	key = binary.AppendUvarint(key, uint64(len(values))+1)
++	for _, value := range values {
++		key = appendKeyString(key, value)
++	}
++	return key
++}
+diff --git i/internal/web/response_key_test.go w/internal/web/response_key_test.go
+new file mode 100644
+index 0000000..d31d004
+--- /dev/null
++++ w/internal/web/response_key_test.go
+@@ -0,0 +1,41 @@
++package web
++
++import (
++	"net/http/httptest"
++	"net/url"
++	"strings"
++	"testing"
++)
++
++func TestResponseKeyPreservesVariantBoundaries(t *testing.T) {
++	request := httptest.NewRequest("GET", "/searches?q=hello", nil)
++	info := &requestInfo{host: "cache.test", origin: "http://cache.test", target: request.RequestURI}
++	key := func() string { return responseKey(request, info, 1, false) }
++	request.Form = url.Values{"a": {"x", "y"}, "b": {"z"}}
++	first := key()
++	request.Form = url.Values{"b": {"z"}, "a": {"x", "y"}}
++	if key() != first {
++		t.Fatal("form map insertion order changed identity")
++	}
++	request.Form["a"] = []string{"y", "x"}
++	if key() == first {
++		t.Fatal("repeated value order was lost")
++	}
++	for _, pair := range [][2][]string{
++		{nil, {}},
++		{{"a", "bc"}, {"ab", "c"}},
++		{{"a\x00b"}, {"a", "b"}},
++		{{"\xff"}, {"\xfe"}},
++	} {
++		request.Header["Accept"] = pair[0]
++		left := key()
++		request.Header["Accept"] = pair[1]
++		if key() == left {
++			t.Fatal("different header variants shared an identity", pair)
++		}
++	}
++	request.Header.Set("Accept", strings.Repeat("x", 8193))
++	if key() != "" {
++		t.Fatal("oversized key retained")
++	}
++}

@@ -3,9 +3,7 @@ package web
 import (
 	"bytes"
 	"container/list"
-	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 
@@ -131,16 +129,8 @@ func (s *Server) responseHit(r *http.Request) *cachedResponse {
 	if err != nil || version != round.version {
 		return nil
 	}
-	key, _ := json.Marshal([]any{
-		info.host, info.origin, info.target, r.URL.RequestURI(), r.Form, round.user,
-		r.Header.Values(
-			"Cookie",
-		), r.Header.Values("Accept"), r.Header.Values("Content-Type"), r.Header.Values("Turbo-Frame"),
-		r.UserAgent(), r.Header.Get("Origin"), r.Header.Get("X-Requested-With"), round.gzip,
-		os.Getenv("GIT_REVISION"),
-	})
-	round.key = string(key)
-	if len(round.key) > 8192 {
+	round.key = responseKey(r, info, round.user, round.gzip)
+	if round.key == "" {
 		return nil
 	}
 	entry := s.responses.get(round.key, version)

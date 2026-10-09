@@ -1,0 +1,22 @@
+package web
+
+import (
+ "encoding/json"
+ "net/http/httptest"
+ "net/url"
+ "os"
+ "strings"
+ "testing"
+)
+
+var probeKey string
+func BenchmarkResponseKeyProbe(b *testing.B) {
+ r:=httptest.NewRequest("GET", "/searches?q=coffee", nil)
+ r.Form=url.Values{"q":{"coffee"}}
+ r.Header.Set("Cookie", "session_token="+strings.Repeat("x", 220))
+ r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+ r.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh) Chrome/130.0")
+ info:=&requestInfo{host:"campfire.test",origin:"https://campfire.test",target:r.RequestURI}
+ b.Run("json",func(b *testing.B){ for b.Loop(){ key,_:=json.Marshal([]any{info.host,info.origin,info.target,r.URL.RequestURI(),r.Form,int64(1),r.Header.Values("Cookie"),r.Header.Values("Accept"),r.Header.Values("Content-Type"),r.Header.Values("Turbo-Frame"),r.UserAgent(),r.Header.Get("Origin"),r.Header.Get("X-Requested-With"),true,os.Getenv("GIT_REVISION")}); probeKey=string(key) } })
+ b.Run("framed",func(b *testing.B){ for b.Loop(){ probeKey=responseKey(r,info,1,true) } })
+}
