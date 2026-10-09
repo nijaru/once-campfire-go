@@ -38,7 +38,7 @@ var migrations = []string{
 
 // A single writer prevents pool starvation while WAL readers proceed independently.
 type DB struct {
-	Read    *readPool
+	Read    *sql.DB
 	Write   *sql.DB
 	Now     func() time.Time
 	version *versionObserver
@@ -72,7 +72,9 @@ func Open(path string, readers int) (*DB, error) {
 	if err = prepare(w); err != nil {
 		return fail(err)
 	}
-	r, err := sql.Open("sqlite3", uri+options+"&mode=ro&_query_only=on")
+	// One bounded, connection-local driver cache serves both ordinary reads and
+	// scoped read transactions. Reuse plans, never results or authority.
+	r, err := sql.Open("sqlite3", uri+options+"&mode=ro&_query_only=on&_stmt_cache_size=256")
 	if err != nil {
 		return fail(err)
 	}
@@ -98,7 +100,7 @@ func Open(path string, readers int) (*DB, error) {
 		now = func() time.Time { return frozen }
 	}
 	return &DB{
-		Read:    &readPool{DB: r, statements: make(map[string]*sql.Stmt)},
+		Read:    r,
 		Write:   w,
 		Now:     now,
 		version: version,

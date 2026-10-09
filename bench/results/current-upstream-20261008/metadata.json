@@ -1,0 +1,24 @@
+{
+  "before_revision": "a2cd697c66655bea74e1d66caa7b0b8fa8ade2e0",
+  "candidate_patch_sha256": "0fa25187265b1f211d12731c262ba82ad30e9053b2e190c9eb61c4426be8210b",
+  "candidate_binary_sha256": "d38fc3836ca50b5dcd94beb6f982f459f20cead0424bcb730addfdca10782135",
+  "before_binary_sha256": "39b07f423dec8e8d4881675c31ea57dfb02d30e93f83304a1ffbb6a418482f7f",
+  "rust_binary_sha256": "250dfeae44c9bdbf478c15ae6d8cc4e55222d81c862162bec18c27ca7ed7f3dd",
+  "rust_revision": "9872c1d9541551c0889a60e3d49a14488bd1e403",
+  "upstream_go_revision": "9b0ef062ea9732c6f611b705d77b52aeec31301f",
+  "verification_revision": "e2440515d9093b8304da3d7662d8526f3234b047",
+  "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+  "go_version": "go1.27.1 linux/arm64",
+  "rust_version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "client_rust_version": "rustc 1.98.0; current shared client built successfully from locked sources",
+  "native_host": "Darwin laptop.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:53 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6031 arm64",
+  "profile_runner_modification": "current comparison runner copied to VM tmpfs; docker stop --time 30 before removal to flush opt-in CPU profiles; profiling rates are diagnostic, not capacity comparisons",
+  "profiles": "original baseline binary; two five-second rounds per workload; warm reads, HQ-write mixed reads and message posts separate",
+  "limitations": [
+    "ARM64 OrbStack VM; guest CPU affinity does not establish physical core isolation",
+    "host activity and VM variance; no tests, builds or agents during comparisons",
+    "tmpfs data; exact persisted transactions and FTS verified, not crash durability or NVMe throughput",
+    "single authenticated viewer; cache payload budgets do not bound total memory",
+    "throughput-run tails are not matched-load latency; no native Intel or general parity claim"
+  ]
+}

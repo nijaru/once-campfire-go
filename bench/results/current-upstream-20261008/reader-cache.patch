@@ -1,0 +1,98 @@
+diff --git i/internal/database/database.go w/internal/database/database.go
+index 3a30428..57d496b 100644
+--- i/internal/database/database.go
++++ w/internal/database/database.go
+@@ -38,7 +38,7 @@ var migrations = []string{
+ 
+ // A single writer prevents pool starvation while WAL readers proceed independently.
+ type DB struct {
+-	Read    *readPool
++	Read    *sql.DB
+ 	Write   *sql.DB
+ 	Now     func() time.Time
+ 	version *versionObserver
+@@ -72,7 +72,9 @@ func Open(path string, readers int) (*DB, error) {
+ 	if err = prepare(w); err != nil {
+ 		return fail(err)
+ 	}
+-	r, err := sql.Open("sqlite3", uri+options+"&mode=ro&_query_only=on")
++	// One bounded, connection-local driver cache serves both ordinary reads and
++	// scoped read transactions. Reuse plans, never results or authority.
++	r, err := sql.Open("sqlite3", uri+options+"&mode=ro&_query_only=on&_stmt_cache_size=256")
+ 	if err != nil {
+ 		return fail(err)
+ 	}
+@@ -98,7 +100,7 @@ func Open(path string, readers int) (*DB, error) {
+ 		now = func() time.Time { return frozen }
+ 	}
+ 	return &DB{
+-		Read:    &readPool{DB: r, statements: make(map[string]*sql.Stmt)},
++		Read:    r,
+ 		Write:   w,
+ 		Now:     now,
+ 		version: version,
+diff --git i/internal/database/read_pool.go w/internal/database/read_pool.go
+deleted file mode 100644
+index a3e4a4c..0000000
+--- i/internal/database/read_pool.go
++++ /dev/null
+@@ -1,59 +0,0 @@
+-package database
+-
+-import (
+-	"context"
+-	"database/sql"
+-	"sync"
+-)
+-
+-// Reuse query plans across the read pool. sql.Stmt maintains one prepared
+-// statement per underlying connection. Bound the cache for dynamic IN queries.
+-type readPool struct {
+-	*sql.DB
+-	mu         sync.RWMutex
+-	statements map[string]*sql.Stmt
+-}
+-
+-func (p *readPool) statement(ctx context.Context, query string) *sql.Stmt {
+-	p.mu.RLock()
+-	statement := p.statements[query]
+-	p.mu.RUnlock()
+-	if statement != nil {
+-		return statement
+-	}
+-	p.mu.Lock()
+-	defer p.mu.Unlock()
+-	if statement = p.statements[query]; statement != nil {
+-		return statement
+-	}
+-	if len(p.statements) >= 256 {
+-		return nil
+-	}
+-	statement, err := p.DB.PrepareContext(ctx, query)
+-	if err != nil {
+-		return nil
+-	}
+-	p.statements[query] = statement
+-	return statement
+-}
+-func (p *readPool) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+-	if statement := p.statement(ctx, query); statement != nil {
+-		return statement.QueryContext(ctx, args...)
+-	}
+-	return p.DB.QueryContext(ctx, query, args...)
+-}
+-func (p *readPool) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+-	if statement := p.statement(ctx, query); statement != nil {
+-		return statement.QueryRowContext(ctx, args...)
+-	}
+-	return p.DB.QueryRowContext(ctx, query, args...)
+-}
+-func (p *readPool) Close() error {
+-	p.mu.Lock()
+-	defer p.mu.Unlock()
+-	for _, statement := range p.statements {
+-		statement.Close()
+-	}
+-	clear(p.statements)
+-	return p.DB.Close()
+-}
