@@ -14,6 +14,10 @@ type databaseConfig struct {
 	Readers               int
 }
 
+func (config databaseConfig) backupPath() string {
+	return filepath.Join(config.Storage, "backups", filepath.Base(config.Path))
+}
+
 func databaseConfigFromEnv() databaseConfig {
 	storage := env("CAMPFIRE_STORAGE_PATH", "storage")
 	return databaseConfig{

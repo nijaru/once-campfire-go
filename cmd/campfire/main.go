@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime/pprof"
 	"syscall"
 	"time"
@@ -45,10 +44,13 @@ func run() error {
 	if len(os.Args) > 1 {
 		command = os.Args[1]
 	}
-	if command != "server" && command != "db:prepare" && command != "backup" {
-		return fmt.Errorf("unknown command %q (server, db:prepare, or backup)", command)
+	if command != "server" && command != "db:prepare" && command != "backup" && command != "restore" {
+		return fmt.Errorf("unknown command %q (server, db:prepare, backup, or restore)", command)
 	}
 	databaseConfig := databaseConfigFromEnv()
+	if command == "restore" {
+		return database.Restore(context.Background(), databaseConfig.backupPath(), databaseConfig.Path)
+	}
 	if command != "server" {
 		if _, err := rails.NewSecrets(databaseConfig.Secret); err != nil {
 			return err
@@ -61,7 +63,7 @@ func run() error {
 			return db.Close()
 		}
 		defer db.Close()
-		return db.Backup(context.Background(), filepath.Join(databaseConfig.Storage, "backups", filepath.Base(databaseConfig.Path)))
+		return db.Backup(context.Background(), databaseConfig.backupPath())
 	}
 	config, err := serverConfigFromEnv(databaseConfig)
 	if err != nil {

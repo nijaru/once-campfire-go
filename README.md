@@ -53,9 +53,8 @@ docker run --rm -p 8080:80 -e DISABLE_SSL=1 -e SECRET_KEY_BASE \
 The container runs as uid/gid 1000. For a bind mount, make its storage writable by that user.
 `CAMPFIRE_STORAGE_PATH` defaults to `storage`, with databases in `db/`, media in `files/`, backups
 in `backups/`, and certificate cache in `thruster/`. `CAMPFIRE_DATABASE_PATH` and `CAMPFIRE_FILES_PATH`
-override individual locations; `RAILS_ENV` defaults to `production`. The inherited ONCE restore
-hook only restores `/rails/storage/backups/$RAILS_ENV.sqlite3` to the default database path.
-Custom storage roots or database filenames require a matching manual restore procedure.
+override individual locations; `RAILS_ENV` defaults to `production`. Backup and restore use these
+same settings, including custom roots and database filenames.
 `campfire db:prepare` initializes an empty database and checks migration versions;
 existing databases missing migrations are rejected.
 
@@ -64,6 +63,10 @@ on `HTTPS_PORT=443`. The internal application listener defaults to `TARGET_BIND=
 `TARGET_PORT=3000`. The front server provides HTTP/2, optional H2C, gzip/zstd with compression jitter,
 a bounded response cache and graceful shutdown. `campfire backup` writes an atomic SQLite snapshot;
 the image provides ONCE's `/hooks/pre-backup` and `/hooks/post-restore` hooks.
+`campfire restore` restores `backups/<database filename>` from the configured storage root to the
+configured database path. Stop the application first; restore is an offline operation. A missing
+snapshot is a no-op. Empty snapshots or snapshots without migration metadata are rejected without
+replacing the database.
 
 ## Validation
 
@@ -133,7 +136,9 @@ unchanged-golden verification from the separate ARM64 Rails comparison.
 
 `bin/build` and `bin/check` use mise when Go is absent from PATH and keep temporary build files in
 `.cache/`. Live ACME is tested against a local Pebble CA, including restart with the CA offline.
-Container verification exercises setup, a live SQLite backup, offline restore, and restart.
+Container verification exercises setup, a live SQLite backup, offline restore, and restart with
+default paths, storage/environment overrides, database overrides, combined overrides, and URI
+metacharacters in paths.
 
 ## Benchmarks
 
