@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 	"time"
 	"uuid"
 
-	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 )
 
@@ -54,20 +52,19 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 	if input.Body != nil {
 		result.Body = *input.Body
 	}
+	search := prepareMessageSearchBody(result.Body)
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
+		// Select permission and receipt inputs together on the writer. Creation
+		// overwrites the room timestamp, so its previous value is not an input.
+		query := "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,u.name FROM rooms r JOIN users u ON u.id=? WHERE r.id=?"
 		if checkMembership {
-			var allowed bool
-			if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.room_id=? AND m.user_id=? AND u.status=0)", room, user).Scan(&allowed); err != nil {
-				return err
-			}
-			if !allowed {
-				return ErrForbidden
-			}
+			query += " AND u.status=0 AND EXISTS(SELECT 1 FROM memberships m WHERE m.room_id=r.id AND m.user_id=u.id)"
 		}
-		if err := commandRoom(ctx, tx, room, &result.Room); err != nil {
-			return err
+		err := tx.QueryRowContext(ctx, query, user, room).Scan(&result.Room.ID, &result.Room.CreatorID, &result.Room.Name, &result.Room.Type, &result.Creator)
+		if checkMembership && errors.Is(err, sql.ErrNoRows) {
+			return ErrForbidden
 		}
-		if err := tx.QueryRowContext(ctx, "SELECT name FROM users WHERE id=?", user).Scan(&result.Creator); err != nil {
+		if err != nil {
 			return err
 		}
 		blob, uploaded, err := d.messageUpload(ctx, tx, input)
@@ -95,7 +92,7 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 				return err
 			}
 		}
-		plain, err := messageSearchText(ctx, tx, result.Message)
+		plain, err := messageSearchText(ctx, tx, result.ID, search)
 		if err != nil {
 			return err
 		}
@@ -121,9 +118,11 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 }
 
 func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInput) (MessageCommit, error) {
+	var search messageSearchBody
 	if input.Body != nil {
 		body := richtext.Canonical(*input.Body)
 		input.Body = &body
+		search = prepareMessageSearchBody(body)
 	}
 	var result MessageCommit
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
@@ -187,7 +186,12 @@ func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInp
 		if !changed {
 			return nil
 		}
-		plain, err := messageSearchText(ctx, tx, *m)
+		if input.Body == nil {
+			// An omitted body comes from the writer's current record, not from
+			// earlier caller preparation.
+			search = prepareMessageSearchBody(m.Body)
+		}
+		plain, err := messageSearchText(ctx, tx, m.ID, search)
 		if err != nil {
 			return err
 		}
@@ -269,56 +273,4 @@ func (d *DB) messageUpload(ctx context.Context, tx *sql.Tx, input MessageInput) 
 		return *input.Attachment, nil, nil
 	}
 	return 0, nil, nil
-}
-
-func messageSearchText(ctx context.Context, tx *sql.Tx, message Message) (string, error) {
-	// Content failures deliberately retain the reference's empty-text fallback.
-	// SQL/cancellation failures are different: the command must roll back.
-	doc := richtext.Prepare(message.Body)
-	targets := map[string]int64{}
-	ids := map[int64]bool{}
-	errorsByToken := map[string]error{}
-	for _, token := range doc.PlainAttachables() {
-		id, err := rails.UnverifiedUserID(token)
-		targets[token] = id
-		errorsByToken[token] = err
-		if id != 0 {
-			ids[id] = true
-		}
-	}
-	mentions := map[int64]*richtext.Mention{}
-	if len(ids) > 0 {
-		rows, err := tx.QueryContext(ctx, "SELECT id,name FROM users WHERE id IN (SELECT value FROM json_each(?))", displayIDs(ids))
-		if err != nil {
-			return "", err
-		}
-		for rows.Next() {
-			var mention richtext.Mention
-			if err := rows.Scan(&mention.ID, &mention.Name); err != nil {
-				rows.Close()
-				return "", err
-			}
-			mentions[mention.ID] = &mention
-		}
-		err = rows.Err()
-		rows.Close()
-		if err != nil {
-			return "", err
-		}
-	}
-	plain, _ := doc.PlainText(richtext.Context{Resolve: func(token string, _ bool) (*richtext.Mention, error) {
-		return mentions[targets[token]], errorsByToken[token]
-	}})
-	if strings.TrimSpace(plain) != "" {
-		return plain, nil
-	}
-	var filename string
-	err := tx.QueryRowContext(ctx, "SELECT b.filename FROM active_storage_attachments a JOIN active_storage_blobs b ON b.id=a.blob_id WHERE a.record_type='Message' AND a.record_id=? AND a.name='attachment' ORDER BY a.id LIMIT 1", message.ID).Scan(&filename)
-	if errors.Is(err, sql.ErrNoRows) {
-		return plain, nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return rails.Filename(filename), nil
 }

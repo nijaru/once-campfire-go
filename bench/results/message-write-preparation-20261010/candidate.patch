@@ -1,0 +1,409 @@
+diff --git c/internal/database/message_commands.go w/internal/database/message_commands.go
+index 7d3fb58..c939b84 100644
+--- c/internal/database/message_commands.go
++++ w/internal/database/message_commands.go
+@@ -4,11 +4,9 @@ import (
+ 	"context"
+ 	"database/sql"
+ 	"errors"
+-	"strings"
+ 	"time"
+ 	"uuid"
+ 
+-	"github.com/basecamp/once-campfire-go/internal/rails"
+ 	"github.com/basecamp/once-campfire-go/internal/richtext"
+ )
+ 
+@@ -54,20 +52,19 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
+ 	if input.Body != nil {
+ 		result.Body = *input.Body
+ 	}
++	search := prepareMessageSearchBody(result.Body)
+ 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
++		// Select permission and receipt inputs together on the writer. Creation
++		// overwrites the room timestamp, so its previous value is not an input.
++		query := "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,u.name FROM rooms r JOIN users u ON u.id=? WHERE r.id=?"
+ 		if checkMembership {
+-			var allowed bool
+-			if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.room_id=? AND m.user_id=? AND u.status=0)", room, user).Scan(&allowed); err != nil {
+-				return err
+-			}
+-			if !allowed {
+-				return ErrForbidden
+-			}
++			query += " AND u.status=0 AND EXISTS(SELECT 1 FROM memberships m WHERE m.room_id=r.id AND m.user_id=u.id)"
+ 		}
+-		if err := commandRoom(ctx, tx, room, &result.Room); err != nil {
+-			return err
++		err := tx.QueryRowContext(ctx, query, user, room).Scan(&result.Room.ID, &result.Room.CreatorID, &result.Room.Name, &result.Room.Type, &result.Creator)
++		if checkMembership && errors.Is(err, sql.ErrNoRows) {
++			return ErrForbidden
+ 		}
+-		if err := tx.QueryRowContext(ctx, "SELECT name FROM users WHERE id=?", user).Scan(&result.Creator); err != nil {
++		if err != nil {
+ 			return err
+ 		}
+ 		blob, uploaded, err := d.messageUpload(ctx, tx, input)
+@@ -95,7 +92,7 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
+ 				return err
+ 			}
+ 		}
+-		plain, err := messageSearchText(ctx, tx, result.Message)
++		plain, err := messageSearchText(ctx, tx, result.ID, search)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -121,9 +118,11 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
+ }
+ 
+ func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInput) (MessageCommit, error) {
++	var search messageSearchBody
+ 	if input.Body != nil {
+ 		body := richtext.Canonical(*input.Body)
+ 		input.Body = &body
++		search = prepareMessageSearchBody(body)
+ 	}
+ 	var result MessageCommit
+ 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
+@@ -187,7 +186,12 @@ func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInp
+ 		if !changed {
+ 			return nil
+ 		}
+-		plain, err := messageSearchText(ctx, tx, *m)
++		if input.Body == nil {
++			// An omitted body comes from the writer's current record, not from
++			// earlier caller preparation.
++			search = prepareMessageSearchBody(m.Body)
++		}
++		plain, err := messageSearchText(ctx, tx, m.ID, search)
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -270,55 +274,3 @@ func (d *DB) messageUpload(ctx context.Context, tx *sql.Tx, input MessageInput)
+ 	}
+ 	return 0, nil, nil
+ }
+-
+-func messageSearchText(ctx context.Context, tx *sql.Tx, message Message) (string, error) {
+-	// Content failures deliberately retain the reference's empty-text fallback.
+-	// SQL/cancellation failures are different: the command must roll back.
+-	doc := richtext.Prepare(message.Body)
+-	targets := map[string]int64{}
+-	ids := map[int64]bool{}
+-	errorsByToken := map[string]error{}
+-	for _, token := range doc.PlainAttachables() {
+-		id, err := rails.UnverifiedUserID(token)
+-		targets[token] = id
+-		errorsByToken[token] = err
+-		if id != 0 {
+-			ids[id] = true
+-		}
+-	}
+-	mentions := map[int64]*richtext.Mention{}
+-	if len(ids) > 0 {
+-		rows, err := tx.QueryContext(ctx, "SELECT id,name FROM users WHERE id IN (SELECT value FROM json_each(?))", displayIDs(ids))
+-		if err != nil {
+-			return "", err
+-		}
+-		for rows.Next() {
+-			var mention richtext.Mention
+-			if err := rows.Scan(&mention.ID, &mention.Name); err != nil {
+-				rows.Close()
+-				return "", err
+-			}
+-			mentions[mention.ID] = &mention
+-		}
+-		err = rows.Err()
+-		rows.Close()
+-		if err != nil {
+-			return "", err
+-		}
+-	}
+-	plain, _ := doc.PlainText(richtext.Context{Resolve: func(token string, _ bool) (*richtext.Mention, error) {
+-		return mentions[targets[token]], errorsByToken[token]
+-	}})
+-	if strings.TrimSpace(plain) != "" {
+-		return plain, nil
+-	}
+-	var filename string
+-	err := tx.QueryRowContext(ctx, "SELECT b.filename FROM active_storage_attachments a JOIN active_storage_blobs b ON b.id=a.blob_id WHERE a.record_type='Message' AND a.record_id=? AND a.name='attachment' ORDER BY a.id LIMIT 1", message.ID).Scan(&filename)
+-	if errors.Is(err, sql.ErrNoRows) {
+-		return plain, nil
+-	}
+-	if err != nil {
+-		return "", err
+-	}
+-	return rails.Filename(filename), nil
+-}
+diff --git c/internal/integrations/notification_payload.go w/internal/integrations/notification_payload.go
+index 9aa5505..52b4dba 100644
+--- c/internal/integrations/notification_payload.go
++++ w/internal/integrations/notification_payload.go
+@@ -1,10 +1,9 @@
+ package integrations
+ 
+ import (
+-	"encoding/json"
++	"encoding/json/jsontext"
++	"encoding/json/v2"
+ 	"fmt"
+-
+-	"github.com/basecamp/once-campfire-go/internal/rails"
+ )
+ 
+ func NotificationJSON(title, body, path string, badge int64) []byte {
+@@ -22,8 +21,9 @@ func NotificationJSON(title, body, path string, badge int64) []byte {
+ 	payload.Title = title
+ 	payload.Options.Body, payload.Options.Icon = body, "/account/logo"
+ 	payload.Options.Data.Path, payload.Options.Data.Badge = path, badge
+-	raw, _ := json.Marshal(payload)
+-	encoded, _ := rails.CanonicalJSON(raw, false)
++	// JSON v2 directly supplies Rails' non-HTML/non-JavaScript escaping. Keep
++	// replacement of invalid UTF-8, as in the former v1/canonical round trip.
++	encoded, _ := json.Marshal(&payload, jsontext.AllowInvalidUTF8(true))
+ 	return encoded
+ }
+ 
+@@ -68,14 +68,5 @@ func (content WebhookContent) JSON() ([]byte, error) {
+ 	payload.Message.Body.HTML = content.HTML
+ 	payload.Message.Body.Plain = content.Plain
+ 	payload.Message.Path = fmt.Sprintf("/rooms/%d/@%d", content.RoomID, content.MessageID)
+-	raw, err := json.Marshal(payload)
+-	if err != nil {
+-		return nil, err
+-	}
+-	raw, err = rails.CanonicalJSON(raw, true)
+-	if err != nil {
+-		return nil, err
+-	}
+-
+-	return raw, nil
++	return json.Marshal(&payload, jsontext.EscapeForHTML(true), jsontext.AllowInvalidUTF8(true))
+ }
+diff --git 1/internal/database/message_search.go 2/internal/database/message_search.go
+new file mode 100644
+index 0000000..590179c
+--- /dev/null
++++ 2/internal/database/message_search.go
+@@ -0,0 +1,84 @@
++package database
++
++import (
++	"context"
++	"database/sql"
++	"errors"
++	"strings"
++
++	"github.com/basecamp/once-campfire-go/internal/rails"
++	"github.com/basecamp/once-campfire-go/internal/richtext"
++)
++
++// Submitted bodies can be parsed and, without mentions, reduced to text before
++// taking the sole writer. Mention names and attachment fallback still come from
++// the mutation's transaction; this preparation contains no database observations.
++type messageSearchBody struct {
++	plain   string
++	doc     *richtext.Document
++	targets map[string]int64
++	ids     map[int64]bool
++	errors  map[string]error
++}
++
++func prepareMessageSearchBody(body string) messageSearchBody {
++	doc := richtext.Prepare(body)
++	tokens := doc.PlainAttachables()
++	if len(tokens) == 0 {
++		plain, _ := doc.PlainText(richtext.Context{})
++		return messageSearchBody{plain: plain}
++	}
++	prepared := messageSearchBody{doc: &doc, targets: map[string]int64{}, ids: map[int64]bool{}, errors: map[string]error{}}
++	for _, token := range tokens {
++		id, err := rails.UnverifiedUserID(token)
++		prepared.targets[token] = id
++		prepared.errors[token] = err
++		if id != 0 {
++			prepared.ids[id] = true
++		}
++	}
++	return prepared
++}
++
++func messageSearchText(ctx context.Context, tx *sql.Tx, messageID int64, body messageSearchBody) (string, error) {
++	// Content failures deliberately retain the reference's empty-text fallback.
++	// SQL/cancellation failures are different: the command must roll back.
++	mentions := map[int64]*richtext.Mention{}
++	if len(body.ids) > 0 {
++		rows, err := tx.QueryContext(ctx, "SELECT id,name FROM users WHERE id IN (SELECT value FROM json_each(?))", displayIDs(body.ids))
++		if err != nil {
++			return "", err
++		}
++		for rows.Next() {
++			var mention richtext.Mention
++			if err := rows.Scan(&mention.ID, &mention.Name); err != nil {
++				rows.Close()
++				return "", err
++			}
++			mentions[mention.ID] = &mention
++		}
++		err = rows.Err()
++		rows.Close()
++		if err != nil {
++			return "", err
++		}
++	}
++	plain := body.plain
++	if body.doc != nil {
++		plain, _ = body.doc.PlainText(richtext.Context{Resolve: func(token string, _ bool) (*richtext.Mention, error) {
++			return mentions[body.targets[token]], body.errors[token]
++		}})
++	}
++	if strings.TrimSpace(plain) != "" {
++		return plain, nil
++	}
++	var filename string
++	err := tx.QueryRowContext(ctx, "SELECT b.filename FROM active_storage_attachments a JOIN active_storage_blobs b ON b.id=a.blob_id WHERE a.record_type='Message' AND a.record_id=? AND a.name='attachment' ORDER BY a.id LIMIT 1", messageID).Scan(&filename)
++	if errors.Is(err, sql.ErrNoRows) {
++		return plain, nil
++	}
++	if err != nil {
++		return "", err
++	}
++	return rails.Filename(filename), nil
++}
+diff --git 1/internal/database/message_search_test.go 2/internal/database/message_search_test.go
+new file mode 100644
+index 0000000..45815a0
+--- /dev/null
++++ 2/internal/database/message_search_test.go
+@@ -0,0 +1,88 @@
++package database
++
++import (
++	"context"
++	"fmt"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/basecamp/once-campfire-go/internal/rails"
++)
++
++func TestSubmittedSearchBodyResolvesWriterCurrentMentions(t *testing.T) {
++	d := testDB(t)
++	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
++	defer cancel()
++	user, err := d.Setup(ctx, "Earlier", "user@test", "digest")
++	if err != nil {
++		t.Fatal(err)
++	}
++	rooms, err := d.Rooms(ctx, user.ID)
++	if err != nil {
++		t.Fatal(err)
++	}
++	secrets, err := rails.NewSecrets(strings.Repeat("a", 128))
++	if err != nil {
++		t.Fatal(err)
++	}
++	token := secrets.SGID(fmt.Sprintf("gid://campfire/User/%d", user.ID), "attachable", time.Time{})
++	body := `<action-text-attachment sgid="` + token + `"></action-text-attachment>`
++
++	// Preparation must not resolve names through a reader before the command's
++	// transaction. Hold all readers and queue the command behind a profile edit.
++	for range d.Read.Stats().MaxOpenConnections {
++		conn, err := d.Read.Conn(ctx)
++		if err != nil {
++			t.Fatal(err)
++		}
++		defer conn.Close()
++	}
++	tx, err := d.Write.BeginTx(ctx, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer tx.Rollback()
++	before := d.Write.Stats().WaitCount
++	type result struct {
++		commit MessageCommit
++		err    error
++	}
++	done := make(chan result, 1)
++	go func() {
++		commit, err := d.CreateMessage(ctx, user.ID, rooms[0].ID, messageInput("", body))
++		done <- result{commit, err}
++	}()
++	ticker := time.NewTicker(time.Millisecond)
++	defer ticker.Stop()
++	for d.Write.Stats().WaitCount == before {
++		select {
++		case <-ticker.C:
++		case <-ctx.Done():
++			t.Fatal("command did not reach the writer", ctx.Err())
++		}
++	}
++	if _, err := tx.ExecContext(ctx, "UPDATE users SET name='Current' WHERE id=?", user.ID); err != nil {
++		t.Fatal(err)
++	}
++	if _, err := tx.ExecContext(ctx, "UPDATE rooms SET name='Current room' WHERE id=?", rooms[0].ID); err != nil {
++		t.Fatal(err)
++	}
++	if err := tx.Commit(); err != nil {
++		t.Fatal(err)
++	}
++	got := <-done
++	if got.err != nil {
++		t.Fatal(got.err)
++	}
++	if got.commit.Creator != "Current" || got.commit.Room.Name != "Current room" {
++		t.Fatalf("receipt did not capture writer-current author and room: %+v", got.commit)
++	}
++	var plain string
++	if err := d.Write.QueryRowContext(ctx, "SELECT body FROM message_search_index WHERE rowid=?", got.commit.ID).Scan(&plain); err != nil {
++		t.Fatal(err)
++	}
++	if plain != "@Current" {
++		t.Fatalf("committed search text = %q, want writer-current mention", plain)
++	}
++}
+diff --git 1/internal/integrations/notification_payload_test.go 2/internal/integrations/notification_payload_test.go
+new file mode 100644
+index 0000000..0346af0
+--- /dev/null
++++ 2/internal/integrations/notification_payload_test.go
+@@ -0,0 +1,37 @@
++package integrations
++
++import "testing"
++
++// Provider payloads must retain Rails' field order, nullable HTML, integer
++// precision and escaping without applying cookie/verifier encoding policy.
++func TestNotificationPayloadEncoding(t *testing.T) {
++	got := NotificationJSON("<>&\u2028\u2029", "quote\" slash\\ literal\\u2028\n\x01\xff", "/rooms/9", 9223372036854775807)
++	want := `{"title":"<>&` + "\u2028\u2029" + `","options":{"body":"quote\" slash\\ literal\\u2028\n\u0001�","icon":"/account/logo","data":{"path":"/rooms/9","badge":9223372036854775807}}}`
++	if string(got) != want {
++		t.Fatalf("push JSON:\n%s\nwant:\n%s", got, want)
++	}
++}
++
++func TestWebhookPayloadEncoding(t *testing.T) {
++	html := "<p>&\u2028\u2029</p>"
++	for _, c := range []struct {
++		name string
++		html *string
++		want string
++	}{
++		{"absent", nil, `null`},
++		{"empty", new(""), `""`},
++		{"escaped", &html, `"\u003cp\u003e\u0026` + "\u2028\u2029" + `\u003c/p\u003e"`},
++	} {
++		t.Run(c.name, func(t *testing.T) {
++			got, err := (WebhookContent{CreatorID: 9223372036854775807, Creator: "<>&\xff", RoomID: 9, MessageID: 11, BotKey: "1-key", Plain: "literal\\u2029\n", HTML: c.html}).JSON()
++			if err != nil {
++				t.Fatal(err)
++			}
++			want := `{"user":{"id":9223372036854775807,"name":"\u003c\u003e\u0026�"},"room":{"id":9,"name":null,"path":"/rooms/9/1-key/messages"},"message":{"id":11,"body":{"html":` + c.want + `,"plain":"literal\\u2029\n"},"path":"/rooms/9/@11"}}`
++			if string(got) != want {
++				t.Fatalf("webhook JSON:\n%s\nwant:\n%s", got, want)
++			}
++		})
++	}
++}

@@ -1,10 +1,9 @@
 package integrations
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
-
-	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 func NotificationJSON(title, body, path string, badge int64) []byte {
@@ -22,8 +21,9 @@ func NotificationJSON(title, body, path string, badge int64) []byte {
 	payload.Title = title
 	payload.Options.Body, payload.Options.Icon = body, "/account/logo"
 	payload.Options.Data.Path, payload.Options.Data.Badge = path, badge
-	raw, _ := json.Marshal(payload)
-	encoded, _ := rails.CanonicalJSON(raw, false)
+	// JSON v2 directly supplies Rails' non-HTML/non-JavaScript escaping. Keep
+	// replacement of invalid UTF-8, as in the former v1/canonical round trip.
+	encoded, _ := json.Marshal(&payload, jsontext.AllowInvalidUTF8(true))
 	return encoded
 }
 
@@ -68,14 +68,5 @@ func (content WebhookContent) JSON() ([]byte, error) {
 	payload.Message.Body.HTML = content.HTML
 	payload.Message.Body.Plain = content.Plain
 	payload.Message.Path = fmt.Sprintf("/rooms/%d/@%d", content.RoomID, content.MessageID)
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-	raw, err = rails.CanonicalJSON(raw, true)
-	if err != nil {
-		return nil, err
-	}
-
-	return raw, nil
+	return json.Marshal(&payload, jsontext.EscapeForHTML(true), jsontext.AllowInvalidUTF8(true))
 }
