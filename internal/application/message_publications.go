@@ -27,11 +27,7 @@ func (s *MessagePublications) Created(ctx context.Context, facts presentation.Fa
 	if err != nil {
 		return "", errors.Join(result.Processing, err)
 	}
-	markup, err := s.Queries.Presentation.Markup("message", views[0])
-	if err != nil {
-		return "", errors.Join(result.Processing, err)
-	}
-	output := rails.TurboStream("append", commit.Room.DOM("messages"), markup)
+	output := rails.TurboStream("append", commit.Room.DOM("messages"), string(views[0].Fragment))
 	s.publish(commit.Room.ID, output)
 	return output, result.Processing
 }

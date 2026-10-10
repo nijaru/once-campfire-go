@@ -17,8 +17,9 @@ type MessageQueries struct {
 	Content      *ContentQueries
 }
 
-// Views consumes captured records, including committed receipts. These records
-// have no scoped observation and cannot reuse or admit query-cache fragments.
+// Views returns fully rendered fragments for captured records, including committed
+// receipts. These records have no scoped observation and cannot reuse or admit
+// query-cache fragments.
 func (s *MessageQueries) Views(ctx context.Context, facts presentation.Facts, records []database.Message) ([]presentation.MessageView, error) {
 	prepared := presentation.PrepareMessages(records)
 	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)

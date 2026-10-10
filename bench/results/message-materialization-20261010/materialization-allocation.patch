@@ -1,0 +1,168 @@
+diff --git i/cmd/campfire/main.go w/cmd/campfire/main.go
+index b1b1238..c597fa9 100644
+--- i/cmd/campfire/main.go
++++ w/cmd/campfire/main.go
+@@ -2,12 +2,15 @@ package main
+ 
+ import (
+ 	"context"
++	"encoding/json"
+ 	"fmt"
+ 	"log/slog"
+ 	"os"
+ 	"os/signal"
+ 	"path/filepath"
++	"runtime"
+ 	"runtime/pprof"
++	"runtime/trace"
+ 	"syscall"
+ 	"time"
+ 
+@@ -29,6 +32,41 @@ func main() {
+ 	}
+ }
+ func run() error {
++	if path := os.Getenv("GO_MEMORY_STATS"); path != "" {
++		var before runtime.MemStats
++		runtime.ReadMemStats(&before)
++		defer func() {
++			var after runtime.MemStats
++			runtime.ReadMemStats(&after)
++			file, err := os.Create(path)
++			if err != nil {
++				slog.Error("memory diagnostic", "error", err)
++				return
++			}
++			defer file.Close()
++			json.NewEncoder(file).Encode(struct{ Before, After runtime.MemStats }{before, after})
++			if allocationPath := os.Getenv("GO_ALLOCATION_PROFILE"); allocationPath != "" {
++				allocationFile, err := os.Create(allocationPath)
++				if err != nil {
++					slog.Error("allocation diagnostic", "error", err)
++					return
++				}
++				defer allocationFile.Close()
++				pprof.Lookup("allocs").WriteTo(allocationFile, 0)
++			}
++		}()
++	}
++	if path := os.Getenv("GO_EXECUTION_TRACE"); path != "" {
++		file, err := os.Create(path)
++		if err != nil {
++			return err
++		}
++		defer file.Close()
++		if err := trace.Start(file); err != nil {
++			return err
++		}
++		defer trace.Stop()
++	}
+ 	if path := os.Getenv("GO_CPU_PROFILE"); path != "" {
+ 		file, err := os.Create(path)
+ 		if err != nil {
+diff --git i/internal/application/message_publications.go w/internal/application/message_publications.go
+index 9690e38..a8d19b0 100644
+--- i/internal/application/message_publications.go
++++ w/internal/application/message_publications.go
+@@ -27,11 +27,7 @@ func (s *MessagePublications) Created(ctx context.Context, facts presentation.Fa
+ 	if err != nil {
+ 		return "", errors.Join(result.Processing, err)
+ 	}
+-	markup, err := s.Queries.Presentation.Markup("message", views[0])
+-	if err != nil {
+-		return "", errors.Join(result.Processing, err)
+-	}
+-	output := rails.TurboStream("append", commit.Room.DOM("messages"), markup)
++	output := rails.TurboStream("append", commit.Room.DOM("messages"), string(views[0].Fragment))
+ 	s.publish(commit.Room.ID, output)
+ 	return output, result.Processing
+ }
+diff --git i/internal/application/message_queries.go w/internal/application/message_queries.go
+index 4b39d69..6a85584 100644
+--- i/internal/application/message_queries.go
++++ w/internal/application/message_queries.go
+@@ -17,8 +17,9 @@ type MessageQueries struct {
+ 	Content      *ContentQueries
+ }
+ 
+-// Views consumes captured records, including committed receipts. These records
+-// have no scoped observation and cannot reuse or admit query-cache fragments.
++// Views returns fully rendered fragments for captured records, including committed
++// receipts. These records have no scoped observation and cannot reuse or admit
++// query-cache fragments.
+ func (s *MessageQueries) Views(ctx context.Context, facts presentation.Facts, records []database.Message) ([]presentation.MessageView, error) {
+ 	prepared := presentation.PrepareMessages(records)
+ 	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+diff --git i/internal/database/database.go w/internal/database/database.go
+index 57d496b..9f4416d 100644
+--- i/internal/database/database.go
++++ w/internal/database/database.go
+@@ -10,6 +10,7 @@ import (
+ 	"net/url"
+ 	"os"
+ 	"path/filepath"
++	"runtime/trace"
+ 	"time"
+ 
+ 	_ "github.com/mattn/go-sqlite3"
+@@ -112,10 +113,14 @@ func (d *DB) Close() error {
+ }
+ func Stamp(t time.Time) string { return t.UTC().Format("2006-01-02 15:04:05.000000") }
+ func (d *DB) Transaction(ctx context.Context, fn func(*sql.Tx) error) error {
++	acquire := trace.StartRegion(ctx, "writer.acquire")
+ 	tx, err := d.Write.BeginTx(ctx, nil)
++	acquire.End()
+ 	if err != nil {
+ 		return err
+ 	}
++	hold := trace.StartRegion(ctx, "writer.hold")
++	defer hold.End()
+ 	defer tx.Rollback()
+ 	if err = fn(tx); err != nil {
+ 		return err
+diff --git i/internal/html/token.go w/internal/html/token.go
+index 6ae18af..284aa8c 100644
+--- i/internal/html/token.go
++++ w/internal/html/token.go
+@@ -1302,9 +1302,18 @@ func NewTokenizer(r io.Reader) *Tokenizer {
+ //
+ // The input is assumed to be UTF-8 encoded.
+ func NewTokenizerFragment(r io.Reader, contextTag string) *Tokenizer {
++	bufferSize := 4096
++	if sized, ok := r.(interface{ Len() int }); ok {
++		if remaining := sized.Len(); remaining >= 0 && remaining < bufferSize {
++			// In-memory message fragments rarely need 4 KiB. Leave one byte
++			// for the EOF probe so an exactly full input does not grow again.
++			// This is only an allocation hint; readByte still grows normally.
++			bufferSize = remaining + 1
++		}
++	}
+ 	z := &Tokenizer{
+ 		r:         r,
+-		buf:       make([]byte, 0, 4096),
++		buf:       make([]byte, 0, bufferSize),
+ 		attrNames: make(map[string]bool),
+ 	}
+ 	if contextTag != "" {
+diff --git i/internal/web/messages.go w/internal/web/messages.go
+index d95129b..bcd23c9 100644
+--- i/internal/web/messages.go
++++ w/internal/web/messages.go
+@@ -234,16 +234,11 @@ func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.
+ 			return
+ 		}
+ 		for _, m := range views {
+-			markup, err := s.Presentation.Markup("message", m)
+-			if err != nil {
+-				s.fail(w, err)
+-				return
+-			}
+ 			target := room.DOM("messages")
+ 			if group.action == "replace" {
+ 				target = "message_" + m.ClientID
+ 			}
+-			result.WriteString(rails.TurboStream(group.action, target, markup))
++			result.WriteString(rails.TurboStream(group.action, target, string(m.Fragment)))
+ 		}
+ 	}
+ 	writeStream(w, result.String())

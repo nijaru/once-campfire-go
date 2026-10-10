@@ -1,0 +1,138 @@
+diff --git c/internal/application/message_publications.go w/internal/application/message_publications.go
+index 9690e38..a8d19b0 100644
+--- c/internal/application/message_publications.go
++++ w/internal/application/message_publications.go
+@@ -27,11 +27,7 @@ func (s *MessagePublications) Created(ctx context.Context, facts presentation.Fa
+ 	if err != nil {
+ 		return "", errors.Join(result.Processing, err)
+ 	}
+-	markup, err := s.Queries.Presentation.Markup("message", views[0])
+-	if err != nil {
+-		return "", errors.Join(result.Processing, err)
+-	}
+-	output := rails.TurboStream("append", commit.Room.DOM("messages"), markup)
++	output := rails.TurboStream("append", commit.Room.DOM("messages"), string(views[0].Fragment))
+ 	s.publish(commit.Room.ID, output)
+ 	return output, result.Processing
+ }
+diff --git c/internal/application/message_queries.go w/internal/application/message_queries.go
+index 4b39d69..6a85584 100644
+--- c/internal/application/message_queries.go
++++ w/internal/application/message_queries.go
+@@ -17,8 +17,9 @@ type MessageQueries struct {
+ 	Content      *ContentQueries
+ }
+ 
+-// Views consumes captured records, including committed receipts. These records
+-// have no scoped observation and cannot reuse or admit query-cache fragments.
++// Views returns fully rendered fragments for captured records, including committed
++// receipts. These records have no scoped observation and cannot reuse or admit
++// query-cache fragments.
+ func (s *MessageQueries) Views(ctx context.Context, facts presentation.Facts, records []database.Message) ([]presentation.MessageView, error) {
+ 	prepared := presentation.PrepareMessages(records)
+ 	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+diff --git c/internal/html/token.go w/internal/html/token.go
+index 6ae18af..284aa8c 100644
+--- c/internal/html/token.go
++++ w/internal/html/token.go
+@@ -1302,9 +1302,18 @@ func NewTokenizer(r io.Reader) *Tokenizer {
+ //
+ // The input is assumed to be UTF-8 encoded.
+ func NewTokenizerFragment(r io.Reader, contextTag string) *Tokenizer {
++	bufferSize := 4096
++	if sized, ok := r.(interface{ Len() int }); ok {
++		if remaining := sized.Len(); remaining >= 0 && remaining < bufferSize {
++			// In-memory message fragments rarely need 4 KiB. Leave one byte
++			// for the EOF probe so an exactly full input does not grow again.
++			// This is only an allocation hint; readByte still grows normally.
++			bufferSize = remaining + 1
++		}
++	}
+ 	z := &Tokenizer{
+ 		r:         r,
+-		buf:       make([]byte, 0, 4096),
++		buf:       make([]byte, 0, bufferSize),
+ 		attrNames: make(map[string]bool),
+ 	}
+ 	if contextTag != "" {
+diff --git c/internal/web/messages.go w/internal/web/messages.go
+index d95129b..bcd23c9 100644
+--- c/internal/web/messages.go
++++ w/internal/web/messages.go
+@@ -234,16 +234,11 @@ func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.
+ 			return
+ 		}
+ 		for _, m := range views {
+-			markup, err := s.Presentation.Markup("message", m)
+-			if err != nil {
+-				s.fail(w, err)
+-				return
+-			}
+ 			target := room.DOM("messages")
+ 			if group.action == "replace" {
+ 				target = "message_" + m.ClientID
+ 			}
+-			result.WriteString(rails.TurboStream(group.action, target, markup))
++			result.WriteString(rails.TurboStream(group.action, target, string(m.Fragment)))
+ 		}
+ 	}
+ 	writeStream(w, result.String())
+diff --git 1/internal/html/token_test.go 2/internal/html/token_test.go
+new file mode 100644
+index 0000000..06d9ba5
+--- /dev/null
++++ 2/internal/html/token_test.go
+@@ -0,0 +1,53 @@
++package html
++
++import (
++	"bytes"
++	"io"
++	"reflect"
++	"strings"
++	"testing"
++)
++
++func tokenizerOutput(z *Tokenizer) ([]Token, error) {
++	var tokens []Token
++	for z.Next() != ErrorToken {
++		tokens = append(tokens, z.Token())
++	}
++	return tokens, z.Err()
++}
++
++func TestTokenizerSizedAndStreamingReadersAgree(t *testing.T) {
++	cases := []struct{ name, body, context string }{
++		{"empty", "", "div"},
++		{"text", "a", "div"},
++		{"markup", `<!-- hi --><a title="a&amp;b" data-x='"'>😀 &lt; &#0;</a>`, "div"},
++		{"raw context", `a<b &amp; c</script>`, "script"},
++		{"malformed", `<p title="unfinished`, "div"},
++	}
++	for _, size := range []int{4095, 4096, 4097} {
++		cases = append(cases, struct{ name, body, context string }{"buffer boundary", strings.Repeat("x", size), "div"})
++	}
++	for _, c := range cases {
++		t.Run(c.name, func(t *testing.T) {
++			want, wantErr := tokenizerOutput(NewTokenizerFragment(io.LimitReader(strings.NewReader(c.body), int64(len(c.body))), c.context))
++			for _, reader := range []io.Reader{strings.NewReader(c.body), bytes.NewReader([]byte(c.body)), bytes.NewBufferString(c.body)} {
++				got, err := tokenizerOutput(NewTokenizerFragment(reader, c.context))
++				if err != wantErr || !reflect.DeepEqual(got, want) {
++					t.Fatalf("%T: tokens or terminal error differ: %v / %v", reader, err, wantErr)
++				}
++			}
++		})
++	}
++}
++
++func TestTokenizerReaderCanGrowAfterConstruction(t *testing.T) {
++	body := `<p title="a&amp;b">` + strings.Repeat("😀&amp;", 1000) + `</p>`
++	var reader bytes.Buffer
++	z := NewTokenizerFragment(&reader, "div")
++	reader.WriteString(body)
++	got, err := tokenizerOutput(z)
++	want, wantErr := tokenizerOutput(NewTokenizerFragment(io.LimitReader(strings.NewReader(body), int64(len(body))), "div"))
++	if err != wantErr || !reflect.DeepEqual(got, want) {
++		t.Fatalf("input growth changed tokens or terminal error: %v / %v", err, wantErr)
++	}
++}

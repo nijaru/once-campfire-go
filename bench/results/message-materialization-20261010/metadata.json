@@ -1,0 +1,1143 @@
+{
+  "trace_archive": {
+    "full_traces": "Retained locally, excluded from Git history due to size. Checksums refer to original uncompressed traces.",
+    "retained": "Raw writer-region records, summary, CPU/sync/syscall/scheduler profiles and complete benchmark populations.",
+    "reproducibility": "Region statistics can be recomputed from retained records. Regenerating blocking profiles requires local full traces.",
+    "sha256": {
+      "go-1.trace": "eeb70937065dd75c1b36dcbfca23b783dfc95b60c30ac0cf09fa2b5f8853dd1e",
+      "go-2.trace": "6076a9712c589dc9613244aa5ed728a4ca165780405bbf2a63834ad67e5d07b6",
+      "go-before-1.trace": "152f07daca4f339471db46f2679be6cc6129d216d56c44a1f408e86075ab68d3",
+      "go-before-2.trace": "95c98f63bc1abc7ebd42988e549ad0d0753683ce500c14c90d57522682d9f645"
+    }
+  },
+  "history_cleanup": {
+    "upstream_base": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+    "equivalent_revisions": {
+      "32a9f0384489783bb9d1a75b375c394f574544b6": "7ba7814beb6fb668d865e6c9345baf8dfe76e4aa",
+      "b301e13a998ec48a62a6d5c2869964b519cdc60e": "7558e5512370ce9717caf0583c3c93a0e41160f1",
+      "b1cad80b2c8906e86a581f52da08970204f524d9": "eea383ff8c04721c53fc947df33a149ecdea20a0",
+      "d202a7fba79e8bf6ac295101538028a2dd8cad26": "433b196836123d7ef30a2ae601dd12fd024b3861"
+    },
+    "final_measured_revision": "f0859925a447cc877d772e3ada2709bf39f2e22d",
+    "final_internal_tree": "40c5bec0b3095d7459ac740f3d59e0de77c49020",
+    "final_source": "Rebased message materialization commit; application source matches the measured pre-rebase revision exactly. Existing binaries and metrics retain their original build identities. Only evidence policy and trace retention changed."
+  },
+  "measured_source": "b1cad80 + candidate.patch",
+  "source_base": "b1cad80b2c8906e86a581f52da08970204f524d9",
+  "provenance_and_hashes": "b1cad80b2c8906e86a581f52da08970204f524d9\ne3a1281d86732ced46adefcf1bc64ce3dd6e2e24fdf71ee6e0ec1909e0e6c130  .cache/pr-ready/go-message-materialization\n41209bdde0df9004b75985e88c7dbe49e59acc0717d450caee4656e15d2d0898  .cache/pr-ready/go-sized-tokenizer\n1072e501325030411a6aad9ed50b3996f298f0cf16e2705ee2bbeb105d1b63d3  .cache/pr-ready/go-materialization-allocation\n9ae9b8cc5c986798ca2839ffd28401cb4847415c5c5f53994f162f15baea962d  .cache/pr-ready/go-trace-candidate\n79041f264abbb8a01ad23cf6e29626dce6414e8f1d3957632bcddba2e464c274  .cache/pr-ready/go-trace-upstream\n93d34d776ca1126b234731dc005c06087a19e9df04703c5c6de93af0b7c9d041  .cache/pr-ready/go-memory-candidate\n89010835476be9f9640f4ff9554e34cfe2c3ee4eafce3438d51af6b3e5aa961e  .cache/pr-ready/go-memory-upstream\nd6c7734b1abeb9c29ddec61763b9dfcb79ce033bc14252e67a2b8c59f87875f6  .cache/pr-ready/go-allocation-candidate\n7bd8fa1005a127ce2e9884f5c6d0541ee61048e0f3ba64294acb6b6a4e9e81d7  .cache/pr-ready/go-allocation-upstream\n16175fda5f738b490798e84de93ec7c153be17717d6244937f347d236a880d11  .cache/pr-ready/message-materialization.patch\n39a06aad36d8a81963b01e46094b50b56333435df333bac5397c0b33166891b7  .cache/pr-ready/sized-tokenizer.patch\n5e8e38c80f111e92b6e997ef97ee97fd996a8f9b50945f3ea10a2080fc118a07  .cache/pr-ready/trace-candidate.patch\ne77c5f800b5c2331f0bd3abf475299d05d137778a587797631c278d0786ba3a5  .cache/pr-ready/trace-upstream.patch\na39337c718e220d85e5346d8d1e00007075022a8a07cc0241c7764ba9a25a59e  .cache/pr-ready/memory-candidate.patch\n8f5049baa1009dad591f4d4aa419de15e05b7cb0902dc0c3636d5b95137cd6ee  .cache/pr-ready/memory-upstream.patch\n1fe7e220beb8d81db440ae89f597c3c9fdb38760f6268301777941a0fcb26081  .cache/pr-ready/allocation-candidate.patch\na1f8e151a0549fe62f873446dbc4d0acbd43ec06cd654751ffb5f45a64a403a4  .cache/pr-ready/allocation-upstream.patch\n49d9f2975ce98e7a4998a46094c542c23cac9b3ff476c181b3e8cac5c175a09f  .cache/pr-ready/materialization-allocation.patch\n[campfire-message-materialization:latest] sha256:665646aec40dbc536c9c08c0f4072b2dbd716fd69f97a4ec40ec8dec669f3b9d\n[campfire-sized-tokenizer:latest] sha256:cd04f9670c5404d5760fd883d0e920d56abc8547350926e629a6b85bc066fc03\n[campfire-materialization-allocation:latest] sha256:ed2c03a3798c885eb64b54b0befccc0191a8e730c73d3f9d4ccf4b212792802d\n[campfire-trace-candidate:latest] sha256:8f2c428f0f610ad261f47ae58ff37f7fc4a684b2f716a30f8702294c8e32104c\n[campfire-trace-upstream:latest] sha256:a6a709c54d190b180174eb28ef5b985eca4c515104f395030e2ae1ec6dbc5daa\n[campfire-memory-candidate:latest] sha256:c36fa8cc0eaebb56c815d9dfba2c692d8faa20bdcb167f9d871296cf8edcd388\n[campfire-memory-upstream:latest] sha256:b46666828269b23a5f9caaeaada843c14646965c43bdd1af930f4a1622b2c2c3\n[campfire-allocation-candidate:latest] sha256:4ed37d1fe5c9da9fa1d7c8fd68f2763703d0c14a30da4e9dddcae8506e91e2a6\n[campfire-allocation-upstream:latest] sha256:6b2742cb06dc8c648178ebce108be2c4bc73c78ac5e560725257946dfe2c7f04\n",
+  "capacity_populations": [
+    "tokenizer-write",
+    "tokenizer-upstream",
+    "materialization-upstream",
+    "materialization-write",
+    "materialization-uncached"
+  ],
+  "diagnostics": [
+    "writer-trace",
+    "memory-100",
+    "memory-200",
+    "allocations",
+    "materialization-allocations"
+  ],
+  "summaries": {
+    "writer-trace": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T02:10:37Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 5,
+        "concurrencies": "16",
+        "rounds": 2,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:a6a709c54d190b180174eb28ef5b985eca4c515104f395030e2ae1ec6dbc5daa",
+          "go": "sha256:8f2c428f0f610ad261f47ae58ff37f7fc4a684b2f716a30f8702294c8e32104c"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "writer-trace-diagnostic-upstream"
+          },
+          "go": {
+            "org.nijaru.experiment": "writer-trace-diagnostic-candidate"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": true
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5160.9,
+            "runs": [
+              5162.4,
+              5159.4
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 4963.4,
+            "runs": [
+              4962.1,
+              4964.7
+            ]
+          }
+        }
+      }
+    },
+    "memory-100": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:01:39Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 5,
+        "concurrencies": "16",
+        "rounds": 2,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:b46666828269b23a5f9caaeaada843c14646965c43bdd1af930f4a1622b2c2c3",
+          "go": "sha256:c36fa8cc0eaebb56c815d9dfba2c692d8faa20bdcb167f9d871296cf8edcd388"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "memory-diagnostic-upstream"
+          },
+          "go": {
+            "org.nijaru.experiment": "memory-diagnostic-candidate"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": true
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5624.450000000001,
+            "runs": [
+              5682.1,
+              5566.8
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5191.95,
+            "runs": [
+              5197,
+              5186.9
+            ]
+          }
+        }
+      }
+    },
+    "memory-200": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:02:23Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 5,
+        "concurrencies": "16",
+        "rounds": 2,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:b46666828269b23a5f9caaeaada843c14646965c43bdd1af930f4a1622b2c2c3",
+          "go": "sha256:c36fa8cc0eaebb56c815d9dfba2c692d8faa20bdcb167f9d871296cf8edcd388"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "memory-diagnostic-upstream"
+          },
+          "go": {
+            "org.nijaru.experiment": "memory-diagnostic-candidate"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": true
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5788,
+            "runs": [
+              5822.2,
+              5753.8
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5830.65,
+            "runs": [
+              5769.3,
+              5892
+            ]
+          }
+        }
+      }
+    },
+    "allocations": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:05:23Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 5,
+        "concurrencies": "16",
+        "rounds": 2,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:6b2742cb06dc8c648178ebce108be2c4bc73c78ac5e560725257946dfe2c7f04",
+          "go": "sha256:4ed37d1fe5c9da9fa1d7c8fd68f2763703d0c14a30da4e9dddcae8506e91e2a6"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "allocation-diagnostic-upstream"
+          },
+          "go": {
+            "org.nijaru.experiment": "allocation-diagnostic-candidate"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": true
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5577.4,
+            "runs": [
+              5615.1,
+              5539.7
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5076.15,
+            "runs": [
+              5047.2,
+              5105.1
+            ]
+          }
+        }
+      }
+    },
+    "tokenizer-write": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:16:44Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 8,
+        "concurrencies": "16",
+        "rounds": 3,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:e532cb9f9945216ecd523880b7137f6aee713ec2df7616cd3450ccb69db95787",
+          "go": "sha256:cd04f9670c5404d5760fd883d0e920d56abc8547350926e629a6b85bc066fc03"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "notification-encoding-uncommitted",
+            "org.opencontainers.image.revision": "d202a7f"
+          },
+          "go": {
+            "org.nijaru.experiment": "sized-tokenizer-uncommitted",
+            "org.opencontainers.image.revision": "b1cad80"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": false
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5131.1,
+            "runs": [
+              5184.4,
+              5065.7,
+              5131.1
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5417.5,
+            "runs": [
+              5417.5,
+              5471.5,
+              5326
+            ]
+          }
+        }
+      }
+    },
+    "tokenizer-upstream": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:18:10Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 8,
+        "concurrencies": "16",
+        "rounds": 3,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:73e6a3658f79a948e257510c5fe303e77f0e3566b0aace0b5eb5d4e3cddd0964",
+          "go": "sha256:cd04f9670c5404d5760fd883d0e920d56abc8547350926e629a6b85bc066fc03",
+          "rust": "sha256:1afcb60e60c5ee9a4431d11429ea29b177557a01ab409023ea14c6b7b189a97f"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "pr-readiness-20261010",
+            "org.opencontainers.image.revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437"
+          },
+          "go": {
+            "org.nijaru.experiment": "sized-tokenizer-uncommitted",
+            "org.opencontainers.image.revision": "b1cad80"
+          },
+          "rust": {
+            "org.opencontainers.image.revision": "9872c1d9541551c0889a60e3d49a14488bd1e403"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": false
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          },
+          "rust": {
+            "head": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+            "dirty": false
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "rust": {
+            "processes": 1,
+            "readers": "4",
+            "job_workers": "3",
+            "cable": "native tokio",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go",
+          "rust": "rust"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5637.8,
+            "runs": [
+              5675.4,
+              5619.6,
+              5637.8
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5391.1,
+            "runs": [
+              5447.3,
+              5391.1,
+              5257.8
+            ]
+          }
+        },
+        "rust": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 6014.6,
+            "runs": [
+              6091.7,
+              5962.9,
+              6014.6
+            ]
+          }
+        }
+      }
+    },
+    "materialization-upstream": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:26:33Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 8,
+        "concurrencies": "16",
+        "rounds": 3,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:73e6a3658f79a948e257510c5fe303e77f0e3566b0aace0b5eb5d4e3cddd0964",
+          "go": "sha256:665646aec40dbc536c9c08c0f4072b2dbd716fd69f97a4ec40ec8dec669f3b9d",
+          "rust": "sha256:1afcb60e60c5ee9a4431d11429ea29b177557a01ab409023ea14c6b7b189a97f"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "pr-readiness-20261010",
+            "org.opencontainers.image.revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437"
+          },
+          "go": {
+            "org.nijaru.experiment": "message-materialization-uncommitted"
+          },
+          "rust": {
+            "org.opencontainers.image.revision": "9872c1d9541551c0889a60e3d49a14488bd1e403"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": false
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          },
+          "rust": {
+            "head": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+            "dirty": false
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "rust": {
+            "processes": 1,
+            "readers": "4",
+            "job_workers": "3",
+            "cable": "native tokio",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go",
+          "rust": "rust"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5723.2,
+            "runs": [
+              5769.9,
+              5723.2,
+              5602.3
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5618,
+            "runs": [
+              5618,
+              5586.6,
+              5698.9
+            ]
+          }
+        },
+        "rust": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5993.3,
+            "runs": [
+              5993.3,
+              5975.6,
+              5998.8
+            ]
+          }
+        }
+      }
+    },
+    "materialization-write": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:39:38Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 8,
+        "concurrencies": "16",
+        "rounds": 3,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:e532cb9f9945216ecd523880b7137f6aee713ec2df7616cd3450ccb69db95787",
+          "go": "sha256:665646aec40dbc536c9c08c0f4072b2dbd716fd69f97a4ec40ec8dec669f3b9d"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "notification-encoding-uncommitted",
+            "org.opencontainers.image.revision": "d202a7f"
+          },
+          "go": {
+            "org.nijaru.experiment": "message-materialization-uncommitted"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": false
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5210.1,
+            "runs": [
+              5113.4,
+              5210.1,
+              5247.5
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5589.7,
+            "runs": [
+              5528.9,
+              5589.7,
+              5689.1
+            ]
+          }
+        }
+      }
+    },
+    "materialization-uncached": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:41:04Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 8,
+        "concurrencies": "16",
+        "rounds": 3,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "room_show,messages_page,search",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:e532cb9f9945216ecd523880b7137f6aee713ec2df7616cd3450ccb69db95787",
+          "go": "sha256:665646aec40dbc536c9c08c0f4072b2dbd716fd69f97a4ec40ec8dec669f3b9d"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "notification-encoding-uncommitted",
+            "org.opencontainers.image.revision": "d202a7f"
+          },
+          "go": {
+            "org.nijaru.experiment": "message-materialization-uncommitted"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": false
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "0"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "0"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": {
+            "median_rps": 942,
+            "runs": [
+              934,
+              949.9,
+              942
+            ]
+          },
+          "messages_page": {
+            "median_rps": 1061.1,
+            "runs": [
+              1056.9,
+              1061.1,
+              1087.8
+            ]
+          },
+          "sidebar": null,
+          "search": {
+            "median_rps": 2034.3,
+            "runs": [
+              2095.5,
+              2025.7,
+              2034.3
+            ]
+          },
+          "post_message": null
+        },
+        "go": {
+          "room_show": {
+            "median_rps": 1216.2,
+            "runs": [
+              1242.5,
+              1216.2,
+              1207.5
+            ]
+          },
+          "messages_page": {
+            "median_rps": 1499.5,
+            "runs": [
+              1535.3,
+              1490,
+              1499.5
+            ]
+          },
+          "sidebar": null,
+          "search": {
+            "median_rps": 2549.5,
+            "runs": [
+              2549.5,
+              2582.7,
+              2516.6
+            ]
+          },
+          "post_message": null
+        }
+      }
+    },
+    "materialization-allocations": {
+      "metadata": {
+        "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+        "response_validation": "route-contract-v1",
+        "started_at": "2026-10-10T03:44:28Z",
+        "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+        "server_cpus": "0-3",
+        "client_cpus": "4-7",
+        "network": "host",
+        "gzip": true,
+        "duration": 5,
+        "concurrencies": "16",
+        "rounds": 2,
+        "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+        "routes": "post_message",
+        "profile": "read-and-post-v1",
+        "mixed_writer": null,
+        "images": {
+          "go-before": "sha256:6b2742cb06dc8c648178ebce108be2c4bc73c78ac5e560725257946dfe2c7f04",
+          "go": "sha256:ed2c03a3798c885eb64b54b0befccc0191a8e730c73d3f9d4ccf4b212792802d"
+        },
+        "image_labels": {
+          "go-before": {
+            "org.nijaru.experiment": "allocation-diagnostic-upstream"
+          },
+          "go": {
+            "org.nijaru.experiment": "materialization-allocation-uncommitted"
+          }
+        },
+        "source_revisions": {
+          "go-before": {
+            "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+            "dirty": true
+          },
+          "go": {
+            "head": "b1cad80b2c8906e86a581f52da08970204f524d9",
+            "dirty": true
+          }
+        },
+        "preflight_only": false,
+        "topology": {
+          "go-before": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          },
+          "go": {
+            "processes": 1,
+            "cable": "native websocket",
+            "jobs": "in-process",
+            "response_cache_mb": "64"
+          }
+        },
+        "runtimes": {
+          "go-before": "go",
+          "go": "go"
+        },
+        "complete": true
+      },
+      "results": {
+        "go-before": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5619.25,
+            "runs": [
+              5658.7,
+              5579.8
+            ]
+          }
+        },
+        "go": {
+          "room_show": null,
+          "messages_page": null,
+          "sidebar": null,
+          "search": null,
+          "post_message": {
+            "median_rps": 5615,
+            "runs": [
+              5500.2,
+              5729.8
+            ]
+          }
+        }
+      }
+    }
+  },
+  "regions": {
+    "go-1.regions": {
+      "writer.acquire": {
+        "n": 34877,
+        "total_seconds": 63.051603335,
+        "mean_us": 1807.8276037216503,
+        "p50_us": 884.864,
+        "p90_us": 4889.6,
+        "p99_us": 10849.472,
+        "max_us": 27528.704
+      },
+      "writer.hold": {
+        "n": 34877,
+        "total_seconds": 2.407430799,
+        "mean_us": 69.02631530808269,
+        "p50_us": 52.736,
+        "p90_us": 86.464,
+        "p99_us": 214.336,
+        "max_us": 5932.865
+      },
+      "unclosed": 0,
+      "unmatched": 0
+    },
+    "go-2.regions": {
+      "writer.acquire": {
+        "n": 34830,
+        "total_seconds": 63.448020572,
+        "mean_us": 1821.6485952339938,
+        "p50_us": 879.999,
+        "p90_us": 4931.136,
+        "p99_us": 11004.287,
+        "max_us": 22310.592
+      },
+      "writer.hold": {
+        "n": 34830,
+        "total_seconds": 2.383724875,
+        "mean_us": 68.43884223370658,
+        "p50_us": 52.992,
+        "p90_us": 86.272,
+        "p99_us": 198.784,
+        "max_us": 5781.76
+      },
+      "unclosed": 0,
+      "unmatched": 0
+    },
+    "go-before-1.regions": {
+      "writer.acquire": {
+        "n": 35924,
+        "total_seconds": 64.47083426,
+        "mean_us": 1794.645202650039,
+        "p50_us": 911.104,
+        "p90_us": 4700.544,
+        "p99_us": 10576.832,
+        "max_us": 25857.919
+      },
+      "writer.hold": {
+        "n": 35924,
+        "total_seconds": 2.495516433,
+        "mean_us": 69.46655252755818,
+        "p50_us": 59.392,
+        "p90_us": 92.608,
+        "p99_us": 169.984,
+        "max_us": 10189.44
+      },
+      "unclosed": 0,
+      "unmatched": 0
+    },
+    "go-before-2.regions": {
+      "writer.acquire": {
+        "n": 35710,
+        "total_seconds": 64.714541308,
+        "mean_us": 1812.2246235788296,
+        "p50_us": 927.105,
+        "p90_us": 4729.28,
+        "p99_us": 10383.743,
+        "max_us": 29426.304
+      },
+      "writer.hold": {
+        "n": 35710,
+        "total_seconds": 2.437657756,
+        "mean_us": 68.26260868104173,
+        "p50_us": 57.856,
+        "p90_us": 90.624,
+        "p99_us": 172.096,
+        "max_us": 7149.12
+      },
+      "unclosed": 0,
+      "unmatched": 0
+    }
+  },
+  "capacity_counts": {
+    "timed_responses": 1561371,
+    "audited_writes": 1658733,
+    "errors": 0,
+    "invalid": 0
+  },
+  "gc_policy": "All capacity uses GOGC=100. GOGC=200 is a separate diagnostic only; no default or memory limit changed.",
+  "writer_regions": "Acquisition includes pool waiting and BEGIN; hold includes body and commit/rollback. Counts exactly equal persisted acknowledgments. Trace overhead perturbs scheduling; not capacity.",
+  "analysis_overhead": "Trace collection 44.9 seconds. Offline sync/syscall/sched/parsed decoding 2502.7 seconds; unrelated to benchmark wall time.",
+  "memory_policy": "Before/after Go MemStats include startup, warmup and shutdown; ratios divided by all audited writes. End-of-run HeapInuse is neither peak RSS nor a total resource bound.",
+  "escaping_and_security": "No schema/cookie/frontend/authorization/provider selection change. Presentation owns complete fragments. All public/shared response/write/FTS checks pass.",
+  "limitations": "Shared ARM64 OrbStack/macOS host and guest affinity, tmpfs not NVMe/crash durability, one viewer. Push loopback rewrite bypasses Go provider encryption/network. Three-build candidate remains middle. Exact-byte gzip memo remains in no-response/no-fragment-cache population. Small upstream POST gap, matched-rate latency, distinct-user Cable and aggregate resource validation remain."
+}

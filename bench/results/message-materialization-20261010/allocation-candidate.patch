@@ -1,0 +1,89 @@
+diff --git i/cmd/campfire/main.go w/cmd/campfire/main.go
+index b1b1238..c597fa9 100644
+--- i/cmd/campfire/main.go
++++ w/cmd/campfire/main.go
+@@ -2,12 +2,15 @@ package main
+ 
+ import (
+ 	"context"
++	"encoding/json"
+ 	"fmt"
+ 	"log/slog"
+ 	"os"
+ 	"os/signal"
+ 	"path/filepath"
++	"runtime"
+ 	"runtime/pprof"
++	"runtime/trace"
+ 	"syscall"
+ 	"time"
+ 
+@@ -29,6 +32,41 @@ func main() {
+ 	}
+ }
+ func run() error {
++	if path := os.Getenv("GO_MEMORY_STATS"); path != "" {
++		var before runtime.MemStats
++		runtime.ReadMemStats(&before)
++		defer func() {
++			var after runtime.MemStats
++			runtime.ReadMemStats(&after)
++			file, err := os.Create(path)
++			if err != nil {
++				slog.Error("memory diagnostic", "error", err)
++				return
++			}
++			defer file.Close()
++			json.NewEncoder(file).Encode(struct{ Before, After runtime.MemStats }{before, after})
++			if allocationPath := os.Getenv("GO_ALLOCATION_PROFILE"); allocationPath != "" {
++				allocationFile, err := os.Create(allocationPath)
++				if err != nil {
++					slog.Error("allocation diagnostic", "error", err)
++					return
++				}
++				defer allocationFile.Close()
++				pprof.Lookup("allocs").WriteTo(allocationFile, 0)
++			}
++		}()
++	}
++	if path := os.Getenv("GO_EXECUTION_TRACE"); path != "" {
++		file, err := os.Create(path)
++		if err != nil {
++			return err
++		}
++		defer file.Close()
++		if err := trace.Start(file); err != nil {
++			return err
++		}
++		defer trace.Stop()
++	}
+ 	if path := os.Getenv("GO_CPU_PROFILE"); path != "" {
+ 		file, err := os.Create(path)
+ 		if err != nil {
+diff --git i/internal/database/database.go w/internal/database/database.go
+index 57d496b..9f4416d 100644
+--- i/internal/database/database.go
++++ w/internal/database/database.go
+@@ -10,6 +10,7 @@ import (
+ 	"net/url"
+ 	"os"
+ 	"path/filepath"
++	"runtime/trace"
+ 	"time"
+ 
+ 	_ "github.com/mattn/go-sqlite3"
+@@ -112,10 +113,14 @@ func (d *DB) Close() error {
+ }
+ func Stamp(t time.Time) string { return t.UTC().Format("2006-01-02 15:04:05.000000") }
+ func (d *DB) Transaction(ctx context.Context, fn func(*sql.Tx) error) error {
++	acquire := trace.StartRegion(ctx, "writer.acquire")
+ 	tx, err := d.Write.BeginTx(ctx, nil)
++	acquire.End()
+ 	if err != nil {
+ 		return err
+ 	}
++	hold := trace.StartRegion(ctx, "writer.hold")
++	defer hold.End()
+ 	defer tx.Rollback()
+ 	if err = fn(tx); err != nil {
+ 		return err

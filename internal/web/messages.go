@@ -234,16 +234,11 @@ func (s *Server) refreshRoom(w http.ResponseWriter, r *http.Request, u database.
 			return
 		}
 		for _, m := range views {
-			markup, err := s.Presentation.Markup("message", m)
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
 			target := room.DOM("messages")
 			if group.action == "replace" {
 				target = "message_" + m.ClientID
 			}
-			result.WriteString(rails.TurboStream(group.action, target, markup))
+			result.WriteString(rails.TurboStream(group.action, target, string(m.Fragment)))
 		}
 	}
 	writeStream(w, result.String())
