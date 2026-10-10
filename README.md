@@ -222,6 +222,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
   coder/websocket v1.8.15 (see `third_party/websocket/README.campfire`). Outgoing queues hold 256
   frames; slow clients are disconnected. Authorization is checked afresh for each publication,
   batching distinct sessions per room. Rust uses different stream queues.
+- Presence refreshes from an absent subscription are ignored; they cannot claim or later
+  decrement another tab's presence. Unsubscribe retains its presence contribution until the
+  decrement commits; interrupted writes retain the bounded disconnect-cleanup retry.
 - Go ignores typing commands for rooms that have been deleted; Rust can still echo them to an
   already subscribed socket. The composer shows the same deleted-room message.
 - Empty involvement updates preserve SQL NULL, as in the reference. Go reads that nullable value

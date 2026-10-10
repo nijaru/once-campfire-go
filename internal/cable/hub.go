@@ -250,14 +250,21 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 			}
 			c.send(map[string]string{"type": "reject_subscription", "identifier": command.Identifier})
 		case "unsubscribe":
+			h.mu.RLock()
+			sub, exists := c.subscriptions[command.Identifier]
+			h.mu.RUnlock()
+			if !exists {
+				continue
+			}
+			// Keep presence owned until its decrement commits. On failure,
+			// disconnect cleanup retains the cancellation-independent retry.
+			if sub.Present && h.db.Presence(ctx, c.user.ID, sub.Room, "absent") != nil {
+				return
+			}
 			h.mu.Lock()
-			sub := c.subscriptions[command.Identifier]
-			h.unindex(sub)
+			h.unindex(c.subscriptions[command.Identifier])
 			delete(c.subscriptions, command.Identifier)
 			h.mu.Unlock()
-			if sub.Present {
-				h.db.Presence(ctx, c.user.ID, sub.Room, "absent")
-			}
 		case "message":
 			h.mu.RLock()
 			sub, exists := c.subscriptions[command.Identifier]
@@ -290,7 +297,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 				if action == "present" && sub.Present {
 					action = "refresh"
 				}
-				if action == "absent" && !sub.Present {
+				if (action == "absent" || action == "refresh") && !sub.Present {
 					continue
 				}
 				if h.db.Presence(ctx, c.user.ID, sub.Room, action) == nil {
