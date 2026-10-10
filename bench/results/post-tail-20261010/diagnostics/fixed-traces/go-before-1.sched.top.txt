@@ -1,0 +1,58 @@
+Type: delay
+Showing nodes accounting for 4288133.87us, 87.73% of 4887963.27us total
+Dropped 603 nodes (cum <= 24439.82us)
+      flat  flat%   sum%        cum   cum%
+3342109.20us 68.37% 68.37% 3342109.20us 68.37%  runtime.selectnbsend
+406428.63us  8.31% 76.69% 406428.63us  8.31%  runtime.chansend1
+259792.18us  5.31% 82.00% 262516.15us  5.37%  context.(*cancelCtx).cancel
+154324.30us  3.16% 85.16% 154324.30us  3.16%  runtime.systemstack_switch
+100040.32us  2.05% 87.21% 101960.84us  2.09%  sync.(*Mutex).Unlock
+20979.20us  0.43% 87.64% 49122.76us  1.00%  runtime.gcMarkDone
+ 1364.41us 0.028% 87.67% 36598.25us  0.75%  database/sql.(*Stmt).QueryContext
+ 1183.68us 0.024% 87.69% 25382.47us  0.52%  runtime.gcStart
+  893.82us 0.018% 87.71% 187444.42us  3.83%  database/sql.(*Rows).close
+  685.25us 0.014% 87.72% 172673.68us  3.53%  database/sql.(*Row).Scan
+  217.54us 0.0045% 87.73% 3345266.45us 68.44%  github.com/basecamp/once-campfire-go/internal/jobs.(*Runner).Enqueue
+   71.30us 0.0015% 87.73% 32440.58us  0.66%  runtime.mallocgc
+   29.12us 0.0006% 87.73% 531225.93us 10.87%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Transaction
+    9.47us 0.00019% 87.73% 260832.11us  5.34%  context.WithCancel.func1
+    5.12us 0.0001% 87.73% 35113.20us  0.72%  database/sql.(*DB).retry
+    0.32us 6.5e-06% 87.73% 36282.61us  0.74%  database/sql.withLock
+         0     0% 87.73% 413319.62us  8.46%  database/sql.(*DB).putConn
+         0     0% 87.73% 406394.07us  8.31%  database/sql.(*DB).putConnDBLocked
+         0     0% 87.73% 187219.59us  3.83%  database/sql.(*Rows).Close
+         0     0% 87.73% 85203.31us  1.74%  database/sql.(*Rows).Next
+         0     0% 87.73% 22766.27us  0.47%  database/sql.(*Rows).Next.func1
+         0     0% 87.73% 34941.68us  0.71%  database/sql.(*Stmt).QueryContext.func1
+         0     0% 87.73% 31676.14us  0.65%  database/sql.(*Stmt).QueryRowContext
+         0     0% 87.73% 522995.14us 10.70%  database/sql.(*Tx).Commit
+         0     0% 87.73% 401951.54us  8.22%  database/sql.(*Tx).close
+         0     0% 87.73% 413319.62us  8.46%  database/sql.(*driverConn).releaseConn
+         0     0% 87.73% 531225.93us 10.87%  github.com/basecamp/once-campfire-go/internal/database.(*DB).CreateMessageWithUpload
+         0     0% 87.73% 75546.80us  1.55%  github.com/basecamp/once-campfire-go/internal/database.(*DB).ResponseVersion
+         0     0% 87.73% 22411.38us  0.46%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Room
+         0     0% 87.73% 27505.19us  0.56%  github.com/basecamp/once-campfire-go/internal/database.(*DB).UnreadCount
+         0     0% 87.73% 531225.93us 10.87%  github.com/basecamp/once-campfire-go/internal/database.(*DB).createMessage
+         0     0% 87.73% 31676.14us  0.65%  github.com/basecamp/once-campfire-go/internal/database.(*readPool).QueryRowContext
+         0     0% 87.73% 22963.11us  0.47%  github.com/basecamp/once-campfire-go/internal/database.userRow
+         0     0% 87.73% 4201775.37us 85.96%  github.com/basecamp/once-campfire-go/internal/front.(*Cache).Handler.func1
+         0     0% 87.73% 4201775.37us 85.96%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+         0     0% 87.73% 4201775.37us 85.96%  github.com/basecamp/once-campfire-go/internal/front.PublicCompression.func1
+         0     0% 87.73% 4218747.56us 86.31%  github.com/basecamp/once-campfire-go/internal/front.forward.func1
+         0     0% 87.73% 29026.17us  0.59%  github.com/basecamp/once-campfire-go/internal/storage.(*Store).Attached
+         0     0% 87.73% 4195723.28us 85.84%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+         0     0% 87.73% 4092683.97us 83.73%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+         0     0% 87.73% 75546.80us  1.55%  github.com/basecamp/once-campfire-go/internal/web.(*Server).beginResponseCache
+         0     0% 87.73% 4061484.83us 83.09%  github.com/basecamp/once-campfire-go/internal/web.(*Server).createMessage
+         0     0% 87.73% 75547.25us  1.55%  github.com/basecamp/once-campfire-go/internal/web.(*Server).hydrateMessageViews
+         0     0% 87.73% 22391.74us  0.46%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageAttachment
+         0     0% 87.73% 3417434.99us 69.92%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageCreated
+         0     0% 87.73% 74669.81us  1.53%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageViews
+         0     0% 87.73% 4093132.61us 83.74%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+         0     0% 87.73% 533569.93us 10.92%  github.com/basecamp/once-campfire-go/internal/web.(*Server).saveNewMessage
+         0     0% 87.73% 4093063.68us 83.74%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+         0     0% 87.73% 4237739.82us 86.70%  net/http.(*conn).serve
+         0     0% 87.73% 4218747.56us 86.31%  net/http.HandlerFunc.ServeHTTP
+         0     0% 87.73% 4218747.56us 86.31%  net/http.serverHandler.ServeHTTP
+         0     0% 87.73% 149308.10us  3.05%  runtime.gcBgMarkWorker
+         0     0% 87.73% 28096.90us  0.57%  runtime.gcMarkTermination

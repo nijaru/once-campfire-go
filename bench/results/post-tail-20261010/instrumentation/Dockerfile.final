@@ -1,0 +1,6 @@
+FROM campfire-compare-toolchain
+LABEL org.opencontainers.image.revision="5ca5d3d43b89dbb674d588a00c78cad0561ee162" org.nijaru.experiment="post-tail-20261010"
+COPY post-tail-20261010/go-at-5ca /rails/bin/campfire
+WORKDIR /rails
+ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+CMD ["/rails/bin/campfire", "server"]

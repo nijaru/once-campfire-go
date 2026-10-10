@@ -1,0 +1,295 @@
+File: campfire
+Build ID: cb5d6eb4f48df13b4eeb8fd10045972e2fffa24b
+Type: cpu
+Time: 2026-10-10 03:39:53 PDT
+Duration: 14.74s, Total samples = 10.15s (68.84%)
+Showing nodes accounting for 7.19s, 70.84% of 10.15s total
+Dropped 637 nodes (cum <= 0.05s)
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      8.42s 82.96%  net/http.(*conn).serve
+         0     0%     0%      7.96s 78.42%  github.com/basecamp/once-campfire-go/internal/front.forward.func1
+         0     0%     0%      7.96s 78.42%  net/http.HandlerFunc.ServeHTTP
+         0     0%     0%      7.96s 78.42%  net/http.serverHandler.ServeHTTP
+         0     0%     0%      7.79s 76.75%  github.com/basecamp/once-campfire-go/internal/front.(*Cache).Handler.func1
+         0     0%     0%      7.79s 76.75%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+         0     0%     0%      7.79s 76.75%  github.com/basecamp/once-campfire-go/internal/front.PublicCompression.func1
+         0     0%     0%      6.50s 64.04%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+         0     0%     0%      5.88s 57.93%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+         0     0%     0%      5.86s 57.73%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+         0     0%     0%      5.59s 55.07%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+         0     0%     0%      5.28s 52.02%  github.com/basecamp/once-campfire-go/internal/web.(*Server).createMessage
+     3.01s 29.66% 29.66%      3.14s 30.94%  runtime.cgocall
+         0     0% 29.66%      1.75s 17.24%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageCreated
+         0     0% 29.66%      1.73s 17.04%  database/sql.withLock
+         0     0% 29.66%      1.55s 15.27%  github.com/basecamp/once-campfire-go/internal/web.(*Server).saveNewMessage
+         0     0% 29.66%      1.52s 14.98%  database/sql.(*Row).Scan
+         0     0% 29.66%      1.49s 14.68%  github.com/basecamp/once-campfire-go/internal/database.(*DB).CreateMessageWithUpload (inline)
+         0     0% 29.66%      1.49s 14.68%  github.com/basecamp/once-campfire-go/internal/database.(*DB).createMessage
+     0.02s   0.2% 29.85%      1.48s 14.58%  database/sql.(*Rows).Next
+         0     0% 29.85%      1.48s 14.58%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Transaction
+         0     0% 29.85%      1.38s 13.60%  database/sql.(*Rows).Next.func1
+         0     0% 29.85%      1.38s 13.60%  database/sql.(*Rows).nextLocked
+     0.03s   0.3% 30.15%      1.34s 13.20%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.01s 0.099% 30.25%      1.30s 12.81%  github.com/basecamp/once-campfire-go/internal/web.(*Server).hydrateMessageViews
+         0     0% 30.25%      1.30s 12.81%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageViews
+     0.01s 0.099% 30.34%      1.29s 12.71%  compress/gzip.(*Writer).Close
+         0     0% 30.34%      1.28s 12.61%  compress/flate.(*Writer).Close (inline)
+         0     0% 30.34%      1.28s 12.61%  compress/flate.(*compressor).close
+         0     0% 30.34%      1.28s 12.61%  compress/flate.(*compressor).deflateFast
+     0.02s   0.2% 30.54%      1.17s 11.53%  github.com/mattn/go-sqlite3.(*SQLiteConn).exec
+         0     0% 30.54%      1.12s 11.03%  database/sql.(*Tx).Commit
+         0     0% 30.54%      1.10s 10.84%  database/sql.(*Tx).Commit.func1
+         0     0% 30.54%      1.10s 10.84%  github.com/mattn/go-sqlite3.(*SQLiteConn).execNoArgs
+         0     0% 30.54%      1.10s 10.84%  github.com/mattn/go-sqlite3.(*SQLiteTx).Commit
+         0     0% 30.54%      1.09s 10.74%  github.com/mattn/go-sqlite3.(*SQLiteConn).execNoArgs.func1 (inline)
+         0     0% 30.54%      1.09s 10.74%  github.com/mattn/go-sqlite3._Cfunc__sqlite3_exec_no_args
+         0     0% 30.54%      1.06s 10.44%  github.com/mattn/go-sqlite3.(*SQLiteRows).stepCancellableLocked
+         0     0% 30.54%      1.05s 10.34%  github.com/mattn/go-sqlite3.(*SQLiteRows).stepCancellableLocked.func1 (inline)
+         0     0% 30.54%      1.05s 10.34%  github.com/mattn/go-sqlite3._Cfunc__sqlite3_step_internal
+         0     0% 30.54%      0.76s  7.49%  runtime.systemstack
+     0.21s  2.07% 32.61%      0.75s  7.39%  compress/flate.(*fastEncL6).encode
+     0.02s   0.2% 32.81%      0.61s  6.01%  database/sql.(*Rows).close
+     0.08s  0.79% 33.60%      0.60s  5.91%  runtime.mallocgc
+         0     0% 33.60%      0.56s  5.52%  github.com/basecamp/once-campfire-go/internal/web.notificationJSON
+         0     0% 33.60%      0.55s  5.42%  database/sql.(*DB).retry
+         0     0% 33.60%      0.55s  5.42%  database/sql.(*Rows).Close
+         0     0% 33.60%      0.54s  5.32%  database/sql.(*Stmt).QueryContext
+         0     0% 33.60%      0.53s  5.22%  compress/flate.(*huffmanBitWriter).writeBlockDynamic
+         0     0% 33.60%      0.52s  5.12%  database/sql.(*Stmt).QueryContext.func1
+         0     0% 33.60%      0.49s  4.83%  github.com/mattn/go-sqlite3.(*SQLiteStmt).exec.func1
+         0     0% 33.60%      0.48s  4.73%  github.com/mattn/go-sqlite3.(*SQLiteStmt).execSync
+         0     0% 33.60%      0.45s  4.43%  github.com/basecamp/once-campfire-go/internal/rails.CanonicalJSON
+     0.01s 0.099% 33.69%      0.41s  4.04%  github.com/basecamp/once-campfire-go/internal/rails.CanonicalJSON.func1
+         0     0% 33.69%      0.41s  4.04%  github.com/mattn/go-sqlite3.(*SQLiteStmt).execSync.func2 (inline)
+         0     0% 33.69%      0.41s  4.04%  github.com/mattn/go-sqlite3._Cfunc__sqlite3_step_row_internal
+     0.01s 0.099% 33.79%      0.40s  3.94%  database/sql.(*Stmt).QueryRowContext
+         0     0% 33.79%      0.40s  3.94%  github.com/basecamp/once-campfire-go/internal/database.(*readPool).QueryRowContext
+     0.40s  3.94% 37.73%      0.40s  3.94%  internal/runtime/syscall/linux.Syscall6
+         0     0% 37.73%      0.40s  3.94%  runtime.gcBgMarkWorker
+         0     0% 37.73%      0.39s  3.84%  github.com/basecamp/once-campfire-go/internal/storage.(*Store).Attached
+     0.01s 0.099% 37.83%      0.38s  3.74%  compress/flate.(*huffmanEncoder).generate
+         0     0% 37.83%      0.38s  3.74%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 37.83%      0.38s  3.74%  runtime.gcBgMarkWorker.func2
+         0     0% 37.83%      0.38s  3.74%  runtime.gcDrain
+     0.01s 0.099% 37.93%      0.38s  3.74%  syscall.Syscall
+         0     0% 37.93%      0.37s  3.65%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Room
+         0     0% 37.93%      0.36s  3.55%  compress/flate.(*huffmanBitWriter).generate
+     0.01s 0.099% 38.03%      0.36s  3.55%  database/sql.(*Rows).close.func1
+         0     0% 38.03%      0.36s  3.55%  github.com/basecamp/once-campfire-go/internal/database.(*DB).PushRecipients
+         0     0% 38.03%      0.36s  3.55%  net/http.(*response).finishRequest
+         0     0% 38.03%      0.36s  3.55%  syscall.RawSyscall6
+         0     0% 38.03%      0.35s  3.45%  bufio.(*Writer).Flush
+         0     0% 38.03%      0.35s  3.45%  github.com/basecamp/once-campfire-go/internal/database.(*DB).UnreadCount
+         0     0% 38.03%      0.35s  3.45%  github.com/basecamp/once-campfire-go/internal/database.(*DB).pushQuery
+     0.02s   0.2% 38.23%      0.35s  3.45%  github.com/mattn/go-sqlite3.(*SQLiteRows).Close
+         0     0% 38.23%      0.35s  3.45%  internal/poll.(*FD).Write
+         0     0% 38.23%      0.35s  3.45%  syscall.Write (inline)
+         0     0% 38.23%      0.35s  3.45%  syscall.write
+         0     0% 38.23%      0.34s  3.35%  runtime.gcDrainMarkWorkerDedicated (inline)
+         0     0% 38.23%      0.33s  3.25%  github.com/basecamp/once-campfire-go/internal/database.(*DB).createMessage.func1
+     0.01s 0.099% 38.33%      0.31s  3.05%  github.com/basecamp/once-campfire-go/internal/storage.scanBlob
+         0     0% 38.33%      0.30s  2.96%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP.func1
+         0     0% 38.33%      0.30s  2.96%  github.com/basecamp/once-campfire-go/internal/web.(*responseBuffer).finish
+     0.29s  2.86% 41.18%      0.29s  2.86%  compress/flate.loadLE64[go.shape.int32] (inline)
+     0.01s 0.099% 41.28%      0.29s  2.86%  encoding/json.(*Encoder).Encode
+         0     0% 41.28%      0.27s  2.66%  github.com/basecamp/once-campfire-go/internal/database.(*DB).FindRoom
+         0     0% 41.28%      0.27s  2.66%  runtime.mcall
+     0.03s   0.3% 41.58%      0.26s  2.56%  github.com/basecamp/once-campfire-go/internal/rails.jsonString
+         0     0% 41.58%      0.25s  2.46%  github.com/basecamp/once-campfire-go/internal/database.userRow
+     0.03s   0.3% 41.87%      0.25s  2.46%  github.com/mattn/go-sqlite3.(*SQLiteStmt).query
+         0     0% 41.87%      0.25s  2.46%  net.(*conn).Write
+         0     0% 41.87%      0.25s  2.46%  net.(*netFD).Write
+         0     0% 41.87%      0.25s  2.46%  net/http.checkConnErrorWriter.Write
+     0.03s   0.3% 42.17%      0.25s  2.46%  runtime.scanSpan
+     0.24s  2.36% 44.53%      0.24s  2.36%  compress/flate.(*huffmanEncoder).bitCounts
+         0     0% 44.53%      0.24s  2.36%  github.com/basecamp/once-campfire-go/internal/web.(*Server).browserCheck.func1
+     0.24s  2.36% 46.90%      0.24s  2.36%  runtime.memmove
+         0     0% 46.90%      0.24s  2.36%  runtime.schedule
+     0.02s   0.2% 47.09%      0.23s  2.27%  database/sql.rowsiFromStatement
+         0     0% 47.09%      0.23s  2.27%  github.com/basecamp/once-campfire-go/internal/web.(*Server).login
+         0     0% 47.09%      0.23s  2.27%  golang.org/x/crypto/bcrypt.CompareHashAndPassword
+         0     0% 47.09%      0.23s  2.27%  golang.org/x/crypto/bcrypt.bcrypt
+         0     0% 47.09%      0.23s  2.27%  golang.org/x/crypto/bcrypt.expensiveBlowfishSetup
+         0     0% 47.09%      0.23s  2.27%  golang.org/x/crypto/blowfish.ExpandKey
+     0.23s  2.27% 49.36%      0.23s  2.27%  golang.org/x/crypto/blowfish.encryptBlock
+         0     0% 49.36%      0.22s  2.17%  github.com/basecamp/once-campfire-go/internal/database.(*DB).RoomMemberIDs
+         0     0% 49.36%      0.22s  2.17%  github.com/mattn/go-sqlite3.(*SQLiteRows).Close.func3 (inline)
+         0     0% 49.36%      0.22s  2.17%  github.com/mattn/go-sqlite3._Cfunc_sqlite3_reset
+         0     0% 49.36%      0.22s  2.17%  runtime.makeslice
+         0     0% 49.36%      0.21s  2.07%  database/sql.(*DB).queryDC
+     0.01s 0.099% 49.46%      0.21s  2.07%  github.com/basecamp/once-campfire-go/internal/html.ParseFragmentWithOptions
+         0     0% 49.46%      0.21s  2.07%  github.com/basecamp/once-campfire-go/internal/richtext.parse (inline)
+         0     0% 49.46%      0.21s  2.07%  github.com/basecamp/once-campfire-go/internal/richtext.parseIn
+         0     0% 49.46%      0.21s  2.07%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageAttachment
+     0.02s   0.2% 49.66%      0.20s  1.97%  database/sql.(*Rows).awaitDone
+         0     0% 49.66%      0.20s  1.97%  encoding/json/v2.MarshalEncode
+         0     0% 49.66%      0.20s  1.97%  encoding/json/v2.marshalEncode
+         0     0% 49.66%      0.20s  1.97%  github.com/basecamp/once-campfire-go/internal/richtext.process
+         0     0% 49.66%      0.20s  1.97%  runtime.findRunnable
+     0.02s   0.2% 49.85%      0.20s  1.97%  runtime.newobject
+         0     0% 49.85%      0.19s  1.87%  github.com/basecamp/once-campfire-go/internal/richtext.Display (inline)
+         0     0% 49.85%      0.19s  1.87%  runtime.mallocgcSmallScanNoHeader
+     0.01s 0.099% 49.95%      0.18s  1.77%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.01s 0.099% 50.05%      0.18s  1.77%  github.com/basecamp/once-campfire-go/internal/database.(*DB).User
+         0     0% 50.05%      0.17s  1.67%  crypto/internal/fips140/sha256.block
+     0.17s  1.67% 51.72%      0.17s  1.67%  crypto/internal/fips140/sha256.blockSHA2
+         0     0% 51.72%      0.17s  1.67%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Boosts
+     0.02s   0.2% 51.92%      0.17s  1.67%  github.com/basecamp/once-campfire-go/internal/database.(*readPool).QueryContext
+     0.01s 0.099% 52.02%      0.17s  1.67%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+     0.01s 0.099% 52.12%      0.17s  1.67%  runtime.goexit0
+         0     0% 52.12%      0.16s  1.58%  crypto/sha256.Sum256
+         0     0% 52.12%      0.16s  1.58%  github.com/basecamp/once-campfire-go/internal/responsebody.NewPart (inline)
+     0.16s  1.58% 53.69%      0.16s  1.58%  runtime.memclrNoHeapPointers
+     0.13s  1.28% 54.98%      0.16s  1.58%  runtime.tryDeferToSpanScan
+         0     0% 54.98%      0.15s  1.48%  database/sql.(*DB).queryDC.func1
+         0     0% 54.98%      0.15s  1.48%  database/sql.ctxDriverQuery
+         0     0% 54.98%      0.15s  1.48%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageMarkup
+         0     0% 54.98%      0.15s  1.48%  github.com/mattn/go-sqlite3.(*SQLiteConn).QueryContext
+         0     0% 54.98%      0.15s  1.48%  github.com/mattn/go-sqlite3.(*SQLiteConn).query
+         0     0% 54.98%      0.15s  1.48%  github.com/mattn/go-sqlite3.(*SQLiteStmt).bind
+         0     0% 54.98%      0.14s  1.38%  database/sql.(*Rows).initContextClose
+     0.03s   0.3% 55.27%      0.14s  1.38%  database/sql.(*Stmt).connStmt
+         0     0% 55.27%      0.14s  1.38%  database/sql.(*Tx).QueryContext
+         0     0% 55.27%      0.14s  1.38%  database/sql.(*Tx).QueryRowContext (inline)
+         0     0% 55.27%      0.14s  1.38%  database/sql.ctxDriverStmtQuery
+         0     0% 55.27%      0.14s  1.38%  github.com/basecamp/once-campfire-go/internal/database.(*DB).ResponseVersion
+         0     0% 55.27%      0.14s  1.38%  github.com/basecamp/once-campfire-go/internal/richtext.load
+         0     0% 55.27%      0.14s  1.38%  github.com/basecamp/once-campfire-go/internal/web.(*Server).beginResponseCache
+         0     0% 55.27%      0.14s  1.38%  github.com/mattn/go-sqlite3.(*SQLiteStmt).QueryContext
+     0.04s  0.39% 55.67%      0.14s  1.38%  runtime.(*sweepLocked).sweep
+         0     0% 55.67%      0.14s  1.38%  runtime.bgsweep
+     0.05s  0.49% 56.16%      0.14s  1.38%  runtime.scanObjectsSmall
+         0     0% 56.16%      0.14s  1.38%  runtime.sweepone
+         0     0% 56.16%      0.13s  1.28%  context.(*cancelCtx).cancel
+     0.01s 0.099% 56.26%      0.13s  1.28%  context.(*cancelCtx).propagateCancel
+     0.13s  1.28% 57.54%      0.13s  1.28%  context.(*valueCtx).Done
+     0.02s   0.2% 57.73%      0.13s  1.28%  context.removeChild
+         0     0% 57.73%      0.13s  1.28%  log/slog.(*Logger).log
+         0     0% 57.73%      0.13s  1.28%  log/slog.Info
+         0     0% 57.73%      0.13s  1.28%  slices.SortFunc[go.shape.[]compress/flate.literalNode,go.shape.struct { compress/flate.literal uint16; compress/flate.freq uint16 }] (inline)
+     0.04s  0.39% 58.13%      0.13s  1.28%  slices.pdqsortCmpFunc[go.shape.struct { compress/flate.literal uint16; compress/flate.freq uint16 }]
+     0.12s  1.18% 59.31%      0.12s  1.18%  compress/flate.(*huffmanBitWriter).writeTokens
+         0     0% 59.31%      0.12s  1.18%  github.com/basecamp/once-campfire-go/internal/database.(*DB).SessionUser
+         0     0% 59.31%      0.12s  1.18%  github.com/basecamp/once-campfire-go/internal/jobs.New.func1
+         0     0% 59.31%      0.12s  1.18%  github.com/mattn/go-sqlite3.bindValue
+         0     0% 59.31%      0.12s  1.18%  log/slog.(*defaultHandler).Handle
+     0.01s 0.099% 59.41%      0.12s  1.18%  runtime.growslice
+         0     0% 59.41%      0.12s  1.18%  sync.(*WaitGroup).Go.func1
+         0     0% 59.41%      0.11s  1.08%  context.WithCancel.func1
+         0     0% 59.41%      0.11s  1.08%  database/sql.(*Tx).ExecContext
+     0.04s  0.39% 59.80%      0.11s  1.08%  gcWriteBarrier
+     0.01s 0.099% 59.90%      0.11s  1.08%  github.com/basecamp/once-campfire-go/internal/integrations.(*PushSender).Send
+         0     0% 59.90%      0.11s  1.08%  github.com/basecamp/once-campfire-go/internal/jobs.run
+         0     0% 59.90%      0.11s  1.08%  github.com/basecamp/once-campfire-go/internal/web.(*Server).messageCreated.func1
+         0     0% 59.90%      0.11s  1.08%  github.com/basecamp/once-campfire-go/internal/web.avatarPath
+         0     0% 59.90%      0.11s  1.08%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked.func2 (inline)
+         0     0% 59.90%      0.11s  1.08%  log.(*Logger).output
+         0     0% 59.90%      0.11s  1.08%  log.init.0.func1
+     0.02s   0.2% 60.10%      0.11s  1.08%  runtime.entersyscall
+     0.02s   0.2% 60.30%      0.11s  1.08%  runtime.mallocgcSmallNoscan
+         0     0% 60.30%      0.11s  1.08%  runtime.write
+     0.11s  1.08% 61.38%      0.11s  1.08%  runtime.write1
+         0     0% 61.38%      0.10s  0.99%  context.WithTimeout
+         0     0% 61.38%      0.10s  0.99%  database/sql.(*DB).execDC
+     0.02s   0.2% 61.58%      0.10s  0.99%  database/sql.driverArgsConnLocked
+     0.01s 0.099% 61.67%      0.10s  0.99%  encoding/json.(*Decoder).Token
+     0.02s   0.2% 61.87%      0.10s  0.99%  encoding/json/v2.makeStructArshaler.func2
+         0     0% 61.87%      0.10s  0.99%  github.com/basecamp/once-campfire-go/internal/html.NewTokenizerFragment
+         0     0% 61.87%      0.10s  0.99%  github.com/basecamp/once-campfire-go/internal/rails.(*Secrets).SignedID
+     0.01s 0.099% 61.97%      0.10s  0.99%  github.com/mattn/go-sqlite3.(*SQLiteRows).eagerFirstStepLocked
+         0     0% 61.97%      0.10s  0.99%  github.com/mattn/go-sqlite3._Cfunc__sqlite3_column_values
+         0     0% 61.97%      0.10s  0.99%  net/http.(*chunkWriter).Write
+     0.01s 0.099% 62.07%      0.10s  0.99%  net/http.(*chunkWriter).writeHeader
+         0     0% 62.07%      0.10s  0.99%  os.(*File).Write
+         0     0% 62.07%      0.10s  0.99%  os.(*File).write (inline)
+     0.10s  0.99% 63.05%      0.10s  0.99%  runtime.nanotime (inline)
+         0     0% 63.05%      0.10s  0.99%  runtime.netpollBreak
+         0     0% 63.05%      0.10s  0.99%  runtime.park_m
+         0     0% 63.05%      0.09s  0.89%  context.WithCancel
+     0.02s   0.2% 63.25%      0.09s  0.89%  context.parentCancelCtx
+         0     0% 63.25%      0.09s  0.89%  database/sql.(*DB).conn
+     0.01s 0.099% 63.35%      0.09s  0.89%  database/sql.(*DB).execDC.func2
+         0     0% 63.35%      0.09s  0.89%  database/sql.(*Rows).Scan
+         0     0% 63.35%      0.09s  0.89%  github.com/basecamp/once-campfire-go/internal/rails.Verifier.Generate
+         0     0% 63.35%      0.09s  0.89%  github.com/basecamp/once-campfire-go/internal/rails.Verifier.GenerateRaw
+         0     0% 63.35%      0.09s  0.89%  html/template.(*Template).ExecuteTemplate
+         0     0% 63.35%      0.09s  0.89%  net/http.(*conn).readRequest
+         0     0% 63.35%      0.09s  0.89%  runtime.(*mcache).nextFree
+         0     0% 63.35%      0.09s  0.89%  runtime.(*mcache).refill
+     0.02s   0.2% 63.55%      0.09s  0.89%  runtime.mapaccess2_faststr
+     0.05s  0.49% 64.04%      0.09s  0.89%  runtime.scanObject
+     0.04s  0.39% 64.43%      0.09s  0.89%  runtime.selectgo
+         0     0% 64.43%      0.09s  0.89%  runtime.wbBufFlush
+         0     0% 64.43%      0.09s  0.89%  runtime.wbBufFlush.func1
+     0.02s   0.2% 64.63%      0.09s  0.89%  runtime.wbBufFlush1
+         0     0% 64.63%      0.08s  0.79%  bytes.(*Buffer).Write
+     0.05s  0.49% 65.12%      0.08s  0.79%  context.(*cancelCtx).Done
+     0.01s 0.099% 65.22%      0.08s  0.79%  context.AfterFunc.func1
+         0     0% 65.22%      0.08s  0.79%  context.WithDeadline (inline)
+         0     0% 65.22%      0.08s  0.79%  context.WithDeadlineCause
+         0     0% 65.22%      0.08s  0.79%  context.withCancel (inline)
+         0     0% 65.22%      0.08s  0.79%  database/sql.(*Rows).scanLocked
+     0.03s   0.3% 65.52%      0.08s  0.79%  database/sql.convertAssignRows
+     0.03s   0.3% 65.81%      0.08s  0.79%  encoding/json/v2.makeStringArshaler.func1
+         0     0% 65.81%      0.08s  0.79%  github.com/basecamp/once-campfire-go/internal/database.(*DB).BannedIP
+     0.01s 0.099% 65.91%      0.08s  0.79%  github.com/basecamp/once-campfire-go/internal/html.(*parser).parse
+         0     0% 65.91%      0.08s  0.79%  github.com/basecamp/once-campfire-go/internal/web.respondFormat
+         0     0% 65.91%      0.08s  0.79%  github.com/mattn/go-sqlite3.(*SQLiteRows).stopWatchingCancellation (inline)
+         0     0% 65.91%      0.08s  0.79%  internal/runtime/maps.(*Map).Delete
+         0     0% 65.91%      0.08s  0.79%  runtime.(*mcentral).cacheSpan
+         0     0% 65.91%      0.08s  0.79%  runtime.(*mcentral).grow
+         0     0% 65.91%      0.08s  0.79%  runtime.(*mheap).freeSpan (inline)
+         0     0% 65.91%      0.08s  0.79%  time.AfterFunc
+     0.01s 0.099% 66.01%      0.08s  0.79%  time.Now
+     0.01s 0.099% 66.11%      0.07s  0.69%  compress/flate.(*fastGen).matchLenLimited
+     0.07s  0.69% 66.80%      0.07s  0.69%  compress/flate.loadLE64[go.shape.int] (inline)
+         0     0% 66.80%      0.07s  0.69%  compress/flate.matchLen
+         0     0% 66.80%      0.07s  0.69%  context.(*afterFuncCtx).cancel
+         0     0% 66.80%      0.07s  0.69%  context.AfterFunc
+         0     0% 66.80%      0.07s  0.69%  database/sql.(*Conn).QueryContext
+         0     0% 66.80%      0.07s  0.69%  database/sql.(*Conn).QueryRowContext (inline)
+         0     0% 66.80%      0.07s  0.69%  encoding/json/jsontext.(*Decoder).ReadToken (inline)
+         0     0% 66.80%      0.07s  0.69%  encoding/json/jsontext.(*decoderState).ReadToken
+         0     0% 66.80%      0.07s  0.69%  github.com/basecamp/once-campfire-go/internal/database.(*DB).RefreshSession
+         0     0% 66.80%      0.07s  0.69%  github.com/basecamp/once-campfire-go/internal/front.(*gzipResponse).WriteHeader
+         0     0% 66.80%      0.07s  0.69%  github.com/basecamp/once-campfire-go/internal/rails.(*Secrets).VerifyCookie
+         0     0% 66.80%      0.07s  0.69%  github.com/basecamp/once-campfire-go/internal/richtext.PlainText
+         0     0% 66.80%      0.07s  0.69%  runtime.(*mheap).alloc
+         0     0% 66.80%      0.07s  0.69%  runtime.(*mheap).freeSpan.func1
+     0.03s   0.3% 67.09%      0.07s  0.69%  runtime.(*mheap).freeSpanLocked
+         0     0% 67.09%      0.07s  0.69%  runtime.(*timer).modify
+     0.01s 0.099% 67.19%      0.07s  0.69%  runtime.heapSetTypeNoHeader (inline)
+     0.03s   0.3% 67.49%      0.07s  0.69%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.04s  0.39% 67.88%      0.07s  0.69%  runtime.mallocgcSmallScanSlowPath
+     0.01s 0.099% 67.98%      0.07s  0.69%  runtime.mapIterStart
+         0     0% 67.98%      0.07s  0.69%  runtime.mapdelete
+         0     0% 67.98%      0.07s  0.69%  runtime.markroot
+     0.01s 0.099% 68.08%      0.07s  0.69%  runtime.newproc
+         0     0% 68.08%      0.07s  0.69%  runtime.slicebytetostring
+         0     0% 68.08%      0.07s  0.69%  text/template.(*Template).Execute (inline)
+     0.01s 0.099% 68.18%      0.07s  0.69%  text/template.(*Template).execute
+         0     0% 68.18%      0.07s  0.69%  time.newTimer
+     0.05s  0.49% 68.67%      0.07s  0.69%  time.now
+         0     0% 68.67%      0.07s  0.69%  time.runtimeNow
+     0.02s   0.2% 68.87%      0.06s  0.59%  bytes.(*Buffer).grow
+         0     0% 68.87%      0.06s  0.59%  compress/flate.(*huffmanEncoder).assignEncodingAndSize
+     0.06s  0.59% 69.46%      0.06s  0.59%  compress/flate.hashLen (inline)
+         0     0% 69.46%      0.06s  0.59%  github.com/basecamp/once-campfire-go/internal/httpcompat.Formats
+         0     0% 69.46%      0.06s  0.59%  github.com/basecamp/once-campfire-go/internal/httpcompat.Negotiate
+         0     0% 69.46%      0.06s  0.59%  github.com/basecamp/once-campfire-go/internal/web.(*Server).canonicalMessage
+         0     0% 69.46%      0.06s  0.59%  github.com/mattn/go-sqlite3.bindText
+         0     0% 69.46%      0.06s  0.59%  github.com/mattn/go-sqlite3.bindText.func2 (inline)
+         0     0% 69.46%      0.06s  0.59%  github.com/mattn/go-sqlite3.bindValue.func2 (inline)
+     0.01s 0.099% 69.56%      0.06s  0.59%  internal/runtime/maps.(*Map).deleteSmall
+         0     0% 69.56%      0.06s  0.59%  net/http.Header.WriteSubset (inline)
+         0     0% 69.56%      0.06s  0.59%  net/http.Header.writeSubset
+         0     0% 69.56%      0.06s  0.59%  runtime.(*mheap).alloc.func1
+         0     0% 69.56%      0.06s  0.59%  runtime.(*mheap).allocSpan
+     0.05s  0.49% 70.05%      0.06s  0.59%  runtime.(*mspan).writeHeapBitsSmall
+         0     0% 70.05%      0.06s  0.59%  runtime.(*timer).maybeAdd
+     0.03s   0.3% 70.34%      0.06s  0.59%  runtime.mallocgcSmallScanNoHeaderSC7
+         0     0% 70.34%      0.06s  0.59%  runtime.mapaccess1_faststr
+         0     0% 70.34%      0.06s  0.59%  runtime.markroot.func1
+         0     0% 70.34%      0.06s  0.59%  runtime.newproc.func1
+     0.03s   0.3% 70.64%      0.06s  0.59%  runtime.reentersyscall
+     0.02s   0.2% 70.84%      0.06s  0.59%  sync/atomic.(*Value).Store

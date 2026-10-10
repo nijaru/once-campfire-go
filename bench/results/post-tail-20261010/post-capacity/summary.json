@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+    "response_validation": "route-contract-v1",
+    "started_at": "2026-10-10T11:13:52Z",
+    "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+    "server_cpus": "0-3",
+    "client_cpus": "4-7",
+    "network": "host",
+    "gzip": true,
+    "duration": 8,
+    "concurrencies": "16",
+    "rounds": 3,
+    "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+    "routes": "post_message",
+    "profile": "read-and-post-v1",
+    "mixed_writer": null,
+    "images": {
+      "go-before": "sha256:73e6a3658f79a948e257510c5fe303e77f0e3566b0aace0b5eb5d4e3cddd0964",
+      "go": "sha256:29bba9b657aafdcef082a09501c13dc5be1bf18417ee136a37e9bc95abf1b1e8",
+      "rust": "sha256:1afcb60e60c5ee9a4431d11429ea29b177557a01ab409023ea14c6b7b189a97f"
+    },
+    "image_labels": {
+      "go-before": {
+        "org.nijaru.experiment": "pr-readiness-20261010",
+        "org.opencontainers.image.revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437"
+      },
+      "go": {
+        "org.nijaru.experiment": "post-tail-20261010",
+        "org.opencontainers.image.revision": "5ca5d3d43b89dbb674d588a00c78cad0561ee162"
+      },
+      "rust": {
+        "org.opencontainers.image.revision": "9872c1d9541551c0889a60e3d49a14488bd1e403"
+      }
+    },
+    "source_revisions": {
+      "go-before": {
+        "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+        "dirty": false
+      },
+      "go": {
+        "head": "5ca5d3d43b89dbb674d588a00c78cad0561ee162",
+        "dirty": false
+      },
+      "rust": {
+        "head": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+        "dirty": false
+      }
+    },
+    "preflight_only": false,
+    "topology": {
+      "go-before": {
+        "processes": 1,
+        "cable": "native websocket",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      },
+      "go": {
+        "processes": 1,
+        "cable": "native websocket",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      },
+      "rust": {
+        "processes": 1,
+        "readers": "4",
+        "job_workers": "3",
+        "cable": "native tokio",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      }
+    },
+    "runtimes": {
+      "go-before": "go",
+      "go": "go",
+      "rust": "rust"
+    },
+    "complete": true
+  },
+  "results": {
+    "go-before": {
+      "room_show": null,
+      "messages_page": null,
+      "sidebar": null,
+      "search": null,
+      "post_message": {
+        "median_rps": 2509.8,
+        "runs": [
+          2284.9,
+          2538.0,
+          2509.8
+        ]
+      }
+    },
+    "go": {
+      "room_show": null,
+      "messages_page": null,
+      "sidebar": null,
+      "search": null,
+      "post_message": {
+        "median_rps": 2666.0,
+        "runs": [
+          2666.0,
+          2571.0,
+          2675.8
+        ]
+      }
+    },
+    "rust": {
+      "room_show": null,
+      "messages_page": null,
+      "sidebar": null,
+      "search": null,
+      "post_message": {
+        "median_rps": 2898.0,
+        "runs": [
+          2898.0,
+          2911.9,
+          2892.4
+        ]
+      }
+    }
+  }
+}

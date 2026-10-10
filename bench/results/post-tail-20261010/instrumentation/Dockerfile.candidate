@@ -1,0 +1,5 @@
+FROM campfire-compare-toolchain
+COPY post-tail-20261010/go-candidate /rails/bin/campfire
+WORKDIR /rails
+ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+CMD ["/rails/bin/campfire", "server"]

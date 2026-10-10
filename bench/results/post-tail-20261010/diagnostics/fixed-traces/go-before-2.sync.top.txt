@@ -1,0 +1,38 @@
+Type: delay
+Showing nodes accounting for 172.91s, 99.49% of 173.80s total
+Dropped 220 nodes (cum <= 0.87s)
+      flat  flat%   sum%        cum   cum%
+   158.34s 91.10% 91.10%    158.34s 91.10%  runtime.selectgo
+    14.57s  8.39% 99.49%     14.57s  8.39%  runtime.chanrecv1
+         0     0% 99.49%      1.91s  1.10%  database/sql.(*DB).BeginTx
+         0     0% 99.49%      1.91s  1.10%  database/sql.(*DB).BeginTx.func1
+         0     0% 99.49%      1.91s  1.10%  database/sql.(*DB).begin
+         0     0% 99.49%      1.89s  1.09%  database/sql.(*DB).conn
+         0     0% 99.49%     22.79s 13.12%  database/sql.(*DB).connectionOpener
+         0     0% 99.49%      1.93s  1.11%  database/sql.(*DB).retry
+         0     0% 99.49%      2.10s  1.21%  github.com/basecamp/once-campfire-go/internal/database.(*DB).CreateMessageWithUpload
+         0     0% 99.49%      2.10s  1.21%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Transaction
+         0     0% 99.49%      2.10s  1.21%  github.com/basecamp/once-campfire-go/internal/database.(*DB).createMessage
+         0     0% 99.49%      2.17s  1.25%  github.com/basecamp/once-campfire-go/internal/front.(*Cache).Handler.func1
+         0     0% 99.49%      2.17s  1.25%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+         0     0% 99.49%      2.17s  1.25%  github.com/basecamp/once-campfire-go/internal/front.PublicCompression.func1
+         0     0% 99.49%      7.59s  4.37%  github.com/basecamp/once-campfire-go/internal/front.Serve
+         0     0% 99.49%      2.43s  1.40%  github.com/basecamp/once-campfire-go/internal/front.forward.func1
+         0     0% 99.49%    110.59s 63.63%  github.com/basecamp/once-campfire-go/internal/jobs.New.func1
+         0     0% 99.49%      2.17s  1.25%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+         0     0% 99.49%      2.13s  1.23%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+         0     0% 99.49%      2.13s  1.22%  github.com/basecamp/once-campfire-go/internal/web.(*Server).createMessage
+         0     0% 99.49%      2.13s  1.23%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+         0     0% 99.49%      2.10s  1.21%  github.com/basecamp/once-campfire-go/internal/web.(*Server).saveNewMessage
+         0     0% 99.49%      2.13s  1.23%  github.com/basecamp/once-campfire-go/internal/web.(*router).ServeHTTP
+         0     0% 99.49%      7.59s  4.37%  main.main
+         0     0% 99.49%      7.59s  4.37%  main.run
+         0     0% 99.49%      2.55s  1.47%  net/http.(*conn).serve
+         0     0% 99.49%      2.43s  1.40%  net/http.HandlerFunc.ServeHTTP
+         0     0% 99.49%      2.43s  1.40%  net/http.serverHandler.ServeHTTP
+         0     0% 99.49%      7.59s  4.37%  os/signal.NotifyContext.func1
+         0     0% 99.49%      7.02s  4.04%  runtime.(*traceAdvancerState).start.func1
+         0     0% 99.49%     14.54s  8.37%  runtime.(*wakeableSleep).sleep
+         0     0% 99.49%      7.59s  4.37%  runtime.ensureSigM.func1
+         0     0% 99.49%      7.52s  4.33%  runtime.traceStartReadCPU.func1
+         0     0% 99.49%    110.59s 63.63%  sync.(*WaitGroup).Go.func1

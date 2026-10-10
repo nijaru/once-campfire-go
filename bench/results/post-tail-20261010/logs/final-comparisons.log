@@ -1,0 +1,88 @@
+go-before round 1: post_message 16 clients 2284.9 req/s
+go round 1: post_message 16 clients 2666.0 req/s
+rust round 1: post_message 16 clients 2898.0 req/s
+rust round 2: post_message 16 clients 2911.9 req/s
+go round 2: post_message 16 clients 2571.0 req/s
+go-before round 2: post_message 16 clients 2538.0 req/s
+go-before round 3: post_message 16 clients 2509.8 req/s
+go round 3: post_message 16 clients 2675.8 req/s
+rust round 3: post_message 16 clients 2892.4 req/s
+{
+  "go-before": {
+    "room_show": null,
+    "messages_page": null,
+    "sidebar": null,
+    "search": null,
+    "post_message": {
+      "median_rps": 2509.8,
+      "runs": [
+        2284.9,
+        2538.0,
+        2509.8
+      ]
+    }
+  },
+  "go": {
+    "room_show": null,
+    "messages_page": null,
+    "sidebar": null,
+    "search": null,
+    "post_message": {
+      "median_rps": 2666.0,
+      "runs": [
+        2666.0,
+        2571.0,
+        2675.8
+      ]
+    }
+  },
+  "rust": {
+    "room_show": null,
+    "messages_page": null,
+    "sidebar": null,
+    "search": null,
+    "post_message": {
+      "median_rps": 2898.0,
+      "runs": [
+        2898.0,
+        2911.9,
+        2892.4
+      ]
+    }
+  }
+}
+go-before 1 post_message 2s: p99=7.408ms service=5.736ms late=4.256ms
+go-before 1 post_message 8s: p99=8.16ms service=6.6ms late=3.68ms
+go 1 post_message 2s: p99=7.128ms service=5.632ms late=4.232ms
+go 1 post_message 8s: p99=7.888ms service=6.064ms late=4.152ms
+rust 1 post_message 2s: p99=5.2ms service=3.012ms late=3.056ms
+rust 1 post_message 8s: p99=5.136ms service=2.708ms late=3.052ms
+rust 2 post_message 2s: p99=5.744ms service=3.4ms late=3.412ms
+rust 2 post_message 8s: p99=5.456ms service=3.356ms late=3.076ms
+go 2 post_message 2s: p99=10.144ms service=8.752ms late=4.152ms
+go 2 post_message 8s: p99=8.496ms service=7.016ms late=3.696ms
+go-before 2 post_message 2s: p99=9.12ms service=7.872ms late=3.216ms
+go-before 2 post_message 8s: p99=6.792ms service=4.728ms late=3.932ms
+go-before 3 post_message 2s: p99=7.448ms service=5.728ms late=4.16ms
+go-before 3 post_message 8s: p99=7.504ms service=5.832ms late=4.168ms
+go 3 post_message 2s: p99=7.856ms service=5.888ms late=4.208ms
+go 3 post_message 8s: p99=8.832ms service=7.264ms late=4.24ms
+rust 3 post_message 2s: p99=4.944ms service=2.76ms late=3.048ms
+rust 3 post_message 8s: p99=5.128ms service=2.716ms late=3.104ms
+#<Thread:0x0000ffff661cea38 .cache/pr-ready/distinct-fanout-presentation.rb:93 run> terminated with exception (report_on_exception is true):
+.cache/pr-ready/distinct-fanout-presentation.rb:93:in `read': stream closed in another thread (IOError)
+	from .cache/pr-ready/distinct-fanout-presentation.rb:93:in `block (4 levels) in <main>'
+.cache/pr-ready/distinct-fanout-presentation.rb:85:in `read': No such file or directory @ rb_sysopen - /proc/202320/status (Errno::ENOENT)
+	from .cache/pr-ready/distinct-fanout-presentation.rb:85:in `block (3 levels) in <main>'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:97:in `block (5 levels) in <main>'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:95:in `each_line'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:95:in `block (4 levels) in <main>'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:94:in `open'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:94:in `block (3 levels) in <main>'
+	from /usr/lib/ruby/3.3.0/open3.rb:540:in `popen_run'
+	from /usr/lib/ruby/3.3.0/open3.rb:235:in `popen3'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:91:in `block (2 levels) in <main>'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:26:in `each'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:26:in `block in <main>'
+	from <internal:numeric>:237:in `times'
+	from .cache/pr-ready/distinct-fanout-presentation.rb:24:in `<main>'

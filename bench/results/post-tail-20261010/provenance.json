@@ -1,0 +1,137 @@
+{
+  "application_revision": "5ca5d3d43b89dbb674d588a00c78cad0561ee162",
+  "restore_revision": "ae21881d7e15eb1a87b82356857cfe41d1bc1144",
+  "original_candidate_revision": "ae21881d7e15eb1a87b82356857cfe41d1bc1144",
+  "go_upstream_revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+  "rust_source_revision": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+  "rust_binary_build_revision": "9872c1d9541551c0889a60e3d49a14488bd1e403",
+  "shared_verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+  "shared_loadgen_build_revision": "e2440515d9093b8304da3d7662d8526f3234b047",
+  "toolchain": "Go 1.27.1, Linux arm64, CGO_ENABLED=1, sqlite_fts5, -trimpath; private worktrees -buildvcs=false",
+  "binary_sha256": {
+    "go-at-5ca": "6d5b7f833fea40a887150146fbd973277588d76c3eade4f4f9e456c93029026e",
+    "go-production": "ea63e520e0ff003cc04fe37e1c9a526ab8b720fe952c8a01b3a6bbadcf147eed",
+    "go-candidate": "db0fe66baa4d945ccba260f7ea4ce6629ee0708276397c5375dc2bc856a48a38",
+    "go-upstream": "5780c9cab06d56ed76c5afbd8bc298abfb5a03eb3bfab44d96d71d206b7f5501",
+    "go-candidate-alloc": "925302c43e31e051631710063125e272a42db13f70946f6625176d2bb0c6c052",
+    "go-upstream-alloc": "c6ab3d78e18658c47413c8393198b22191bfffba4cf21d476abc85f4c376b264",
+    "go-mention-alloc": "1e0a5b41be45c18b260338d382ada393a340369f77af05c6b5815094b10edbcd",
+    "go-direct-alloc": "35769a58ee2bc459060e6035e0d7a10f25e88dfb94b9100ba8317fd710d40253",
+    "go-ingress-candidate": "4a0d41939269c356b3d23bb9cbf92668cd0f5fbdecd13840b3d1bf51c3503155",
+    "go-ingress-upstream": "98a4107b44e1799d7f1dc0d08463f9cc69a30d36c51ee3b5f6b5a100d4d19750",
+    "httprate-ingress": "e4085854a3185f7c4a200743fa8d7ee25c35696a53195f35749ff0b3ee738ef5"
+  },
+  "images": {
+    "campfire-presentation-final": "sha256:29bba9b657aafdcef082a09501c13dc5be1bf18417ee136a37e9bc95abf1b1e8",
+    "campfire-pr-ready-upstream": "sha256:73e6a3658f79a948e257510c5fe303e77f0e3566b0aace0b5eb5d4e3cddd0964",
+    "campfire-current-rust": "sha256:1afcb60e60c5ee9a4431d11429ea29b177557a01ab409023ea14c6b7b189a97f",
+    "campfire-post-tail-ingress-candidate": "sha256:44cc326af3a3f1c7d32752a88db2215528b9b1e1ec13c115705df836af3df23a",
+    "campfire-post-tail-ingress-upstream": "sha256:19993ee48ce455e3ad3cbd85c2b9593e60d6c29495f48fe242c93f7d76bcb34b",
+    "once-campfire-go:restore-fixed": "sha256:f9e5f012a9b8b78b7d54a0375f739b0248f249539ada0848b84f5f3cd1a6b20a"
+  },
+  "omitted_full_traces": {
+    "fixed-traces/go-before-2.trace": {
+      "bytes": 34748713,
+      "sha256": "287554dfda8a61db4c5bae9eed37ac06644b506c9a45f315b91f46c1e4d65910"
+    },
+    "fixed-traces/go-2.trace": {
+      "bytes": 28333418,
+      "sha256": "ec0897c707426f77bd1b28d3b690566cb096b854baceb0092cc4c6bad818664a"
+    },
+    "fixed-traces/go-before-1.trace": {
+      "bytes": 34657733,
+      "sha256": "e24f5a50638d5a703f9aef327a6051e78af93216cf1af926f87c8cf434c9b494"
+    },
+    "fixed-traces/go-1.trace": {
+      "bytes": 29171651,
+      "sha256": "007261f53cefb73797a5393e37695c48d7c497eb99056a3f24c37e33fc5ed599"
+    },
+    "fixed-no-gc/go-before-2.trace": {
+      "bytes": 33637544,
+      "sha256": "24d260145f54f00ac1bd4f4b0cc398b4ae89c6a267fc3c6512093373a480bd92"
+    },
+    "fixed-no-gc/go-2.trace": {
+      "bytes": 26607104,
+      "sha256": "4e9e8d24d2e078f783511ffda304755ce408cfe8febb0b7a9511147cb48dba29"
+    },
+    "fixed-no-gc/go-before-1.trace": {
+      "bytes": 33722102,
+      "sha256": "c8c72c87adda84f122170b2fc0b658b9e820831aaf9de4e418273c2a3105fb80"
+    },
+    "fixed-no-gc/go-1.trace": {
+      "bytes": 26613204,
+      "sha256": "42e34bcee9490f1e22deab682ea3f3ebe1cc0fe93062c3d024176ca3b76a49b5"
+    },
+    "fixed-client-one/go-before-2.trace": {
+      "bytes": 35801540,
+      "sha256": "f4ee39ccb10e2250f2e3168b30ccbd4d40f12047977b4dce407af948f4221c39"
+    },
+    "fixed-client-one/go-2.trace": {
+      "bytes": 28607597,
+      "sha256": "2c7e56e4c591dd9781dbdaa89ef2f25ec7da652b3830e7728dd065e941a4cbd1"
+    },
+    "fixed-client-one/go-before-1.trace": {
+      "bytes": 35588279,
+      "sha256": "00cd0bd8ab4e821ad28e3a2659247f0a99162af50e00b8cca491a98021e9d8b1"
+    },
+    "fixed-client-one/go-1.trace": {
+      "bytes": 28509479,
+      "sha256": "91e927cb3d99481067ee24dbc0dcfba0370d8a6f05bedc5ff5f8a11e6049f9e2"
+    },
+    "fixed-ingress/go-before-2.trace": {
+      "bytes": 35397010,
+      "sha256": "0a47a8001f687b8aba19215050bafbf10b460755f7d376260ef572be89516c5e"
+    },
+    "fixed-ingress/go-2.trace": {
+      "bytes": 29365843,
+      "sha256": "cb75929809eae518f81aec9cf46b35e0f4a50e1271e4247927468113bb399fb0"
+    },
+    "fixed-ingress/go-before-1.trace": {
+      "bytes": 36366499,
+      "sha256": "393f0d2d45a45d52f69476857a127fa2b77f4ade5eeffeafb88c79d926a17645"
+    },
+    "fixed-ingress/go-1.trace": {
+      "bytes": 28922631,
+      "sha256": "79e314bb7d35c317fe5b964c2c847ecc739ff1599e5aced9e0c96961769467c4"
+    },
+    "fixed-ingress-identity/go-before-2.trace": {
+      "bytes": 36780030,
+      "sha256": "9fc7caf73d5b986efafd634d1f60ca2361fee130595b14e616af7186d2603391"
+    },
+    "fixed-ingress-identity/go-2.trace": {
+      "bytes": 29535742,
+      "sha256": "5265bd5e21886c8ea0e80dc5b7261a7361bcacb5ea64b57e71fc04d2470e05fc"
+    },
+    "fixed-ingress-identity/go-before-1.trace": {
+      "bytes": 37489445,
+      "sha256": "b87e19fadbdd9bb32ae67d17166e80819deee49112e8ef939f63515e0373e0dc"
+    },
+    "fixed-ingress-identity/go-1.trace": {
+      "bytes": 29212387,
+      "sha256": "cccb1426ba591b70814d522c6e1f61983051d6d2113b637b024b24cfb9bffc03"
+    }
+  },
+  "binary_notes": {
+    "go-at-5ca": "Clean committed source; final uninstrumented comparisons. See logs/final-build.log.",
+    "go-production": "Built before presentation commit from ae21881 plus production.patch; code-equivalent to 5ca, dirty ae VCS stamp. Not relabeled.",
+    "go-direct-alloc": "ae21881 plus presentation production.patch and private allocation/trace instrumentation; tracing disabled in allocation phase.",
+    "go-ingress-candidate": "ae21881 plus presentation changes and ingress-candidate.patch; diagnostic tracing only, not final capacity evidence.",
+    "restore_image": "Built from f80f7e6 plus restore changes later committed as ae21881. Production non-root configuration checks."
+  },
+  "limitations": [
+    "OrbStack affinity is not physical CPU isolation; host activity and thermals uncontrolled.",
+    "Diagnostic profiles include startup, preflight, warmup, timing, audits and shutdown.",
+    "httprate validates full wire/status/nonempty, not timed semantic content or acknowledgment IDs; exact postrun state is independently audited.",
+    "HTTP WroteRequest is socket-write completion, not packet arrival or time spent on the wire.",
+    "Runtime databases, fixtures, cookies, private environment files, full traces and full request JSON omitted."
+  ],
+  "raw_patch_sha256": {
+    "upstream.patch": "6bab3c9711e9966f00f60ff3d4a578f3f17bb9d8316b26bec870551440d6bae4",
+    "ingress-candidate.patch": "608e4cbf6a6683dcc5108a714a5fbe91eac05319eb30b0c9b02483636b8cdfa0",
+    "candidate.patch": "c9ee90f8cfd616ad9848d5631fcfc7c61e43b4d717130742c55be9d750abd6f9",
+    "allocation-candidate.patch": "bc15ae6c9e2eb44fdf0ef4eff257621aa266ce97df76ffe3603f462a25832c35",
+    "ingress-upstream.patch": "a17b162862f391e863166a7a2760179e7b1b34a256e20e9215e23bbc5cdef5a5",
+    "allocation-upstream.patch": "fdf09fd03f94a74bd96bd4e01fba3e2ea00d5f173b3898ce530881d548bf7129",
+    "production.patch": "4a1d94a41dd9070d07b995b009f82cea6ed3be7179e0a0c0fd2d5dfd7382a841"
+  }
+}

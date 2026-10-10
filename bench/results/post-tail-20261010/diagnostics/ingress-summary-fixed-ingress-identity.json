@@ -1,0 +1,250 @@
+{
+  "go-1": {
+    "timed_requests": 9000,
+    "client_write_gaps": {
+      "n": 8999,
+      "mean_us": 333.2988068674297,
+      "p50_us": 215.001,
+      "p95_us": 1544.93,
+      "p99_us": 4188.036,
+      "min_us": 0.0,
+      "max_us": 5791.341,
+      "under_100us_fraction": 0.45271696855206134,
+      "over_1ms": 521
+    },
+    "handler_start_gaps": {
+      "n": 8999,
+      "mean_us": 333.2965611734637,
+      "p50_us": 120.668,
+      "p95_us": 1599.055,
+      "p99_us": 4206.869,
+      "min_us": 0.0,
+      "max_us": 5803.966,
+      "under_100us_fraction": 0.4900544504944994,
+      "over_1ms": 567
+    },
+    "write_complete_to_handler_start": {
+      "n": 9000,
+      "mean_us": 189.84171877777777,
+      "p50_us": 49.584,
+      "p95_us": 801.841,
+      "p99_us": 2138.393,
+      "min_us": 6.75,
+      "max_us": 6754.224
+    },
+    "handler_before_write_callback": 0,
+    "request_duration": {
+      "n": 9000,
+      "mean_us": 1038.743459,
+      "p50_us": 634.432,
+      "p95_us": 3138.56,
+      "p99_us": 5892.864,
+      "min_us": 167.872,
+      "max_us": 14890.047
+    },
+    "writer_acquire": {
+      "n": 9000,
+      "mean_us": 614.7889568888888,
+      "p50_us": 265.408,
+      "p95_us": 2281.856,
+      "p99_us": 5054.399,
+      "min_us": 2.816,
+      "max_us": 14216.896
+    },
+    "writer_hold": {
+      "n": 9000,
+      "mean_us": 73.97504477777777,
+      "p50_us": 57.472,
+      "p95_us": 122.048,
+      "p99_us": 216.448,
+      "min_us": 10.576,
+      "max_us": 4637.568
+    }
+  },
+  "go-2": {
+    "timed_requests": 9000,
+    "client_write_gaps": {
+      "n": 8999,
+      "mean_us": 333.1666429603289,
+      "p50_us": 232.294,
+      "p95_us": 1415.303,
+      "p99_us": 4072.952,
+      "min_us": 0.0,
+      "max_us": 6055.635,
+      "under_100us_fraction": 0.43593732636959664,
+      "over_1ms": 530
+    },
+    "handler_start_gaps": {
+      "n": 8999,
+      "mean_us": 333.16560573397044,
+      "p50_us": 166.252,
+      "p95_us": 1496.971,
+      "p99_us": 4134.702,
+      "min_us": 0.0,
+      "max_us": 6069.093,
+      "under_100us_fraction": 0.4722746971885765,
+      "over_1ms": 572
+    },
+    "write_complete_to_handler_start": {
+      "n": 9000,
+      "mean_us": 176.7439581111111,
+      "p50_us": 44.792,
+      "p95_us": 760.131,
+      "p99_us": 1996.184,
+      "min_us": 6.75,
+      "max_us": 4252.62
+    },
+    "handler_before_write_callback": 0,
+    "request_duration": {
+      "n": 9000,
+      "mean_us": 1040.206584,
+      "p50_us": 614.913,
+      "p95_us": 3208.064,
+      "p99_us": 6539.521,
+      "min_us": 167.373,
+      "max_us": 14600.128
+    },
+    "writer_acquire": {
+      "n": 9000,
+      "mean_us": 627.4306608888888,
+      "p50_us": 272.128,
+      "p95_us": 2335.104,
+      "p99_us": 5263.04,
+      "min_us": 0.501,
+      "max_us": 14323.584
+    },
+    "writer_hold": {
+      "n": 9000,
+      "mean_us": 72.21429733333333,
+      "p50_us": 58.753,
+      "p95_us": 124.032,
+      "p99_us": 199.232,
+      "min_us": 0.161,
+      "max_us": 4736.128
+    }
+  },
+  "go-before-1": {
+    "timed_requests": 9000,
+    "client_write_gaps": {
+      "n": 8999,
+      "mean_us": 333.4395217246361,
+      "p50_us": 254.572,
+      "p95_us": 1356.065,
+      "p99_us": 3980.491,
+      "min_us": 0.0,
+      "max_us": 5375.806,
+      "under_100us_fraction": 0.41515723969329926,
+      "over_1ms": 502
+    },
+    "handler_start_gaps": {
+      "n": 8999,
+      "mean_us": 333.46864873874875,
+      "p50_us": 222.282,
+      "p95_us": 1423.646,
+      "p99_us": 3998.324,
+      "min_us": 0.0,
+      "max_us": 5539.422,
+      "under_100us_fraction": 0.43727080786754086,
+      "over_1ms": 524
+    },
+    "write_complete_to_handler_start": {
+      "n": 9000,
+      "mean_us": 141.453413,
+      "p50_us": 35.624,
+      "p95_us": 542.726,
+      "p99_us": 1582.181,
+      "min_us": 6.291,
+      "max_us": 3847.289
+    },
+    "handler_before_write_callback": 0,
+    "request_duration": {
+      "n": 9000,
+      "mean_us": 914.4587202222223,
+      "p50_us": 570.368,
+      "p95_us": 2809.536,
+      "p99_us": 4729.024,
+      "min_us": 201.472,
+      "max_us": 11328.704
+    },
+    "writer_acquire": {
+      "n": 9000,
+      "mean_us": 506.5058956666667,
+      "p50_us": 198.015,
+      "p95_us": 2074.944,
+      "p99_us": 3825.855,
+      "min_us": 2.88,
+      "max_us": 10781.184
+    },
+    "writer_hold": {
+      "n": 9000,
+      "mean_us": 65.81399499999999,
+      "p50_us": 56.832,
+      "p95_us": 115.52,
+      "p99_us": 163.968,
+      "min_us": 41.024,
+      "max_us": 3321.92
+    }
+  },
+  "go-before-2": {
+    "timed_requests": 9000,
+    "client_write_gaps": {
+      "n": 8999,
+      "mean_us": 333.16902744749416,
+      "p50_us": 250.377,
+      "p95_us": 1301.052,
+      "p99_us": 3941.701,
+      "min_us": 0.0,
+      "max_us": 5406.796,
+      "under_100us_fraction": 0.4123791532392488,
+      "over_1ms": 495
+    },
+    "handler_start_gaps": {
+      "n": 8999,
+      "mean_us": 333.16861073452606,
+      "p50_us": 220.918,
+      "p95_us": 1365.595,
+      "p99_us": 4034.742,
+      "min_us": 0.0,
+      "max_us": 5420.213,
+      "under_100us_fraction": 0.4336037337481942,
+      "over_1ms": 521
+    },
+    "write_complete_to_handler_start": {
+      "n": 9000,
+      "mean_us": 151.46538177777776,
+      "p50_us": 40.125,
+      "p95_us": 581.297,
+      "p99_us": 1629.806,
+      "min_us": 5.291,
+      "max_us": 4303.704
+    },
+    "handler_before_write_callback": 0,
+    "request_duration": {
+      "n": 9000,
+      "mean_us": 1013.7036316666668,
+      "p50_us": 608.127,
+      "p95_us": 3101.888,
+      "p99_us": 5967.104,
+      "min_us": 195.968,
+      "max_us": 17885.312
+    },
+    "writer_acquire": {
+      "n": 9000,
+      "mean_us": 582.1536985555556,
+      "p50_us": 220.351,
+      "p95_us": 2293.696,
+      "p99_us": 4664.128,
+      "min_us": 2.816,
+      "max_us": 17610.047
+    },
+    "writer_hold": {
+      "n": 9000,
+      "mean_us": 69.97009077777777,
+      "p50_us": 58.56,
+      "p95_us": 120.768,
+      "p99_us": 184.128,
+      "min_us": 40.576,
+      "max_us": 4605.696
+    }
+  }
+}

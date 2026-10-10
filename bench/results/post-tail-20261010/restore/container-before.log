@@ -1,0 +1,12 @@
+PASS: default: non-root setup, live backup, offline restore and restart.
+Traceback (most recent call last):
+  File "/Users/nick/github/nijaru/once-campfire-go/bin/check-container", line 56, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/Users/nick/github/nijaru/once-campfire-go/bin/check-container", line 54, in main
+    for case in cases:check(a.image,*case)
+                      ~~~~~^^^^^^^^^^^^^^^
+  File "/Users/nick/github/nijaru/once-campfire-go/bin/check-container", line 39, in check
+    assert db.execute('SELECT name FROM users').fetchone()==('Container owner',),f'{label}: hook did not restore configured database'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: storage/environment override: hook did not restore configured database

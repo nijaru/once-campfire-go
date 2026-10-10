@@ -1,0 +1,22 @@
+.cache/post-tail-20261010/go-at-5ca: go1.27.1
+	path	github.com/basecamp/once-campfire-go/cmd/campfire
+	mod	github.com/basecamp/once-campfire-go	v0.0.0-20261010110226-5ca5d3d43b89
+	dep	github.com/coder/websocket	v1.8.15
+	=>	./third_party/websocket	(devel)
+
+	dep	github.com/mattn/go-sqlite3	v1.14.52	h1:wVbm2Qnf4OXkqhBTSPuCRZDRnxfbVrrmiCEroVdog8U=
+	dep	golang.org/x/crypto	v0.57.1-0.20260918190515-b4dcfb54b863	h1:3kG0LLrOfvMqZ37MbeJ/uDk5H6tH2L02vx/OcCQ5i2A=
+	dep	golang.org/x/net	v0.59.0	h1:5zfYln+w5XCxwrnMMJPufRgNoXEaGxl0wo5GqPXyues=
+	dep	golang.org/x/text	v0.42.0	h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	-tags=sqlite_fts5
+	build	-trimpath=true
+	build	CGO_ENABLED=1
+	build	GOARCH=arm64
+	build	GOOS=linux
+	build	GOARM64=v8.0
+	build	vcs=git
+	build	vcs.revision=5ca5d3d43b89dbb674d588a00c78cad0561ee162
+	build	vcs.time=2026-10-10T11:02:26Z
+	build	vcs.modified=false
