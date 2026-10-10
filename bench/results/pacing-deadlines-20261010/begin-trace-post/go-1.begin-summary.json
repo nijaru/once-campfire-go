@@ -1,0 +1,317 @@
+{
+  "completed_tasks": 12000,
+  "analyzed_last_tasks": 9000,
+  "scope": "last 9000 creation tasks: timed phase after 3000 warmup; handler duration excludes final net/http flush and client consumption",
+  "all": {
+    "duration_ns": {
+      "n": 9000,
+      "mean_us": 441.7350896666666,
+      "p50_us": 237.312,
+      "p99_us": 4470.272,
+      "max_us": 14834.241
+    },
+    "display_begin_ns": {
+      "n": 9000,
+      "mean_us": 4.585798111111111,
+      "p50_us": 3.264,
+      "p99_us": 17.088,
+      "max_us": 6670.143
+    },
+    "driver_begin_ns": {
+      "n": 9000,
+      "mean_us": 3.5499353333333334,
+      "p50_us": 2.368,
+      "p99_us": 14.72,
+      "max_us": 6666.369
+    },
+    "read_spawn_ns": {
+      "n": 9000,
+      "mean_us": 0.9332590000000001,
+      "p50_us": 0.704,
+      "p99_us": 3.968,
+      "max_us": 240.0
+    },
+    "read_exec_ns": {
+      "n": 9000,
+      "mean_us": 1.3023774444444443,
+      "p50_us": 0.448,
+      "p99_us": 0.832,
+      "max_us": 6662.273
+    },
+    "read_resume_ns": {
+      "n": 9000,
+      "mean_us": 0.43703844444444445,
+      "p50_us": 0.384,
+      "p99_us": 0.64,
+      "max_us": 42.24
+    },
+    "read_scheduling_ns": {
+      "n": 9000,
+      "mean_us": 1.3702974444444445,
+      "p50_us": 1.088,
+      "p99_us": 5.312,
+      "max_us": 240.896
+    },
+    "writer_spawn_ns": {
+      "n": 9000,
+      "mean_us": 1.109508111111111,
+      "p50_us": 0.832,
+      "p99_us": 6.016,
+      "max_us": 110.464
+    },
+    "writer_exec_ns": {
+      "n": 9000,
+      "mean_us": 4.053263333333334,
+      "p50_us": 1.28,
+      "p99_us": 7.296,
+      "max_us": 6626.368
+    },
+    "writer_resume_ns": {
+      "n": 9000,
+      "mean_us": 0.5227476666666666,
+      "p50_us": 0.448,
+      "p99_us": 1.536,
+      "max_us": 227.328
+    },
+    "request_stw_ns": {
+      "n": 9000,
+      "mean_us": 25.871786555555556,
+      "p50_us": 0.0,
+      "p99_us": 607.232,
+      "max_us": 4476.095
+    }
+  },
+  "slowest_1pct_requests": {
+    "duration_ns": {
+      "n": 90,
+      "mean_us": 6994.073622222222,
+      "p50_us": 6716.224,
+      "p99_us": 14834.241,
+      "max_us": 14834.241
+    },
+    "display_begin_ns": {
+      "n": 90,
+      "mean_us": 83.4616,
+      "p50_us": 3.584,
+      "p99_us": 6670.143,
+      "max_us": 6670.143
+    },
+    "driver_begin_ns": {
+      "n": 90,
+      "mean_us": 78.60126666666666,
+      "p50_us": 2.56,
+      "p99_us": 6666.369,
+      "max_us": 6666.369
+    },
+    "read_spawn_ns": {
+      "n": 90,
+      "mean_us": 0.8426333333333333,
+      "p50_us": 0.768,
+      "p99_us": 3.264,
+      "max_us": 3.264
+    },
+    "read_exec_ns": {
+      "n": 90,
+      "mean_us": 76.29298888888889,
+      "p50_us": 0.512,
+      "p99_us": 6662.273,
+      "max_us": 6662.273
+    },
+    "read_resume_ns": {
+      "n": 90,
+      "mean_us": 0.4785888888888889,
+      "p50_us": 0.384,
+      "p99_us": 2.432,
+      "max_us": 2.432
+    },
+    "read_scheduling_ns": {
+      "n": 90,
+      "mean_us": 1.321222222222222,
+      "p50_us": 1.152,
+      "p99_us": 3.904,
+      "max_us": 3.904
+    },
+    "writer_spawn_ns": {
+      "n": 90,
+      "mean_us": 0.8433555555555556,
+      "p50_us": 0.768,
+      "p99_us": 1.92,
+      "max_us": 1.92
+    },
+    "writer_exec_ns": {
+      "n": 90,
+      "mean_us": 126.71358888888889,
+      "p50_us": 1.6,
+      "p99_us": 6626.368,
+      "max_us": 6626.368
+    },
+    "writer_resume_ns": {
+      "n": 90,
+      "mean_us": 3.023644444444445,
+      "p50_us": 0.448,
+      "p99_us": 227.328,
+      "max_us": 227.328
+    },
+    "request_stw_ns": {
+      "n": 90,
+      "mean_us": 1390.0187777777778,
+      "p50_us": 80.768,
+      "p99_us": 4476.095,
+      "max_us": 4476.095
+    }
+  },
+  "mean_begin_scheduling_fraction_slowest_1pct": 0.00020698526836757442,
+  "max_begin_scheduling_fraction_slowest_1pct": 0.0007943018607497688,
+  "slowest_10": [
+    {
+      "task": 5173,
+      "start_ns": 58463203622464,
+      "duration_ns": 14834241,
+      "display_begin_ns": 3648,
+      "driver_begin_ns": 2752,
+      "read_spawn_ns": 704,
+      "read_exec_ns": 448,
+      "read_resume_ns": 576,
+      "writer_spawn_ns": 640,
+      "writer_exec_ns": 1792,
+      "writer_resume_ns": 768,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1280
+    },
+    {
+      "task": 5170,
+      "start_ns": 58463203183744,
+      "duration_ns": 13008256,
+      "display_begin_ns": 4032,
+      "driver_begin_ns": 3136,
+      "read_spawn_ns": 1280,
+      "read_exec_ns": 512,
+      "read_resume_ns": 448,
+      "writer_spawn_ns": 768,
+      "writer_exec_ns": 1472,
+      "writer_resume_ns": 384,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1728
+    },
+    {
+      "task": 5175,
+      "start_ns": 58463204284992,
+      "duration_ns": 12452736,
+      "display_begin_ns": 4415,
+      "driver_begin_ns": 3328,
+      "read_spawn_ns": 959,
+      "read_exec_ns": 640,
+      "read_resume_ns": 512,
+      "writer_spawn_ns": 641,
+      "writer_exec_ns": 1663,
+      "writer_resume_ns": 512,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1471
+    },
+    {
+      "task": 5174,
+      "start_ns": 58463203950336,
+      "duration_ns": 11887489,
+      "display_begin_ns": 3456,
+      "driver_begin_ns": 2688,
+      "read_spawn_ns": 1024,
+      "read_exec_ns": 512,
+      "read_resume_ns": 320,
+      "writer_spawn_ns": 832,
+      "writer_exec_ns": 1920,
+      "writer_resume_ns": 512,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1344
+    },
+    {
+      "task": 5181,
+      "start_ns": 58463206293760,
+      "duration_ns": 11672192,
+      "display_begin_ns": 3200,
+      "driver_begin_ns": 2368,
+      "read_spawn_ns": 640,
+      "read_exec_ns": 448,
+      "read_resume_ns": 448,
+      "writer_spawn_ns": 640,
+      "writer_exec_ns": 1728,
+      "writer_resume_ns": 576,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1088
+    },
+    {
+      "task": 5176,
+      "start_ns": 58463204616704,
+      "duration_ns": 10728704,
+      "display_begin_ns": 3456,
+      "driver_begin_ns": 2688,
+      "read_spawn_ns": 896,
+      "read_exec_ns": 448,
+      "read_resume_ns": 448,
+      "writer_spawn_ns": 576,
+      "writer_exec_ns": 1344,
+      "writer_resume_ns": 384,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1344
+    },
+    {
+      "task": 5172,
+      "start_ns": 58463203319552,
+      "duration_ns": 10714624,
+      "display_begin_ns": 3712,
+      "driver_begin_ns": 2817,
+      "read_spawn_ns": 1023,
+      "read_exec_ns": 449,
+      "read_resume_ns": 447,
+      "writer_spawn_ns": 896,
+      "writer_exec_ns": 2560,
+      "writer_resume_ns": 227328,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1470
+    },
+    {
+      "task": 3185,
+      "start_ns": 58462540938496,
+      "duration_ns": 10335424,
+      "display_begin_ns": 3392,
+      "driver_begin_ns": 2496,
+      "read_spawn_ns": 769,
+      "read_exec_ns": 511,
+      "read_resume_ns": 384,
+      "writer_spawn_ns": 704,
+      "writer_exec_ns": 2048,
+      "writer_resume_ns": 512,
+      "request_stw_ns": 20608,
+      "read_scheduling_ns": 1153
+    },
+    {
+      "task": 5178,
+      "start_ns": 58463205287680,
+      "duration_ns": 10068992,
+      "display_begin_ns": 3328,
+      "driver_begin_ns": 2304,
+      "read_spawn_ns": 640,
+      "read_exec_ns": 448,
+      "read_resume_ns": 384,
+      "writer_spawn_ns": 768,
+      "writer_exec_ns": 2112,
+      "writer_resume_ns": 448,
+      "request_stw_ns": 3106624,
+      "read_scheduling_ns": 1024
+    },
+    {
+      "task": 3186,
+      "start_ns": 58462541280576,
+      "duration_ns": 9840128,
+      "display_begin_ns": 3392,
+      "driver_begin_ns": 2496,
+      "read_spawn_ns": 768,
+      "read_exec_ns": 448,
+      "read_resume_ns": 448,
+      "writer_spawn_ns": 1471,
+      "writer_exec_ns": 2944,
+      "writer_resume_ns": 640,
+      "request_stw_ns": 20608,
+      "read_scheduling_ns": 1216
+    }
+  ]
+}
