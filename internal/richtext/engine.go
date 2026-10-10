@@ -160,11 +160,9 @@ func (doc Document) process(ctx Context, fields outputFields) (Result, error) {
 	}
 	root := doc.root
 	if fields&displayOutput != 0 {
-		plainRoot := clone(root)
-		if err = replaceAttachments(plainRoot, ctx, true, 0); err != nil {
+		result.Plain, err = doc.PlainText(ctx)
+		if err != nil {
 			result.Errors["plain"] = err
-		} else {
-			result.Plain = chomp(plain(plainRoot))
 		}
 	}
 

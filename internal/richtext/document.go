@@ -112,9 +112,12 @@ func (doc Document) PlainText(ctx Context) (string, error) {
 	if doc.err != nil {
 		return "", doc.err
 	}
-	root := clone(doc.root)
-	if err := replaceAttachments(root, ctx, true, 0); err != nil {
-		return "", err
+	root := doc.root
+	if hasAttachments(root) {
+		root = clone(root)
+		if err := replaceAttachments(root, ctx, true, 0); err != nil {
+			return "", err
+		}
 	}
 	return chomp(plain(root)), nil
 }
