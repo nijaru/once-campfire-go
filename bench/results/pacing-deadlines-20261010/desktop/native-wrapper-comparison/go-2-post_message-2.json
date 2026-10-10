@@ -1,0 +1,69 @@
+{
+  "mode": "fixed-offered-rate",
+  "pacing": "active",
+  "path": "POST /rooms/201306877/messages",
+  "offered_rps": 3000,
+  "conc": 64,
+  "queue_capacity": 8192,
+  "queue_peak": 0,
+  "gzip": true,
+  "secs": 2,
+  "elapsed_secs": 2.000045179,
+  "drain_secs": 10,
+  "planned": 6000,
+  "scheduled": 6000,
+  "attempted": 6000,
+  "ok": 6000,
+  "errors": 0,
+  "network_errors": 0,
+  "status_errors": 0,
+  "empty_bodies": 0,
+  "dropped": 0,
+  "expired": 0,
+  "unscheduled": 0,
+  "rps": 2999.9322330308223,
+  "avg_bytes": 1956,
+  "statuses": {
+    "200": 6000
+  },
+  "latency": {
+    "max_ms": 3.838915,
+    "mean_ms": 0.46165033666666666,
+    "n": 6000,
+    "p50_ms": 0.459,
+    "p90_ms": 0.537,
+    "p95_ms": 0.605,
+    "p99_ms": 0.972
+  },
+  "service_latency": {
+    "max_ms": 3.837968,
+    "mean_ms": 0.45935433000000003,
+    "n": 6000,
+    "p50_ms": 0.456,
+    "p90_ms": 0.532,
+    "p95_ms": 0.599,
+    "p99_ms": 0.97
+  },
+  "queue_latency": {
+    "max_ms": 0.095374,
+    "mean_ms": 0.002214209,
+    "n": 6000,
+    "p50_ms": 0.002,
+    "p90_ms": 0.002,
+    "p95_ms": 0.002,
+    "p99_ms": 0.059
+  },
+  "generator_lateness": {
+    "max_ms": 0.058431,
+    "mean_ms": 8.179766666666667e-05,
+    "n": 6000,
+    "p50_ms": 0.001,
+    "p90_ms": 0.001,
+    "p95_ms": 0.001,
+    "p99_ms": 0.001
+  },
+  "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+  "generator_cpu_percent": 110.76984231335985,
+  "route": "post_message",
+  "warmup": true
+}

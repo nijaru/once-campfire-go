@@ -181,8 +181,10 @@ browser and operational gates, improved Cable fanout, and the remaining POST tai
 It does not claim universal upstream parity or live external-provider acceptance.
 The [POST tail investigation](bench/results/post-tail-20261010/README.md) records configured-path
 restore checks, a 16–17% allocation reduction, and a 6.2% POST capacity median gain over Go
-upstream. Fixed-rate POST tails and an unfavorable Cable throughput run remain unresolved;
-Rust retains the higher capacity medians.
+upstream. The [pacing and deadline comparison](bench/results/pacing-deadlines-20261010/README.md)
+adds native Linux measurements, explicit active client pacing and connection-owned Cable
+write deadlines. POST tails remain worse than upstream, and the earlier Cable collapse
+has not been causally resolved; neither record establishes readiness or universal parity.
 
 ## Known differences
 

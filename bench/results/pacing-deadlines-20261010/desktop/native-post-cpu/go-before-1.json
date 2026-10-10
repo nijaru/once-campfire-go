@@ -1,0 +1,158 @@
+{
+  "app": "go-before",
+  "round": 1,
+  "http": [
+    {
+      "mode": "fixed-offered-rate",
+      "pacing": "active",
+      "path": "POST /rooms/201306877/messages",
+      "offered_rps": 3000,
+      "conc": 64,
+      "queue_capacity": 8192,
+      "queue_peak": 0,
+      "gzip": true,
+      "secs": 2,
+      "elapsed_secs": 2.000139846,
+      "drain_secs": 10,
+      "planned": 6000,
+      "scheduled": 6000,
+      "attempted": 6000,
+      "ok": 6000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 2999.790245666652,
+      "avg_bytes": 1957,
+      "statuses": {
+        "200": 6000
+      },
+      "latency": {
+        "max_ms": 3.210382,
+        "mean_ms": 0.47860158033333333,
+        "n": 6000,
+        "p50_ms": 0.465,
+        "p90_ms": 0.55,
+        "p95_ms": 0.605,
+        "p99_ms": 1.07
+      },
+      "service_latency": {
+        "max_ms": 3.209184,
+        "mean_ms": 0.47642825333333333,
+        "n": 6000,
+        "p50_ms": 0.463,
+        "p90_ms": 0.547,
+        "p95_ms": 0.602,
+        "p99_ms": 1.068
+      },
+      "queue_latency": {
+        "max_ms": 0.107109,
+        "mean_ms": 0.002067995,
+        "n": 6000,
+        "p50_ms": 0.002,
+        "p90_ms": 0.002,
+        "p95_ms": 0.002,
+        "p99_ms": 0.058
+      },
+      "generator_lateness": {
+        "max_ms": 0.195043,
+        "mean_ms": 0.00010533199999999999,
+        "n": 6000,
+        "p50_ms": 0.001,
+        "p90_ms": 0.001,
+        "p95_ms": 0.001,
+        "p99_ms": 0.001
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "generator_cpu_percent": 109.76967073240837,
+      "route": "post_message",
+      "warmup": true,
+      "persisted_write_audit": {
+        "count": 6000,
+        "exact_bodies": true,
+        "unique_client_ids": true,
+        "correct_creator_room": true,
+        "normalized_fts": true
+      }
+    },
+    {
+      "mode": "fixed-offered-rate",
+      "pacing": "active",
+      "path": "POST /rooms/201306877/messages",
+      "offered_rps": 3000,
+      "conc": 64,
+      "queue_capacity": 8192,
+      "queue_peak": 0,
+      "gzip": true,
+      "secs": 8,
+      "elapsed_secs": 8.000083634,
+      "drain_secs": 10,
+      "planned": 24000,
+      "scheduled": 24000,
+      "attempted": 24000,
+      "ok": 24000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 2999.968637577871,
+      "avg_bytes": 1958,
+      "statuses": {
+        "200": 24000
+      },
+      "latency": {
+        "max_ms": 4.131665,
+        "mean_ms": 0.469656659375,
+        "n": 24000,
+        "p50_ms": 0.462,
+        "p90_ms": 0.541,
+        "p95_ms": 0.587,
+        "p99_ms": 0.828
+      },
+      "service_latency": {
+        "max_ms": 4.131422,
+        "mean_ms": 0.46749890245833337,
+        "n": 24000,
+        "p50_ms": 0.46,
+        "p90_ms": 0.538,
+        "p95_ms": 0.583,
+        "p99_ms": 0.823
+      },
+      "queue_latency": {
+        "max_ms": 0.252533,
+        "mean_ms": 0.002089988666666667,
+        "n": 24000,
+        "p50_ms": 0.002,
+        "p90_ms": 0.002,
+        "p95_ms": 0.002,
+        "p99_ms": 0.058
+      },
+      "generator_lateness": {
+        "max_ms": 0.092122,
+        "mean_ms": 6.776825e-05,
+        "n": 24000,
+        "p50_ms": 0.001,
+        "p90_ms": 0.001,
+        "p95_ms": 0.001,
+        "p99_ms": 0.001
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "generator_cpu_percent": 109.13585148389495,
+      "route": "post_message",
+      "warmup": false,
+      "persisted_write_audit": {
+        "count": 24000,
+        "exact_bodies": true,
+        "unique_client_ids": true,
+        "correct_creator_room": true,
+        "normalized_fts": true
+      }
+    }
+  ]
+}

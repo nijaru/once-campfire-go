@@ -1,0 +1,1116 @@
+{
+  "scope": "Functional HTTP and persisted-state contracts, not exact HTML or JavaScript parity",
+  "binaries": {
+    "rust": "250dfeae44c9bdbf478c15ae6d8cc4e55222d81c862162bec18c27ca7ed7f3dd",
+    "go": "bcaa83c574055614007b6bccbe8dc23d8776396c4b3478f6144aca020396ff4e"
+  },
+  "tool_sha256": "e671518fad2a1c8e419edfa1ed0cdefbe1b71877ae54af7ff96437e9d9fb1190",
+  "storage_tool_sha256": "6e9fba2a5238ef882bb5ac8bd84d6962f618dcfe2bca595f0e2129b40ff79a9c",
+  "labels_sha256": "089726b88abf5f9baf1bb19b2e86beb83d3105ab976d5e6e50f6265cde324d5e",
+  "runs": [
+    {
+      "workflow": "message_lifecycle",
+      "implementation": "rust",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rooms/201306877/messages",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638/edit",
+          "status": 403,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "PATCH",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 403,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "DELETE",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 403,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638/edit",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractneedlealpha",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PATCH",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 302,
+          "location": "/rooms/201306877/messages/933434638",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractneedlebeta",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractneedlealpha",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "DELETE",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 404,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "message_lifecycle",
+      "implementation": "go",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rooms/201306877/messages",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638/edit",
+          "status": 403,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "PATCH",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 403,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "jz",
+          "method": "DELETE",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 403,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638/edit",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractneedlealpha",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PATCH",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 302,
+          "location": "/rooms/201306877/messages/933434638",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractneedlebeta",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractneedlealpha",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "DELETE",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/201306877/messages/933434638",
+          "status": 404,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "direct_ping",
+      "implementation": "rust",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/directs/new",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/directs/new",
+          "status": 200,
+          "location": "",
+          "frame": "direct_rooms_control"
+        },
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/rooms/directs",
+          "status": 302,
+          "location": "/rooms/699448325",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/rooms/directs",
+          "status": 302,
+          "location": "/rooms/699448325",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/rooms/directs",
+          "status": 302,
+          "location": "/rooms/699448325",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "direct_ping",
+      "implementation": "go",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/directs/new",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/directs/new",
+          "status": 200,
+          "location": "",
+          "frame": "direct_rooms_control"
+        },
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/rooms/directs",
+          "status": 302,
+          "location": "/rooms/699448325",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/rooms/directs",
+          "status": 302,
+          "location": "/rooms/699448325",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/rooms/directs",
+          "status": 302,
+          "location": "/rooms/699448325",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "pagination",
+      "implementation": "rust",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?before=933434569",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?before=933434482",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?after=933434569",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?after=933434482",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/104393281/messages",
+          "status": 204,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "pagination",
+      "implementation": "go",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?before=933434569",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?before=933434482",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?after=933434569",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages?after=933434482",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/486777696/messages",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/rooms/104393281/messages",
+          "status": 204,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "sidebar",
+      "implementation": "rust",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/users/me/sidebar",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/users/me/sidebar",
+          "status": 200,
+          "location": "",
+          "frame": "user_sidebar"
+        }
+      ]
+    },
+    {
+      "workflow": "sidebar",
+      "implementation": "go",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "david",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/users/me/sidebar",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "david",
+          "method": "GET",
+          "path": "/users/me/sidebar",
+          "status": 200,
+          "location": "",
+          "frame": "user_sidebar"
+        }
+      ]
+    },
+    {
+      "workflow": "direct_upload",
+      "implementation": "rust",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rails/active_storage/direct_uploads",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTUsInB1ciI6ImJsb2JfaWQifX0=--e4a6db3768ecbc8f6034ed4a1805bfdf51f318f7/audit.png",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiI1bzVlcjdiOWd4cjlxOGgwZzVtaHBzaWNqcXhjIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTYxWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--64712c52b6ca85225d0d46a66aba2a974acfd059",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiI1bzVlcjdiOWd4cjlxOGgwZzVtaHBzaWNqcXhjIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTYxWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--64712c52b6ca85225d0d46a66aba2a974acfd059",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiI1bzVlcjdiOWd4cjlxOGgwZzVtaHBzaWNqcXhjIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTYxWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--64712c52b6ca85225d0d46a66aba2a974acfd059",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiI1bzVlcjdiOWd4cjlxOGgwZzVtaHBzaWNqcXhjIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTYxWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--64712c52b6ca85225d0d46a66aba2a974acfd059",
+          "status": 204,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTUsInB1ciI6ImJsb2JfaWQifX0=--e4a6db3768ecbc8f6034ed4a1805bfdf51f318f7/audit.png",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rails/active_storage/direct_uploads",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTYsInB1ciI6ImJsb2JfaWQifX0=--f3a156d1ecb90c83710dbcccd83cdf59f32d82d9/audit.png",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJidm5rNXEybHg4bzdiaTkxdHlsNjY3NTN4a2oyIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTc1WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--5c2b1a16f3189480440611c95e77d3fc865e52c2",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJidm5rNXEybHg4bzdiaTkxdHlsNjY3NTN4a2oyIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTc1WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--5c2b1a16f3189480440611c95e77d3fc865e52c2",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJidm5rNXEybHg4bzdiaTkxdHlsNjY3NTN4a2oyIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTc1WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--5c2b1a16f3189480440611c95e77d3fc865e52c2",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJidm5rNXEybHg4bzdiaTkxdHlsNjY3NTN4a2oyIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTc1WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--5c2b1a16f3189480440611c95e77d3fc865e52c2",
+          "status": 204,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTYsInB1ciI6ImJsb2JfaWQifX0=--f3a156d1ecb90c83710dbcccd83cdf59f32d82d9/audit.png",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "DELETE",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "stale",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJidm5rNXEybHg4bzdiaTkxdHlsNjY3NTN4a2oyIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuMTc1WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--5c2b1a16f3189480440611c95e77d3fc865e52c2",
+          "status": 401,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "stale",
+          "method": "POST",
+          "path": "/rails/active_storage/direct_uploads",
+          "status": 401,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTYsInB1ciI6ImJsb2JfaWQifX0=--f3a156d1ecb90c83710dbcccd83cdf59f32d82d9/audit.png",
+          "status": 200,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "direct_upload",
+      "implementation": "go",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rails/active_storage/direct_uploads",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTUsInB1ciI6ImJsb2JfaWQifX0=--e4a6db3768ecbc8f6034ed4a1805bfdf51f318f7/audit.png",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkODBzaGZ0aDdrMmZ5N3N1NDNuOXd3aTZvc3RhIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTM5WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--986487454b637b5614b46e8550478269d95d858b",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkODBzaGZ0aDdrMmZ5N3N1NDNuOXd3aTZvc3RhIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTM5WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--986487454b637b5614b46e8550478269d95d858b",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkODBzaGZ0aDdrMmZ5N3N1NDNuOXd3aTZvc3RhIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTM5WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--986487454b637b5614b46e8550478269d95d858b",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkODBzaGZ0aDdrMmZ5N3N1NDNuOXd3aTZvc3RhIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTM5WiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--986487454b637b5614b46e8550478269d95d858b",
+          "status": 204,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTUsInB1ciI6ImJsb2JfaWQifX0=--e4a6db3768ecbc8f6034ed4a1805bfdf51f318f7/audit.png",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rails/active_storage/direct_uploads",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTYsInB1ciI6ImJsb2JfaWQifX0=--f3a156d1ecb90c83710dbcccd83cdf59f32d82d9/audit.png",
+          "status": 404,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkbDkydHd2eG5saHVlYXRhNXN5MXo0dTA3YXJuIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTUzWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--713029b3774ac3e141c9b805a84f2bf6b4738cff",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkbDkydHd2eG5saHVlYXRhNXN5MXo0dTA3YXJuIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTUzWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--713029b3774ac3e141c9b805a84f2bf6b4738cff",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkbDkydHd2eG5saHVlYXRhNXN5MXo0dTA3YXJuIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTUzWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--713029b3774ac3e141c9b805a84f2bf6b4738cff",
+          "status": 422,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkbDkydHd2eG5saHVlYXRhNXN5MXo0dTA3YXJuIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTUzWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--713029b3774ac3e141c9b805a84f2bf6b4738cff",
+          "status": 204,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTYsInB1ciI6ImJsb2JfaWQifX0=--f3a156d1ecb90c83710dbcccd83cdf59f32d82d9/audit.png",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "DELETE",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "stale",
+          "method": "PUT",
+          "path": "/rails/active_storage/disk/eyJfcmFpbHMiOnsiZGF0YSI6eyJrZXkiOiJkbDkydHd2eG5saHVlYXRhNXN5MXo0dTA3YXJuIiwiY29udGVudF90eXBlIjoiaW1hZ2UvcG5nIiwiY29udGVudF9sZW5ndGgiOjEwLCJjaGVja3N1bSI6ImVCNWVKRjFwdFdhWG00YmlqU1B5eHc9PSIsInNlcnZpY2VfbmFtZSI6ImxvY2FsIn0sImV4cCI6IjIwMjYtMTAtMTBUMTQ6MjM6MjIuNTUzWiIsInB1ciI6ImJsb2JfdG9rZW4ifX0=--713029b3774ac3e141c9b805a84f2bf6b4738cff",
+          "status": 401,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "stale",
+          "method": "POST",
+          "path": "/rails/active_storage/direct_uploads",
+          "status": 401,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/blobs/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTYsInB1ciI6ImJsb2JfaWQifX0=--f3a156d1ecb90c83710dbcccd83cdf59f32d82d9/audit.png",
+          "status": 200,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "attachment_lifecycle",
+      "implementation": "rust",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rooms/654632876/messages",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractmoon",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PATCH",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 302,
+          "location": "/rooms/654632876/messages/933434638",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/representations/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTcsInB1ciI6ImJsb2JfaWQifX0=--c03aacb2e3d70bfc8fd7a0540d80fe571acef4ab/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJ3ZWJwIiwicmVzaXplX3RvX2xpbWl0IjpbMTIwMCw4MDBdfSwicHVyIjoidmFyaWF0aW9uIn19--132e54230de6ddc9c41e0118730416f2e3d3127f/contractvideo.mov",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PATCH",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 302,
+          "location": "/rooms/654632876/messages/933434638",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "DELETE",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        }
+      ]
+    },
+    {
+      "workflow": "attachment_lifecycle",
+      "implementation": "go",
+      "seed_snapshot_sha256": "8326b01af1e1981756734ba4ce77c368fbe0b8a3e628f33af6720b6bf6080553",
+      "pass": true,
+      "requests": [
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/session",
+          "status": 302,
+          "location": "/",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "POST",
+          "path": "/rooms/654632876/messages",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/searches?q=contractmoon",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PATCH",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 302,
+          "location": "/rooms/654632876/messages/933434638",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "public",
+          "method": "GET",
+          "path": "/rails/active_storage/representations/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTcsInB1ciI6ImJsb2JfaWQifX0=--c03aacb2e3d70bfc8fd7a0540d80fe571acef4ab/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJ3ZWJwIiwicmVzaXplX3RvX2xpbWl0IjpbMTIwMCw4MDBdfSwicHVyIjoidmFyaWF0aW9uIn19--132e54230de6ddc9c41e0118730416f2e3d3127f/contractvideo.mov",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "PATCH",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 302,
+          "location": "/rooms/654632876/messages/933434638",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "GET",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        },
+        {
+          "actor": "kevin",
+          "method": "DELETE",
+          "path": "/rooms/654632876/messages/933434638",
+          "status": 200,
+          "location": "",
+          "frame": null
+        }
+      ]
+    }
+  ]
+}

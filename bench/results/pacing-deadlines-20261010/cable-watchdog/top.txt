@@ -1,0 +1,141 @@
+File: campfire
+Build ID: 48423f3ee0d301647805e2fd09233352175d4c61
+Type: alloc_space
+Time: 2026-10-10 06:33:14 PDT
+Showing nodes accounting for 2536.85MB, 90.80% of 2793.99MB total
+Dropped 337 nodes (cum <= 13.97MB)
+      flat  flat%   sum%        cum   cum%
+  385.80MB 13.81% 13.81%   385.80MB 13.81%  bytes.Clone (inline)
+  307.57MB 11.01% 24.82%   307.57MB 11.01%  slices.Grow[go.shape.[]uint8,go.shape.uint8] (inline)
+  282.56MB 10.11% 34.93%  1495.39MB 53.52%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).publish
+  247.52MB  8.86% 43.79%   259.53MB  9.29%  context.AfterFunc
+  217.56MB  7.79% 51.58%   633.86MB 22.69%  github.com/basecamp/once-campfire-go/internal/database.(*DB).AuthorizedSessions
+  163.91MB  5.87% 57.44%   470.97MB 16.86%  encoding/json/internal/jsonwire.AppendQuote
+  129.62MB  4.64% 62.08%   129.62MB  4.64%  internal/bytealg.MakeNoZero
+   85.50MB  3.06% 65.14%    85.50MB  3.06%  github.com/mattn/go-sqlite3._Cfunc_GoStringN (inline)
+   67.01MB  2.40% 67.54%   142.52MB  5.10%  github.com/basecamp/once-campfire-go/internal/html.ParseFragmentWithOptions
+   62.67MB  2.24% 69.78%   466.44MB 16.69%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).PublishStreams
+   59.50MB  2.13% 71.91%   145.01MB  5.19%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+   41.51MB  1.49% 73.40%    41.51MB  1.49%  github.com/basecamp/once-campfire-go/internal/html.NewTokenizerFragment
+      38MB  1.36% 74.76%   261.02MB  9.34%  github.com/coder/websocket.(*Conn).setupWriteTimeout
+   32.01MB  1.15% 75.90%   121.01MB  4.33%  database/sql.(*DB).queryDC
+   30.02MB  1.07% 76.98%   667.99MB 23.91%  github.com/basecamp/once-campfire-go/internal/application.(*MessageNotifications).Created
+   30.02MB  1.07% 78.05%    30.02MB  1.07%  net/textproto.MIMEHeader.Set (inline)
+   27.50MB  0.98% 79.04%   172.02MB  6.16%  github.com/basecamp/once-campfire-go/internal/richtext.parseIn
+   26.02MB  0.93% 79.97%    50.52MB  1.81%  github.com/basecamp/once-campfire-go/internal/database.(*DB).RoomMemberIDs
+      21MB  0.75% 80.72%       21MB  0.75%  database/sql.driverArgsConnLocked
+      21MB  0.75% 81.47%       21MB  0.75%  github.com/basecamp/once-campfire-go/internal/html.(*parser).addText
+   20.50MB  0.73% 82.21%    20.50MB  0.73%  fmt.Sprintf
+   17.50MB  0.63% 82.83%    17.50MB  0.63%  context.(*cancelCtx).propagateCancel
+      17MB  0.61% 83.44%    56.51MB  2.02%  github.com/mattn/go-sqlite3.(*SQLiteStmt).query
+   16.50MB  0.59% 84.03%    16.50MB  0.59%  github.com/basecamp/once-campfire-go/internal/richtext.clone
+   16.50MB  0.59% 84.62%    16.50MB  0.59%  github.com/mattn/go-sqlite3.(*SQLiteStmt).exec
+   15.50MB  0.55% 85.18%       21MB  0.75%  context.withCancel (inline)
+      15MB  0.54% 85.71%       15MB  0.54%  net/textproto.readMIMEHeader
+   14.01MB   0.5% 86.21%    14.01MB   0.5%  net/http.Header.Clone (inline)
+   11.50MB  0.41% 86.63%   158.51MB  5.67%  database/sql.(*Rows).nextLocked
+   10.51MB  0.38% 87.00%    25.01MB   0.9%  github.com/basecamp/once-campfire-go/internal/database.messageRooms
+    8.50MB   0.3% 87.31%    21.51MB  0.77%  github.com/basecamp/once-campfire-go/internal/database.userDisplays
+       8MB  0.29% 87.59%       27MB  0.97%  github.com/basecamp/once-campfire-go/internal/database.(*DB).PushRecipients
+    7.50MB  0.27% 87.86%    84.02MB  3.01%  github.com/basecamp/once-campfire-go/internal/database.messageDisplays
+    7.50MB  0.27% 88.13%       25MB  0.89%  database/sql.(*Rows).initContextClose
+       6MB  0.21% 88.34%    43.50MB  1.56%  github.com/basecamp/once-campfire-go/internal/database.(*DB).createMessage.func1
+       6MB  0.21% 88.56%       17MB  0.61%  database/sql.(*DB).beginDC
+       5MB  0.18% 88.74%       36MB  1.29%  github.com/basecamp/once-campfire-go/internal/presentation.avatarPath
+       5MB  0.18% 88.92%       29MB  1.04%  github.com/basecamp/once-campfire-go/internal/rails.Verifier.GenerateRaw
+    4.50MB  0.16% 89.08%    25.01MB  0.89%  net/http.readRequestLimit
+    4.50MB  0.16% 89.24%    80.01MB  2.86%  github.com/basecamp/once-campfire-go/internal/richtext.Document.process
+    4.50MB  0.16% 89.40%    39.50MB  1.41%  github.com/mattn/go-sqlite3.(*SQLiteRows).eagerFirstStepLocked
+    3.50MB  0.13% 89.53%    24.50MB  0.88%  context.WithCancel
+       3MB  0.11% 89.63%  2455.95MB 87.90%  github.com/basecamp/once-campfire-go/internal/front.PublicCompression.func1
+       3MB  0.11% 89.74%    97.01MB  3.47%  github.com/basecamp/once-campfire-go/internal/database.(*DB).createMessage
+       3MB  0.11% 89.85%       19MB  0.68%  github.com/basecamp/once-campfire-go/internal/rails.(*Secrets).VerifyCookie
+       3MB  0.11% 89.96%   153.54MB  5.50%  github.com/coder/websocket.NewPreparedMessage (inline)
+    2.50MB  0.09% 90.05%    24.50MB  0.88%  github.com/basecamp/once-campfire-go/internal/presentation.PrepareMessages
+    2.50MB 0.089% 90.13%    28.01MB  1.00%  net/http.(*conn).readRequest
+    2.50MB 0.089% 90.22%   100.51MB  3.60%  github.com/basecamp/once-campfire-go/internal/application.(*NotificationQueries).Push
+    2.50MB 0.089% 90.31%   101.02MB  3.62%  github.com/basecamp/once-campfire-go/internal/database.(*DB).MessageDisplays
+       2MB 0.072% 90.39%    14.50MB  0.52%  github.com/basecamp/once-campfire-go/internal/database.(*DB).AuthenticateSession
+       2MB 0.072% 90.46%    17.50MB  0.63%  github.com/basecamp/once-campfire-go/internal/database.messageBoosts
+       2MB 0.072% 90.53%       25MB  0.89%  database/sql.(*DB).execDC
+    1.50MB 0.054% 90.58%       19MB  0.68%  github.com/basecamp/once-campfire-go/internal/database.(*DB).pushQuery
+    1.50MB 0.054% 90.64%    73.51MB  2.63%  database/sql.(*DB).query
+       1MB 0.036% 90.67%  2448.45MB 87.63%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP
+       1MB 0.036% 90.71%    18.50MB  0.66%  database/sql.(*DB).begin
+    0.50MB 0.018% 90.73%   162.63MB  5.82%  github.com/basecamp/once-campfire-go/internal/presentation.(*Renderer).messageMarkup
+    0.50MB 0.018% 90.74%    22.51MB  0.81%  github.com/basecamp/once-campfire-go/internal/web.parseRequestForm
+    0.50MB 0.018% 90.76%   147.01MB  5.26%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+    0.50MB 0.018% 90.78%  2347.92MB 84.03%  github.com/basecamp/once-campfire-go/internal/web.(*Server).auth.func1
+    0.50MB 0.018% 90.80%  2506.47MB 89.71%  net/http.(*conn).serve
+         0     0% 90.80%    18.50MB  0.66%  database/sql.(*DB).BeginTx
+         0     0% 90.80%    18.50MB  0.66%  database/sql.(*DB).BeginTx.func1
+         0     0% 90.80%    73.51MB  2.63%  database/sql.(*DB).QueryContext
+         0     0% 90.80%    73.51MB  2.63%  database/sql.(*DB).QueryContext.func1
+         0     0% 90.80%       27MB  0.97%  database/sql.(*DB).QueryRowContext (inline)
+         0     0% 90.80%       23MB  0.82%  database/sql.(*DB).execDC.func2
+         0     0% 90.80%    65.51MB  2.34%  database/sql.(*DB).queryDC.func1
+         0     0% 90.80%    99.01MB  3.54%  database/sql.(*DB).retry
+         0     0% 90.80%    15.50MB  0.55%  database/sql.(*Row).Scan
+         0     0% 90.80%   161.01MB  5.76%  database/sql.(*Rows).Next
+         0     0% 90.80%   158.51MB  5.67%  database/sql.(*Rows).Next.func1
+         0     0% 90.80%       26MB  0.93%  database/sql.(*Tx).ExecContext
+         0     0% 90.80%    50.51MB  1.81%  database/sql.(*Tx).QueryContext
+         0     0% 90.80%    55.51MB  1.99%  database/sql.ctxDriverQuery
+         0     0% 90.80%    94.01MB  3.36%  database/sql.withLock
+         0     0% 90.80%   707.72MB 25.33%  encoding/json.Marshal (inline)
+         0     0% 90.80%   281.46MB 10.07%  encoding/json/jsontext.(*Encoder).WriteToken (inline)
+         0     0% 90.80%   281.46MB 10.07%  encoding/json/jsontext.(*encoderState).WriteToken
+         0     0% 90.80%   281.46MB 10.07%  encoding/json/jsontext.Token.appendString
+         0     0% 90.80%   710.73MB 25.44%  encoding/json/v2.Marshal
+         0     0% 90.80%   281.46MB 10.07%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 90.80%   189.50MB  6.78%  encoding/json/v2.makeSliceArshaler.func2
+         0     0% 90.80%   189.50MB  6.78%  encoding/json/v2.makeStringArshaler.func1
+         0     0% 90.80%   281.46MB 10.07%  encoding/json/v2.makeStructArshaler.func2
+         0     0% 90.80%   472.97MB 16.93%  encoding/json/v2.marshalEncode
+         0     0% 90.80%   281.46MB 10.07%  encoding/json/v2.marshalValueAny
+         0     0% 90.80%    45.01MB  1.61%  github.com/basecamp/once-campfire-go/internal/application.(*ContentQueries).MentionedIDs
+         0     0% 90.80%       28MB  1.00%  github.com/basecamp/once-campfire-go/internal/application.(*ContentQueries).PlainText
+         0     0% 90.80%  2164.25MB 77.46%  github.com/basecamp/once-campfire-go/internal/application.(*MessageEffects).Created
+         0     0% 90.80%  1471.26MB 52.66%  github.com/basecamp/once-campfire-go/internal/application.(*MessagePublications).Created
+         0     0% 90.80%  1094.13MB 39.16%  github.com/basecamp/once-campfire-go/internal/application.(*MessagePublications).publish
+         0     0% 90.80%   375.13MB 13.43%  github.com/basecamp/once-campfire-go/internal/application.(*MessageQueries).CreatedStream
+         0     0% 90.80%    97.01MB  3.47%  github.com/basecamp/once-campfire-go/internal/application.(*Messages).Create (inline)
+         0     0% 90.80%    97.01MB  3.47%  github.com/basecamp/once-campfire-go/internal/application.(*Messages).create
+         0     0% 90.80%       21MB  0.75%  github.com/basecamp/once-campfire-go/internal/application.(*NotificationQueries).WebhookRecipients
+         0     0% 90.80%       25MB  0.89%  github.com/basecamp/once-campfire-go/internal/application.(*WebhookReplies).Enqueue
+         0     0% 90.80%  1091.63MB 39.07%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Publish (inline)
+         0     0% 90.80%   262.02MB  9.38%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Serve.func2
+         0     0% 90.80%       14MB   0.5%  github.com/basecamp/once-campfire-go/internal/database.(*DB).BannedIP
+         0     0% 90.80%    97.01MB  3.47%  github.com/basecamp/once-campfire-go/internal/database.(*DB).CreateMessage (inline)
+         0     0% 90.80%    51.51MB  1.84%  github.com/basecamp/once-campfire-go/internal/database.(*DB).Transaction
+         0     0% 90.80%       21MB  0.75%  github.com/basecamp/once-campfire-go/internal/database.prepareMessageSearchBody
+         0     0% 90.80%  2452.95MB 87.79%  github.com/basecamp/once-campfire-go/internal/front.(*Cache).Handler.func1
+         0     0% 90.80%  2448.45MB 87.63%  github.com/basecamp/once-campfire-go/internal/front.Deflate.func1
+         0     0% 90.80%  2477.96MB 88.69%  github.com/basecamp/once-campfire-go/internal/front.forward.func1
+         0     0% 90.80%       34MB  1.22%  github.com/basecamp/once-campfire-go/internal/html.(*parser).parse
+         0     0% 90.80%    22.50MB  0.81%  github.com/basecamp/once-campfire-go/internal/html.(*parser).parseCurrentToken
+         0     0% 90.80%    22.50MB  0.81%  github.com/basecamp/once-campfire-go/internal/html.inBodyIM
+         0     0% 90.80%   159.60MB  5.71%  github.com/basecamp/once-campfire-go/internal/presentation.(*Renderer).AppendMessage
+         0     0% 90.80%    90.51MB  3.24%  github.com/basecamp/once-campfire-go/internal/presentation.(*Renderer).MessageViews
+         0     0% 90.80%    30.50MB  1.09%  github.com/basecamp/once-campfire-go/internal/rails.(*Secrets).SignedID
+         0     0% 90.80%    29.50MB  1.06%  github.com/basecamp/once-campfire-go/internal/rails.Verifier.Generate
+         0     0% 90.80%    21.50MB  0.77%  github.com/basecamp/once-campfire-go/internal/richtext.Canonical
+         0     0% 90.80%    80.51MB  2.88%  github.com/basecamp/once-campfire-go/internal/richtext.Document.Display
+         0     0% 90.80%    93.51MB  3.35%  github.com/basecamp/once-campfire-go/internal/richtext.Prepare (inline)
+         0     0% 90.80%   114.02MB  4.08%  github.com/basecamp/once-campfire-go/internal/richtext.load
+         0     0% 90.80%   172.02MB  6.16%  github.com/basecamp/once-campfire-go/internal/richtext.parse (inline)
+         0     0% 90.80%    24.51MB  0.88%  github.com/basecamp/once-campfire-go/internal/web.(*Server).ServeHTTP.func1
+         0     0% 90.80%  2290.77MB 81.99%  github.com/basecamp/once-campfire-go/internal/web.(*Server).createMessage
+         0     0% 90.80%  2351.42MB 84.16%  github.com/basecamp/once-campfire-go/internal/web.(*Server).routeHTTP
+         0     0% 90.80%    24.51MB  0.88%  github.com/basecamp/once-campfire-go/internal/web.(*responseBuffer).finish
+         0     0% 90.80%    18.01MB  0.64%  github.com/basecamp/once-campfire-go/internal/web.respondFormat
+         0     0% 90.80%   261.02MB  9.34%  github.com/coder/websocket.(*Conn).WritePrepared
+         0     0% 90.80%   261.02MB  9.34%  github.com/coder/websocket.(*Conn).writeFrame
+         0     0% 90.80%    55.51MB  1.99%  github.com/mattn/go-sqlite3.(*SQLiteConn).QueryContext
+         0     0% 90.80%    17.50MB  0.63%  github.com/mattn/go-sqlite3.(*SQLiteConn).exec
+         0     0% 90.80%    55.51MB  1.99%  github.com/mattn/go-sqlite3.(*SQLiteConn).query
+         0     0% 90.80%  2477.96MB 88.69%  net/http.HandlerFunc.ServeHTTP
+         0     0% 90.80%    30.02MB  1.07%  net/http.Header.Set (partial-inline)
+         0     0% 90.80%  2477.96MB 88.69%  net/http.serverHandler.ServeHTTP
+         0     0% 90.80%   129.62MB  4.64%  strings.(*Builder).Grow
+         0     0% 90.80%   129.62MB  4.64%  strings.(*Builder).grow

@@ -1,0 +1,23 @@
+{
+  "started_at": "2026-10-10T12:56:51Z",
+  "source_revision": "7aa66f20d6a54c9988d4510dc5d87e7fb04c9a18",
+  "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+  "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+  "rate_loadgen_sha256": "1903b273f9e6a00e29922ad5d81f0fdd1edf706233431d4e575c2043f0f2ec66",
+  "server_cpus": "0-3",
+  "client_cpus": "4-7",
+  "settings": {
+    "read_rate": 10000,
+    "post_rate": 3000,
+    "duration": 3,
+    "warmup": 1,
+    "concurrency_bound": 64,
+    "gzip": 1,
+    "gogc": 100
+  },
+  "validation": "Shared seed-grounded route contracts before timing and four shared per-response checks after each read sample. Timed httprate consumes full wire bodies and checks status/nonempty/transport, not semantic content. Each write sample independently audits exact persisted indexed body, unique client identity, room and creator; timed HTTP acknowledgment IDs are not captured.",
+  "images": {
+    "go-before": "sha256:19993ee48ce455e3ad3cbd85c2b9593e60d6c29495f48fe242c93f7d76bcb34b",
+    "go": "sha256:44cc326af3a3f1c7d32752a88db2215528b9b1e1ec13c115705df836af3df23a"
+  }
+}

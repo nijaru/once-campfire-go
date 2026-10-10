@@ -1,0 +1,163 @@
+[
+  {
+    "app": "go",
+    "round": 1,
+    "cable": {
+      "clients": 64,
+      "connect_secs": 0.07,
+      "distinct_session_cookies": 64,
+      "failed": 0,
+      "latency": {
+        "all_clients": {
+          "max_ms": 14.503,
+          "mean_ms": 8.49,
+          "n": 100,
+          "p50_ms": 8.287,
+          "p90_ms": 10.199,
+          "p99_ms": 13.919
+        },
+        "complete": 100,
+        "messages": 100,
+        "per_client": {
+          "max_ms": 14.503,
+          "mean_ms": 7.47,
+          "n": 6400,
+          "p50_ms": 7.419,
+          "p90_ms": 9.343,
+          "p99_ms": 13.455
+        },
+        "post": {
+          "max_ms": 13.863,
+          "mean_ms": 6.59,
+          "n": 100,
+          "p50_ms": 6.063,
+          "p90_ms": 8.847,
+          "p99_ms": 12.839
+        },
+        "post_attempts": 100,
+        "post_errors": 0,
+        "post_successes": 100
+      },
+      "ready": 64,
+      "refreshes": 21,
+      "session_rows": 64,
+      "subscriptions_per_client": 6,
+      "subscriptions_per_client_range": {
+        "max": 6,
+        "min": 6
+      },
+      "throughput": {
+        "all_clients": {
+          "max_ms": 28.527,
+          "mean_ms": 2.97,
+          "n": 13174,
+          "p50_ms": 2.555,
+          "p90_ms": 4.915,
+          "p99_ms": 9.751
+        },
+        "complete": 13174,
+        "delivered_msgs_per_sec": 2633.9,
+        "drain_secs": 0.0,
+        "frames_per_sec": 168571.0,
+        "per_client": {
+          "max_ms": 28.527,
+          "mean_ms": 1.88,
+          "n": 843136,
+          "p50_ms": 1.584,
+          "p90_ms": 3.207,
+          "p99_ms": 6.731
+        },
+        "post": {
+          "max_ms": 23.215,
+          "mean_ms": 1.52,
+          "n": 13174,
+          "p50_ms": 1.236,
+          "p90_ms": 2.705,
+          "p99_ms": 5.895
+        },
+        "post_attempts": 13174,
+        "post_errors": 0,
+        "posted": 13174,
+        "posters": 4,
+        "posts_per_sec": 2633.9,
+        "wire_mb_per_sec": null
+      },
+      "unread_frames": 849536,
+      "verified_distinct_people": 64,
+      "phase_memory": [
+        {
+          "phase": "PHASE connect 1791638695072",
+          "memory": {
+            "VmHWM": "104052 kB",
+            "VmRSS": "104052 kB",
+            "Threads": "9"
+          }
+        },
+        {
+          "phase": "PHASE connected 1791638695137",
+          "memory": {
+            "VmHWM": "103984 kB",
+            "VmRSS": "103888 kB",
+            "Threads": "9"
+          }
+        },
+        {
+          "phase": "PHASE paced 1791638696147",
+          "memory": {
+            "VmHWM": "103984 kB",
+            "VmRSS": "103888 kB",
+            "Threads": "9"
+          }
+        },
+        {
+          "phase": "PHASE paced_drained 1791638706750",
+          "memory": {
+            "VmHWM": "112048 kB",
+            "VmRSS": "112048 kB",
+            "Threads": "11"
+          }
+        },
+        {
+          "phase": "PHASE saturated 1791638706751",
+          "memory": {
+            "VmHWM": "112048 kB",
+            "VmRSS": "112048 kB",
+            "Threads": "11"
+          }
+        },
+        {
+          "phase": "PHASE saturated_posted 1791638711753",
+          "memory": {
+            "VmHWM": "137976 kB",
+            "VmRSS": "133564 kB",
+            "Threads": "13"
+          }
+        },
+        {
+          "phase": "PHASE saturated_drained 1791638711753",
+          "memory": {
+            "VmHWM": "137976 kB",
+            "VmRSS": "133628 kB",
+            "Threads": "13"
+          }
+        },
+        {
+          "phase": "PHASE done 1791638711754",
+          "memory": {
+            "VmHWM": "137976 kB",
+            "VmRSS": "133628 kB",
+            "Threads": "13"
+          }
+        }
+      ],
+      "generator_cpu_percent": 39.49762240306286,
+      "write_audit": {
+        "persisted": 13274,
+        "exact_unique_markers": true,
+        "indexed": 13274,
+        "integrity": "ok",
+        "presence_after_disconnect": 0
+      }
+    }
+  }
+]

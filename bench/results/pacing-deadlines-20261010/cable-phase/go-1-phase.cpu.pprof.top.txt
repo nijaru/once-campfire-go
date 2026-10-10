@@ -1,0 +1,34 @@
+File: campfire
+Build ID: 03367f40cfc33eb63f3a7cd3837649378c125b60
+Type: cpu
+Time: 2026-10-10 06:20:28 PDT
+Duration: 5s, Total samples = 11.99s (239.82%)
+Showing nodes accounting for 8.59s, 71.64% of 11.99s total
+Dropped 447 nodes (cum <= 0.06s)
+Showing top 25 nodes out of 258
+      flat  flat%   sum%        cum   cum%
+     3.55s 29.61% 29.61%      3.55s 29.61%  internal/runtime/syscall/linux.Syscall6
+     2.42s 20.18% 49.79%      2.59s 21.60%  runtime.cgocall
+     0.58s  4.84% 54.63%      0.58s  4.84%  runtime.nanotime (inline)
+     0.31s  2.59% 57.21%      0.31s  2.59%  runtime.memmove
+     0.31s  2.59% 59.80%      0.62s  5.17%  runtime.selectgo
+     0.15s  1.25% 61.05%      0.29s  2.42%  encoding/json/internal/jsonwire.AppendQuote
+     0.12s  1.00% 62.05%      0.13s  1.08%  runtime.lock2
+     0.11s  0.92% 62.97%      0.16s  1.33%  runtime.tryDeferToSpanScan
+     0.10s  0.83% 63.80%      0.72s  6.01%  runtime.mallocgc
+     0.09s  0.75% 64.55%      0.18s  1.50%  time.now
+     0.08s  0.67% 65.22%      0.09s  0.75%  runtime.exitsyscall
+     0.08s  0.67% 65.89%      0.16s  1.33%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.08s  0.67% 66.56%      0.08s  0.67%  runtime.memclrNoHeapPointers
+     0.07s  0.58% 67.14%      0.08s  0.67%  runtime.reentersyscall
+     0.06s   0.5% 67.64%      0.06s   0.5%  crypto/internal/fips140/sha256.blockSHA2
+     0.06s   0.5% 68.14%      0.06s   0.5%  runtime.acquirem
+     0.06s   0.5% 68.64%      0.10s  0.83%  runtime.sellock
+     0.06s   0.5% 69.14%      0.10s  0.83%  runtime.unlock2
+     0.05s  0.42% 69.56%      0.36s  3.00%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+     0.05s  0.42% 69.97%      0.08s  0.67%  runtime.(*_panic).nextDefer
+     0.04s  0.33% 70.31%      0.13s  1.08%  context.(*cancelCtx).Done
+     0.04s  0.33% 70.64%      0.12s  1.00%  database/sql.convertAssignRows
+     0.04s  0.33% 70.98%      0.09s  0.75%  runtime.(*sweepLocked).sweep
+     0.04s  0.33% 71.31%      0.07s  0.58%  runtime.cgoCheckPointer
+     0.04s  0.33% 71.64%      0.30s  2.50%  runtime.mallocgcSmallScanNoHeader

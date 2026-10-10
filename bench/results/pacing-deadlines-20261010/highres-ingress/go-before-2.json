@@ -1,0 +1,156 @@
+{
+  "app": "go-before",
+  "round": 2,
+  "http": [
+    {
+      "mode": "fixed-offered-rate",
+      "path": "POST /rooms/201306877/messages",
+      "offered_rps": 3000,
+      "conc": 64,
+      "queue_capacity": 8192,
+      "queue_peak": 0,
+      "gzip": true,
+      "secs": 1,
+      "elapsed_secs": 1.004238938,
+      "drain_secs": 10,
+      "planned": 3000,
+      "scheduled": 3000,
+      "attempted": 3000,
+      "ok": 3000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 2987.336864247341,
+      "avg_bytes": 1955,
+      "statuses": {
+        "200": 3000
+      },
+      "latency": {
+        "max_ms": 40.425869,
+        "mean_ms": 3.5831011433333337,
+        "n": 3000,
+        "p50_ms": 3.024,
+        "p90_ms": 6.416,
+        "p95_ms": 8.304,
+        "p99_ms": 14.192
+      },
+      "service_latency": {
+        "max_ms": 38.243281,
+        "mean_ms": 2.037771723666667,
+        "n": 3000,
+        "p50_ms": 1.42,
+        "p90_ms": 3.968,
+        "p95_ms": 5.864,
+        "p99_ms": 12.624
+      },
+      "queue_latency": {
+        "max_ms": 4.605232,
+        "mean_ms": 0.32333789399999996,
+        "n": 3000,
+        "p50_ms": 0.054,
+        "p90_ms": 1.174,
+        "p95_ms": 1.77,
+        "p99_ms": 3.812
+      },
+      "generator_lateness": {
+        "max_ms": 4.463224,
+        "mean_ms": 1.2219915256666667,
+        "n": 3000,
+        "p50_ms": 0.987,
+        "p90_ms": 2.784,
+        "p95_ms": 3.252,
+        "p99_ms": 3.92
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "generator_cpu_percent": 12.42447101893702,
+      "route": "post_message",
+      "warmup": true,
+      "persisted_write_audit": {
+        "count": 3000,
+        "exact_bodies": true,
+        "unique_client_ids": true,
+        "correct_creator_room": true,
+        "normalized_fts": true
+      }
+    },
+    {
+      "mode": "fixed-offered-rate",
+      "path": "POST /rooms/201306877/messages",
+      "offered_rps": 3000,
+      "conc": 64,
+      "queue_capacity": 8192,
+      "queue_peak": 0,
+      "gzip": true,
+      "secs": 3,
+      "elapsed_secs": 3.002588011,
+      "drain_secs": 10,
+      "planned": 9000,
+      "scheduled": 9000,
+      "attempted": 9000,
+      "ok": 9000,
+      "errors": 0,
+      "network_errors": 0,
+      "status_errors": 0,
+      "empty_bodies": 0,
+      "dropped": 0,
+      "expired": 0,
+      "unscheduled": 0,
+      "rps": 2997.4142196759744,
+      "avg_bytes": 1956,
+      "statuses": {
+        "200": 9000
+      },
+      "latency": {
+        "max_ms": 22.523746,
+        "mean_ms": 3.127411345,
+        "n": 9000,
+        "p50_ms": 2.796,
+        "p90_ms": 5.608,
+        "p95_ms": 6.68,
+        "p99_ms": 9.648
+      },
+      "service_latency": {
+        "max_ms": 17.324298,
+        "mean_ms": 1.606036869888889,
+        "n": 9000,
+        "p50_ms": 1.268,
+        "p90_ms": 3.004,
+        "p95_ms": 3.912,
+        "p99_ms": 7.008
+      },
+      "queue_latency": {
+        "max_ms": 4.132521,
+        "mean_ms": 0.28363862988888894,
+        "n": 9000,
+        "p50_ms": 0.053,
+        "p90_ms": 1.042,
+        "p95_ms": 1.962,
+        "p99_ms": 3.04
+      },
+      "generator_lateness": {
+        "max_ms": 4.4723,
+        "mean_ms": 1.2377358452222222,
+        "n": 9000,
+        "p50_ms": 1.015,
+        "p90_ms": 2.784,
+        "p95_ms": 3.216,
+        "p99_ms": 3.904
+      },
+      "quantile_accuracy": "upper bucket bound; 1 us below 1 ms, less than 0.2% thereafter; successful responses only",
+      "generator_cpu_percent": 11.284721211026337,
+      "route": "post_message",
+      "warmup": false,
+      "persisted_write_audit": {
+        "count": 9000,
+        "exact_bodies": true,
+        "unique_client_ids": true,
+        "correct_creator_room": true,
+        "normalized_fts": true
+      }
+    }
+  ]
+}

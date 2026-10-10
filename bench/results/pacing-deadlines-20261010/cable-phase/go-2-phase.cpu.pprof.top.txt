@@ -1,0 +1,34 @@
+File: campfire
+Build ID: 03367f40cfc33eb63f3a7cd3837649378c125b60
+Type: cpu
+Time: 2026-10-10 06:20:58 PDT
+Duration: 5s, Total samples = 12.05s (240.96%)
+Showing nodes accounting for 8.58s, 71.20% of 12.05s total
+Dropped 560 nodes (cum <= 0.06s)
+Showing top 25 nodes out of 221
+      flat  flat%   sum%        cum   cum%
+     3.68s 30.54% 30.54%      3.68s 30.54%  internal/runtime/syscall/linux.Syscall6
+     2.34s 19.42% 49.96%      2.43s 20.17%  runtime.cgocall
+     0.51s  4.23% 54.19%      0.51s  4.23%  runtime.nanotime (inline)
+     0.28s  2.32% 56.51%      0.62s  5.15%  runtime.selectgo
+     0.23s  1.91% 58.42%      0.23s  1.91%  runtime.memmove
+     0.20s  1.66% 60.08%      0.30s  2.49%  encoding/json/internal/jsonwire.AppendQuote
+     0.16s  1.33% 61.41%      0.16s  1.33%  runtime.memclrNoHeapPointers
+     0.14s  1.16% 62.57%      0.15s  1.24%  runtime.tryDeferToSpanScan
+     0.14s  1.16% 63.73%      0.21s  1.74%  time.now
+     0.10s  0.83% 64.56%      0.10s  0.83%  runtime.lock2
+     0.09s  0.75% 65.31%      0.17s  1.41%  context.(*cancelCtx).Done
+     0.09s  0.75% 66.06%      0.70s  5.81%  runtime.mallocgc
+     0.09s  0.75% 66.80%      0.15s  1.24%  runtime.unlock2
+     0.07s  0.58% 67.39%      4.69s 38.92%  github.com/coder/websocket.(*Conn).writeFrame
+     0.05s  0.41% 67.80%      0.16s  1.33%  context.parentCancelCtx
+     0.05s  0.41% 68.22%      2.62s 21.74%  github.com/coder/websocket.(*Conn).writeFramePayload
+     0.05s  0.41% 68.63%      0.09s  0.75%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.05s  0.41% 69.05%      0.07s  0.58%  runtime.releaseSudog
+     0.04s  0.33% 69.38%      0.18s  1.49%  context.(*cancelCtx).cancel
+     0.04s  0.33% 69.71%      0.08s  0.66%  github.com/coder/websocket.writeFrameHeader
+     0.04s  0.33% 70.04%      0.30s  2.49%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+     0.04s  0.33% 70.37%      0.31s  2.57%  runtime.mallocgcSmallScanNoHeader
+     0.04s  0.33% 70.71%      0.16s  1.33%  runtime.mapassign_faststr
+     0.03s  0.25% 70.95%      1.14s  9.46%  database/sql.(*Rows).nextLocked
+     0.03s  0.25% 71.20%      0.09s  0.75%  database/sql.convertAssignRows

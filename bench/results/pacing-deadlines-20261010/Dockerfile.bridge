@@ -1,0 +1,5 @@
+FROM campfire-compare-toolchain
+COPY post-fix-20261010/go-cable-bridge /rails/bin/campfire
+WORKDIR /rails
+ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+CMD ["/rails/bin/campfire", "server"]

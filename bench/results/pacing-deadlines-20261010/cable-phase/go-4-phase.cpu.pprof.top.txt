@@ -1,0 +1,34 @@
+File: campfire
+Build ID: 03367f40cfc33eb63f3a7cd3837649378c125b60
+Type: cpu
+Time: 2026-10-10 06:22:00 PDT
+Duration: 5s, Total samples = 12.07s (241.27%)
+Showing nodes accounting for 8.61s, 71.33% of 12.07s total
+Dropped 510 nodes (cum <= 0.06s)
+Showing top 25 nodes out of 221
+      flat  flat%   sum%        cum   cum%
+     3.54s 29.33% 29.33%      3.54s 29.33%  internal/runtime/syscall/linux.Syscall6
+     2.66s 22.04% 51.37%      2.80s 23.20%  runtime.cgocall
+     0.45s  3.73% 55.10%      0.45s  3.73%  runtime.nanotime (inline)
+     0.33s  2.73% 57.83%      0.73s  6.05%  runtime.selectgo
+     0.22s  1.82% 59.65%      0.22s  1.82%  runtime.memmove
+     0.14s  1.16% 60.81%      0.22s  1.82%  time.now
+     0.13s  1.08% 61.89%      4.63s 38.36%  github.com/coder/websocket.(*Conn).writeFrame
+     0.12s  0.99% 62.88%      0.12s  0.99%  runtime.lock2
+     0.12s  0.99% 63.88%      0.12s  0.99%  runtime.memclrNoHeapPointers
+     0.08s  0.66% 64.54%      0.14s  1.16%  encoding/json/internal/jsonwire.AppendQuote
+     0.08s  0.66% 65.20%      0.13s  1.08%  runtime.unlock2
+     0.07s  0.58% 65.78%      0.19s  1.57%  context.(*cancelCtx).Done
+     0.06s   0.5% 66.28%      2.27s 18.81%  bufio.(*Writer).Flush
+     0.06s   0.5% 66.78%      0.63s  5.22%  runtime.mallocgc
+     0.06s   0.5% 67.27%      0.14s  1.16%  runtime.mapassign_faststr
+     0.06s   0.5% 67.77%      0.07s  0.58%  runtime.reentersyscall
+     0.06s   0.5% 68.27%      0.11s  0.91%  runtime.scanObjectsSmall
+     0.06s   0.5% 68.77%      0.08s  0.66%  runtime.sellock
+     0.05s  0.41% 69.18%      0.10s  0.83%  database/sql.convertAssignRows
+     0.05s  0.41% 69.59%      0.13s  1.08%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.05s  0.41% 70.01%      0.28s  2.32%  runtime.mapassign
+     0.05s  0.41% 70.42%      0.08s  0.66%  runtime.selunlock
+     0.04s  0.33% 70.75%      6.26s 51.86%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Serve.func2
+     0.04s  0.33% 71.09%      0.10s  0.83%  runtime.chanrecv
+     0.03s  0.25% 71.33%      0.11s  0.91%  context.(*cancelCtx).cancel
