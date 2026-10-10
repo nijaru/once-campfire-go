@@ -31,6 +31,9 @@ func (s *Server) avatar(w http.ResponseWriter, r *http.Request, _ database.User)
 		return
 	}
 	w.Header().Set("Cache-Control", "max-age=1800, public, stale-while-revalidate=604800")
+	if mediaNotModified(w, r, "users", user.ID, user.UpdatedAt) {
+		return
+	}
 	if s.serveVariant(w, r, "User", id, "avatar", 512, "webp") {
 		return
 	}
@@ -105,6 +108,14 @@ func (s *Server) avatar(w http.ResponseWriter, r *http.Request, _ database.User)
 	)
 }
 
+// Media freshness belongs to the record, before selecting a streamed file or
+// rendering initials. File responses bypass the completed-body digest emitter.
+func mediaNotModified(w http.ResponseWriter, r *http.Request, kind string, id int64, updated time.Time) bool {
+	etag := fmt.Sprintf("W/\"%s-%d-%x\"", kind, id, updated.UnixNano())
+	w.Header().Set("ETag", etag)
+	return notModified(w, r, etag, time.Time{})
+}
+
 func (s *Server) serveVariant(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -172,6 +183,9 @@ func (s *Server) logo(w http.ResponseWriter, r *http.Request) {
 		asset = "logos/app-icon-192.png"
 	}
 	w.Header().Set("Cache-Control", "max-age=300, public, stale-while-revalidate=604800")
+	if a.ID != 0 && mediaNotModified(w, r, "accounts", a.ID, a.UpdatedAt) {
+		return
+	}
 	if a.ID != 0 && s.serveVariant(w, r, "Account", a.ID, "logo", size, "png") {
 		return
 	}
