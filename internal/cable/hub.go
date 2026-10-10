@@ -177,6 +177,8 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 		defer cancel()
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
+		writer := newFrameWriter(ctx, cancel, conn, 30*time.Second)
+		defer writer.Close()
 		for {
 			var data []byte
 			var frame *websocket.PreparedMessage
@@ -194,13 +196,10 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 				}
 				data, _ = json.Marshal(map[string]any{"type": "ping", "message": time.Now().Unix()})
 			}
-			timeout, stop := context.WithTimeout(ctx, 30*time.Second)
 			if frame == nil {
 				frame = websocket.NewPreparedMessage(websocket.MessageText, data)
 			}
-			err := conn.WritePrepared(timeout, frame)
-			stop()
-			if err != nil || closeAfter {
+			if err := writer.Write(frame); err != nil || closeAfter {
 				return
 			}
 		}
