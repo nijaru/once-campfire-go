@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ type config struct {
 	Duration, Timeout, Drain           time.Duration
 	Concurrency, Queue                 int
 	Gzip                               bool
+	Pacing                             string
 }
 
 // Microsecond buckets retain 10 significant binary digits. Quantiles report
@@ -109,6 +111,7 @@ type counters struct {
 
 type result struct {
 	Mode             string         `json:"mode"`
+	Pacing           string         `json:"pacing"`
 	Path             string         `json:"path"`
 	Rate             float64        `json:"offered_rps"`
 	Concurrency      int            `json:"conc"`
@@ -140,6 +143,9 @@ type result struct {
 }
 
 func validate(c config) error {
+	if c.Pacing != "" && c.Pacing != "timer" && c.Pacing != "active" {
+		return fmt.Errorf("pacing must be timer or active")
+	}
 	u, err := url.Parse(c.Base)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.RawQuery != "" || u.Fragment != "" {
 		return fmt.Errorf("base must be an HTTP(S) URL without a query or fragment")
@@ -231,6 +237,9 @@ func run(parent context.Context, c config) (result, error) {
 	if err := validate(c); err != nil {
 		return result{}, err
 	}
+	if c.Pacing == "" {
+		c.Pacing = "timer"
+	}
 	transport := &http.Transport{
 		Proxy:              http.ProxyFromEnvironment,
 		DialContext:        (&net.Dialer{Timeout: c.Timeout, KeepAlive: 30 * time.Second}).DialContext,
@@ -260,7 +269,12 @@ func run(parent context.Context, c config) (result, error) {
 	defer timer.Stop()
 	for i := uint64(0); i < planned; i++ {
 		deadline := start.Add(time.Duration(float64(i) / c.Rate * float64(time.Second)))
-		if wait := time.Until(deadline); wait > 0 {
+		if c.Pacing == "active" {
+			// Runtime/OS timers may coalesce sub-millisecond arrivals. Active
+			// pacing trades roughly one generator CPU for finer deadlines.
+			for time.Now().Before(deadline) && ctx.Err() == nil {
+			}
+		} else if wait := time.Until(deadline); wait > 0 {
 			timer.Reset(wait)
 			select {
 			case <-timer.C:
@@ -276,6 +290,12 @@ func run(parent context.Context, c config) (result, error) {
 		select {
 		case jobs <- job{index: i, scheduled: deadline, enqueued: now}:
 			peak = max(peak, len(jobs))
+			if c.Pacing == "active" {
+				// Enqueueing makes the worker runnable on this producer's P.
+				// Let it run before spinning toward the next arrival; otherwise
+				// precise enqueue times can still produce bursty HTTP writes.
+				runtime.Gosched()
+			}
 		default:
 			dropped++
 		}
@@ -310,7 +330,7 @@ func run(parent context.Context, c config) (result, error) {
 		path = "POST /rooms/" + c.PostRoom + "/messages"
 	}
 	return result{
-		Mode: "fixed-offered-rate", Path: path, Rate: c.Rate, Concurrency: c.Concurrency,
+		Mode: "fixed-offered-rate", Pacing: c.Pacing, Path: path, Rate: c.Rate, Concurrency: c.Concurrency,
 		QueueCapacity: c.Queue, QueuePeak: peak, Gzip: c.Gzip, Seconds: c.Duration.Seconds(),
 		Elapsed: elapsed, Drain: c.Drain.Seconds(), Planned: planned, Scheduled: scheduled,
 		Attempted: all.attempted, OK: all.ok, Errors: errors, NetworkErrors: all.networkErrors,
@@ -333,6 +353,7 @@ func main() {
 	flag.StringVar(&c.PostRoom, "post-room", "", "POST messages to this room instead of GET")
 	flag.StringVar(&c.CSRF, "csrf", "", "CSRF token for POST")
 	flag.Float64Var(&c.Rate, "rate", 1000, "offered arrivals per second, independent of completions")
+	flag.StringVar(&c.Pacing, "pacing", "timer", "timer (may coalesce arrivals) or active (spin/yield; reserves roughly one generator CPU)")
 	flag.Float64Var(&duration, "duration", 10, "arrival window in seconds")
 	flag.Float64Var(&timeout, "timeout", 10, "per-request timeout in seconds")
 	flag.Float64Var(&drain, "drain", 10, "maximum completion grace after the arrival window, in seconds")
