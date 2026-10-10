@@ -1,0 +1,194 @@
+{
+  "candidate_revision": "32a9f0384489783bb9d1a75b375c394f574544b6",
+  "upstream_revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+  "candidate_binary_sha256": "6c265d5edc6aa3b4495e9078dc35249b58b3b182afeb0d80593fc3adbc6d9a5d",
+  "upstream_binary_sha256": "5ff8f5a4efd3b59289a0694f53656339c0a0a2d9181e3c3bae534bee8b9c78a3",
+  "rust_source_revision": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+  "rust_build_revision": "9872c1d9541551c0889a60e3d49a14488bd1e403",
+  "loadgen_build_revision": "e2440515d9093b8304da3d7662d8526f3234b047",
+  "warm_metadata": {
+    "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+    "response_validation": "route-contract-v1",
+    "started_at": "2026-10-10T01:15:30Z",
+    "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+    "server_cpus": "0-3",
+    "client_cpus": "4-7",
+    "network": "host",
+    "gzip": true,
+    "duration": 8,
+    "concurrencies": "16",
+    "rounds": 3,
+    "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+    "routes": "room_show,messages_page,sidebar,search,post_message",
+    "profile": "read-and-post-v1",
+    "mixed_writer": null,
+    "images": {
+      "go-before": "sha256:73e6a3658f79a948e257510c5fe303e77f0e3566b0aace0b5eb5d4e3cddd0964",
+      "go": "sha256:f0ff22c995244748f93f21dfa74644517dbad6c6fb2175d5bdf51a3483ddd09f",
+      "rust": "sha256:1afcb60e60c5ee9a4431d11429ea29b177557a01ab409023ea14c6b7b189a97f"
+    },
+    "image_labels": {
+      "go-before": {
+        "org.nijaru.experiment": "pr-readiness-20261010",
+        "org.opencontainers.image.revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437"
+      },
+      "go": {
+        "org.nijaru.experiment": "pr-readiness-20261010",
+        "org.opencontainers.image.revision": "32a9f0384489783bb9d1a75b375c394f574544b6"
+      },
+      "rust": {
+        "org.opencontainers.image.revision": "9872c1d9541551c0889a60e3d49a14488bd1e403"
+      }
+    },
+    "source_revisions": {
+      "go-before": {
+        "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+        "dirty": false
+      },
+      "go": {
+        "head": "32a9f0384489783bb9d1a75b375c394f574544b6",
+        "dirty": false
+      },
+      "rust": {
+        "head": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+        "dirty": false
+      }
+    },
+    "preflight_only": false,
+    "topology": {
+      "go-before": {
+        "processes": 1,
+        "cable": "native websocket",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      },
+      "go": {
+        "processes": 1,
+        "cable": "native websocket",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      },
+      "rust": {
+        "processes": 1,
+        "readers": "4",
+        "job_workers": "3",
+        "cable": "native tokio",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      }
+    },
+    "runtimes": {
+      "go-before": "go",
+      "go": "go",
+      "rust": "rust"
+    },
+    "complete": true
+  },
+  "mixed_metadata": {
+    "verification_revision": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+    "response_validation": "route-contract-v1",
+    "started_at": "2026-10-10T01:24:04Z",
+    "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+    "server_cpus": "0-3",
+    "client_cpus": "4-7",
+    "network": "host",
+    "gzip": true,
+    "duration": 8,
+    "concurrencies": "16",
+    "rounds": 3,
+    "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+    "routes": "room_show,messages_page,sidebar,search",
+    "profile": "mixed-read-write-v1",
+    "mixed_writer": {
+      "clients": 1,
+      "maximum_writes_per_second": 10,
+      "room": 201306877,
+      "catch_up": false
+    },
+    "images": {
+      "go-before": "sha256:73e6a3658f79a948e257510c5fe303e77f0e3566b0aace0b5eb5d4e3cddd0964",
+      "go": "sha256:f0ff22c995244748f93f21dfa74644517dbad6c6fb2175d5bdf51a3483ddd09f",
+      "rust": "sha256:1afcb60e60c5ee9a4431d11429ea29b177557a01ab409023ea14c6b7b189a97f"
+    },
+    "image_labels": {
+      "go-before": {
+        "org.nijaru.experiment": "pr-readiness-20261010",
+        "org.opencontainers.image.revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437"
+      },
+      "go": {
+        "org.nijaru.experiment": "pr-readiness-20261010",
+        "org.opencontainers.image.revision": "32a9f0384489783bb9d1a75b375c394f574544b6"
+      },
+      "rust": {
+        "org.opencontainers.image.revision": "9872c1d9541551c0889a60e3d49a14488bd1e403"
+      }
+    },
+    "source_revisions": {
+      "go-before": {
+        "head": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+        "dirty": false
+      },
+      "go": {
+        "head": "32a9f0384489783bb9d1a75b375c394f574544b6",
+        "dirty": false
+      },
+      "rust": {
+        "head": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad",
+        "dirty": false
+      }
+    },
+    "preflight_only": false,
+    "topology": {
+      "go-before": {
+        "processes": 1,
+        "cable": "native websocket",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      },
+      "go": {
+        "processes": 1,
+        "cable": "native websocket",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      },
+      "rust": {
+        "processes": 1,
+        "readers": "4",
+        "job_workers": "3",
+        "cable": "native tokio",
+        "jobs": "in-process",
+        "response_cache_mb": "64"
+      }
+    },
+    "runtimes": {
+      "go-before": "go",
+      "go": "go",
+      "rust": "rust"
+    },
+    "complete": true
+  },
+  "counts": {
+    "warm": {
+      "timed_responses": 11160642,
+      "audited_writes": 483167,
+      "errors": 0,
+      "invalid": 0
+    },
+    "mixed": {
+      "timed_reads": 12282887,
+      "timed_writes": 2880,
+      "audited_writes": 3600,
+      "errors": 0,
+      "invalid": 0
+    },
+    "profile_write": {
+      "timed_responses": 105855,
+      "audited_writes": 147668,
+      "errors": 0,
+      "invalid": 0
+    }
+  },
+  "diagnostic": "All four POST CPU profiles; graceful shutdown; actual tools runtime PID 7, not assumed PID 1. Diagnostic timing is not capacity evidence.",
+  "environment_failure": "Initial preflight used Ruby US-ASCII; UTF-8 rerun passed. Original failure preserved; no assertions changed.",
+  "limitations": "Shared ARM64 OrbStack/macOS host, guest affinity not physical isolation; tmpfs not NVMe/crash durability; three-build candidate remains middle; no distinct-user fanout or matched-rate latency yet. Material POST regression prevents readiness claim."
+}
