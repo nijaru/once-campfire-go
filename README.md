@@ -206,6 +206,10 @@ exemption; bot-key endpoints exempt authenticated bots only.
   Sidebar visibility effects use the committed previous value and have their own
   bounded lifetime rather than being lost to request cancellation.
 
+- Boost publications and bot JSON use the message target and author display captured
+  in the boost writer transaction, not earlier HTTP reads. A concurrent profile
+  change no longer leaves bot JSON inconsistent with the published boost.
+
 - Search follows current Go/Rust upstream: the newest 100 matching insertion IDs,
   displayed in ID order. Backdated messages can differ from Rails' timestamp order.
 

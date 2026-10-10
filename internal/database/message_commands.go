@@ -127,7 +127,7 @@ func (d *DB) UpdateMessage(ctx context.Context, user, id int64, input MessageInp
 	}
 	var result MessageCommit
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
-		room, err := messagePermission(ctx, tx, user, id, true)
+		room, err := messagePermission(ctx, tx, user, id)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (d *DB) deleteMessage(ctx context.Context, user, id int64, checkPermission 
 	var result MessageCommit
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
 		if checkPermission {
-			if _, err := messagePermission(ctx, tx, user, id, true); err != nil {
+			if _, err := messagePermission(ctx, tx, user, id); err != nil {
 				return err
 			}
 		}

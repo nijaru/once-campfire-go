@@ -53,6 +53,15 @@ func (s *MessagePublications) Updated(ctx context.Context, facts presentation.Fa
 	return result.Processing
 }
 
+func (s *MessagePublications) Removed(ctx context.Context, result MessageResult) (string, error) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	message := result.Commit.Message
+	output := rails.TurboStream("remove", "message_"+message.ClientID, "")
+	s.Cable.Publish(ctx, message.RoomID, output)
+	return output, result.Processing
+}
+
 func (s *MessagePublications) publish(room int64, output string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

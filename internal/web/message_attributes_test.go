@@ -183,7 +183,7 @@ func TestBoostIDIsNotInterpretedAsRoomID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var boost database.Boost
+	var boost database.BoostCommit
 	for range 3 {
 		boost, err = app.DB.CreateBoost(ctx, user.ID, message.ID, "yes")
 		if err != nil {

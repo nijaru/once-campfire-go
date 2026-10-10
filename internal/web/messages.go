@@ -58,12 +58,6 @@ func (s *Server) presentationFacts(ctx context.Context) presentation.Facts {
 	return facts
 }
 
-func (s *Server) publish(room int64, markup string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	s.Cable.Publish(ctx, room, markup)
-}
-
 func writeStream(w http.ResponseWriter, markup string) {
 	w.Header().Set("Content-Type", "text/vnd.turbo-stream.html; charset=utf-8")
 	fmt.Fprint(w, markup)
@@ -144,11 +138,9 @@ func (s *Server) deleteMessage(w http.ResponseWriter, r *http.Request, u databas
 		s.fail(w, err)
 		return
 	}
-	m = result.Commit.Message
-	markup := rails.TurboStream("remove", "message_"+m.ClientID, "")
-	s.publish(m.RoomID, markup)
-	if result.Processing != nil {
-		s.fail(w, result.Processing)
+	markup, err := s.MessagePublications.Removed(r.Context(), result)
+	if err != nil {
+		s.fail(w, err)
 		return
 	}
 	if respondFormat(w, r, "turbo_stream") != "" {
@@ -188,18 +180,16 @@ func (s *Server) createBoost(w http.ResponseWriter, r *http.Request, u database.
 		s.fail(w, err)
 		return
 	}
-	boost, err := s.DB.CreateBoost(r.Context(), u.ID, m.ID, r.Form.Get("boost[content]"))
+	result, err := s.BoostCommands.Create(r.Context(), u.ID, m.ID, r.Form.Get("boost[content]"))
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	markup, err := s.Presentation.Markup("boost", boost)
-	if err != nil {
-		s.fail(w, err)
+	if result.Processing != nil {
+		s.fail(w, result.Processing)
 		return
 	}
-	s.publish(m.RoomID, rails.TurboStream("append", "boosts_message_"+m.ClientID, markup))
-	http.Redirect(w, r, fmt.Sprintf("/messages/%d/boosts", m.ID), 302)
+	http.Redirect(w, r, fmt.Sprintf("/messages/%d/boosts", result.Commit.MessageID), 302)
 }
 
 func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.User) {
@@ -209,12 +199,10 @@ func (s *Server) deleteBoost(w http.ResponseWriter, r *http.Request, u database.
 		return
 	}
 	id := pathInt(r, "id")
-	if err = s.DB.DeleteBoost(r.Context(), u.ID, m.ID, id); err != nil {
+	if _, err = s.BoostCommands.Delete(r.Context(), u.ID, m.ID, id); err != nil {
 		s.fail(w, err)
 		return
 	}
-	markup := rails.TurboStream("remove", fmt.Sprintf("boost_%d", id), "")
-	s.publish(m.RoomID, markup)
 	w.WriteHeader(204)
 }
 

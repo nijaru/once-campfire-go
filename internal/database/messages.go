@@ -72,13 +72,12 @@ func messagePermission(
 	ctx context.Context,
 	tx *sql.Tx,
 	user, id int64,
-	administer bool,
 ) (room int64, err error) {
 	var creator int64
 	var role int
 	err = tx.QueryRowContext(ctx, "SELECT m.room_id,m.creator_id,u.role FROM messages m JOIN memberships member ON member.room_id=m.room_id JOIN users u ON u.id=member.user_id WHERE m.id=? AND u.id=? AND u.status=0", id, user).
 		Scan(&room, &creator, &role)
-	if err == nil && administer && creator != user && role != 1 {
+	if err == nil && creator != user && role != 1 {
 		err = ErrForbidden
 	}
 	return
@@ -123,25 +122,42 @@ func (d *DB) Boosts(ctx context.Context, message int64) ([]Boost, error) {
 	return result, rows.Err()
 }
 
-func (d *DB) CreateBoost(ctx context.Context, user, message int64, content string) (Boost, error) {
+// BoostCommit owns the boost and its message publication target from the writer
+// observation. It never needs a postcommit message lookup.
+type BoostCommit struct {
+	Boost
+	RoomID   int64
+	ClientID string
+	Author   APIAuthor
+}
+
+func boostTarget(ctx context.Context, tx *sql.Tx, user, message int64) (room int64, client string, err error) {
+	err = tx.QueryRowContext(ctx, "SELECT m.room_id,m.client_message_id FROM messages m JOIN memberships member ON member.room_id=m.room_id JOIN users u ON u.id=member.user_id WHERE m.id=? AND u.id=? AND u.status=0", message, user).Scan(&room, &client)
+	return
+}
+
+func (d *DB) CreateBoost(ctx context.Context, user, message int64, content string) (BoostCommit, error) {
 	now := d.Now()
-	b := Boost{
+	commit := BoostCommit{Boost: Boost{
 		MessageID: message,
 		BoosterID: user,
 		Content:   content,
 		CreatedAt: now,
 		UpdatedAt: now,
-	}
+	}}
+	b := &commit.Boost
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
-		room, err := messagePermission(ctx, tx, user, message, false)
+		room, client, err := boostTarget(ctx, tx, user, message)
 		if err != nil {
 			return err
 		}
-		var bio string
-		if err = tx.QueryRowContext(ctx, "SELECT name,coalesce(bio,''),updated_at FROM users WHERE id=?", user).Scan(&b.Booster, &bio, timestamp{&b.BoosterUpdatedAt}); err != nil {
+		commit.RoomID, commit.ClientID = room, client
+		commit.Author.ID = user
+		if err = tx.QueryRowContext(ctx, "SELECT name,coalesce(bio,''),updated_at,role FROM users WHERE id=?", user).Scan(&commit.Author.Name, &commit.Author.Bio, timestamp{&commit.Author.UpdatedAt}, &commit.Author.Role); err != nil {
 			return err
 		}
-		b.BoosterTitle = (User{Name: b.Booster, Bio: bio}).Title()
+		b.Booster, b.BoosterUpdatedAt = commit.Author.Name, commit.Author.UpdatedAt
+		b.BoosterTitle = commit.Author.Title()
 		result, err := tx.ExecContext(
 			ctx,
 			"INSERT INTO boosts(message_id,booster_id,content,created_at,updated_at) VALUES (?,?,?,?,?)",
@@ -160,15 +176,24 @@ func (d *DB) CreateBoost(ctx context.Context, user, message int64, content strin
 		}
 		return touchMessage(ctx, tx, message, room, Stamp(now))
 	})
-	return b, err
+	if err != nil {
+		return BoostCommit{}, err
+	}
+	return commit, nil
 }
 
-func (d *DB) DeleteBoost(ctx context.Context, user, message, id int64) error {
-	return d.Transaction(ctx, func(tx *sql.Tx) error {
-		room, err := messagePermission(ctx, tx, user, message, false)
+type BoostRemoval struct {
+	ID, MessageID, RoomID int64
+}
+
+func (d *DB) DeleteBoost(ctx context.Context, user, message, id int64) (BoostRemoval, error) {
+	commit := BoostRemoval{ID: id, MessageID: message}
+	err := d.Transaction(ctx, func(tx *sql.Tx) error {
+		room, _, err := boostTarget(ctx, tx, user, message)
 		if err != nil {
 			return err
 		}
+		commit.RoomID = room
 		result, err := tx.ExecContext(
 			ctx,
 			"DELETE FROM boosts WHERE id=? AND message_id=? AND booster_id=?",
@@ -188,6 +213,10 @@ func (d *DB) DeleteBoost(ctx context.Context, user, message, id int64) error {
 		}
 		return touchMessage(ctx, tx, message, room, Stamp(d.Now()))
 	})
+	if err != nil {
+		return BoostRemoval{}, err
+	}
+	return commit, nil
 }
 
 // Message is the unscoped model lookup used by background jobs.

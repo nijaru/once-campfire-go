@@ -45,6 +45,7 @@ type Dependencies struct {
 	Unfurler            *integrations.Unfurler
 	Storage             *storage.Store
 	MessageCommands     *application.Messages
+	BoostCommands       *application.Boosts
 	MessageQueries      *application.MessageQueries
 	PageQueries         *application.PageQueries
 	BotQueries          *application.BotQueries

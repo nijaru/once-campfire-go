@@ -88,7 +88,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	route, _, _ := recognizeRequest(r)
 	if strings.Contains(route.Action, "::boosts::") {
-		s.botBoost(w, r, user, room, string(raw))
+		s.botBoost(w, r, user, string(raw))
 		return
 	}
 	switch r.Method {
@@ -183,17 +183,15 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 			s.fail(w, err)
 			return
 		}
-		message = result.Commit.Message
-		s.publish(message.RoomID, rails.TurboStream("remove", "message_"+message.ClientID, ""))
-		if result.Processing != nil {
-			s.fail(w, result.Processing)
+		if _, err = s.MessagePublications.Removed(r.Context(), result); err != nil {
+			s.fail(w, err)
 			return
 		}
 		w.WriteHeader(204)
 	}
 	return
 }
-func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.User, room database.Room, body string) {
+func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.User, body string) {
 	message, err := s.findMessage(r, u, false)
 	if err != nil {
 		s.fail(w, err)
@@ -201,11 +199,10 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 	}
 	if r.Method == "DELETE" {
 		id := pathInt(r, "id")
-		if err = s.DB.DeleteBoost(r.Context(), u.ID, message.ID, id); err != nil {
+		if _, err = s.BoostCommands.Delete(r.Context(), u.ID, message.ID, id); err != nil {
 			s.fail(w, err)
 			return
 		}
-		s.publish(room.ID, rails.TurboStream("remove", fmt.Sprintf("boost_%d", id), ""))
 		w.WriteHeader(204)
 		return
 	}
@@ -217,17 +214,16 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 		w.WriteHeader(422)
 		return
 	}
-	boost, err := s.DB.CreateBoost(r.Context(), u.ID, message.ID, body)
+	result, err := s.BoostCommands.Create(r.Context(), u.ID, message.ID, body)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	markup, err := s.Presentation.Markup("boost", boost)
-	if err != nil {
-		s.fail(w, err)
+	if result.Processing != nil {
+		s.fail(w, result.Processing)
 		return
 	}
-	s.publish(room.ID, rails.TurboStream("append", "boosts_message_"+message.ClientID, markup))
+	boost := result.Commit
 	writeJSON(w, 201, struct {
 		ID        int64                `json:"id"`
 		Content   string               `json:"content"`
@@ -237,10 +233,10 @@ func (s *Server) botBoost(w http.ResponseWriter, r *http.Request, u database.Use
 			ID  int64  `json:"id"`
 			URL string `json:"url"`
 		} `json:"message"`
-	}{boost.ID, boost.Content, jsonTime(boost.CreatedAt), s.Presentation.APIUser(s.presentationFacts(r.Context()), database.APIAuthor{UserDisplay: database.UserDisplay{ID: u.ID, Name: u.Name, UpdatedAt: u.UpdatedAt}, Role: u.Role}), struct {
+	}{boost.ID, boost.Content, jsonTime(boost.CreatedAt), s.Presentation.APIUser(s.presentationFacts(r.Context()), boost.Author), struct {
 		ID  int64  `json:"id"`
 		URL string `json:"url"`
-	}{message.ID, fmt.Sprintf("%s/rooms/%d/messages/%d", s.origin(r), room.ID, message.ID)}})
+	}{boost.MessageID, fmt.Sprintf("%s/rooms/%d/messages/%d", s.origin(r), boost.RoomID, boost.MessageID)}})
 }
 func jsonTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
 func writeJSON(w http.ResponseWriter, status int, value any) {

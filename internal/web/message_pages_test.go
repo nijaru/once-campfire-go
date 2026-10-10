@@ -126,7 +126,7 @@ func TestMessageFormsKeepFreshBoostsAndAuthorization(t *testing.T) {
 	if err != nil || !strings.Contains(get(paths[2]), "fresh form boost") {
 		t.Fatalf("boost addition stale: %v", err)
 	}
-	if err := app.DB.DeleteBoost(ctx, user.ID, m.ID, boost.ID); err != nil || strings.Contains(get(paths[2]), "fresh form boost") {
+	if _, err := app.DB.DeleteBoost(ctx, user.ID, m.ID, boost.ID); err != nil || strings.Contains(get(paths[2]), "fresh form boost") {
 		t.Fatalf("boost deletion stale: %v", err)
 	}
 	if _, err := app.DB.Write.ExecContext(ctx, "DELETE FROM memberships WHERE user_id=? AND room_id=?", user.ID, m.RoomID); err != nil {

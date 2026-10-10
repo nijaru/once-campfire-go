@@ -77,10 +77,10 @@ func TestMessageLifecyclePermissionsAndSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = d.DeleteBoost(ctx, owner.ID, message.ID, boost.ID); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = d.DeleteBoost(ctx, owner.ID, message.ID, boost.ID); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("admin cannot delete someone else's boost: %v", err)
 	}
-	if err = d.DeleteBoost(ctx, member.ID, message.ID, boost.ID); err != nil {
+	if _, err = d.DeleteBoost(ctx, member.ID, message.ID, boost.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = d.CreateBoost(ctx, owner.ID, message.ID, "again"); err != nil {

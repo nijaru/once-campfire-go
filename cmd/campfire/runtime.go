@@ -69,6 +69,7 @@ func openApplication(config serverConfig) (*applicationRuntime, error) {
 		Unfurler: integrations.NewUnfurler(), Presentation: presenter, Fragments: fragments,
 		MessageQueries: messages, MessageCommands: commands,
 		MessagePublications: publications,
+		BoostCommands:       &application.Boosts{DB: db, Presentation: presenter, Cable: hub},
 		MessageEffects:      &application.MessageEffects{Notifications: notifications, Webhooks: webhooks, Publications: publications},
 		NotificationQueries: notificationQueries,
 		PageQueries:         &application.PageQueries{DB: db},
@@ -78,7 +79,7 @@ func openApplication(config serverConfig) (*applicationRuntime, error) {
 		AccountQueries:      &application.AccountQueries{DB: db, Secrets: secrets},
 		Searches:            &application.Searches{DB: db, Messages: messages},
 		RoomCommands:        &application.Rooms{DB: db, Cable: hub, Cleanup: cleanup},
-		AccountCommands:     &application.Accounts{DB: db, Attachments: attachments, Messages: commands, Cable: hub, Jobs: runner},
+		AccountCommands:     &application.Accounts{DB: db, Attachments: attachments, Messages: commands, Publications: publications, Cable: hub, Jobs: runner},
 		SessionCommands:     &application.Sessions{DB: db, Cable: hub},
 	}, web.Config{Secure: config.Secure, ResponseCacheBytes: config.ResponseBytes})
 	return &applicationRuntime{HTTP: http, db: db, cable: hub, jobs: runner, storage: store}, nil

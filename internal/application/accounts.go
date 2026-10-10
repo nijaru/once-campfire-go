@@ -9,15 +9,15 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/cable"
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/jobs"
-	"github.com/basecamp/once-campfire-go/internal/rails"
 )
 
 type Accounts struct {
-	DB          *database.DB
-	Attachments *Attachments
-	Messages    *Messages
-	Cable       *cable.Hub
-	Jobs        *jobs.Runner
+	DB           *database.DB
+	Attachments  *Attachments
+	Messages     *Messages
+	Publications *MessagePublications
+	Cable        *cable.Hub
+	Jobs         *jobs.Runner
 }
 
 type UserResult struct {
@@ -175,10 +175,8 @@ func (task banTask) Run(ctx context.Context) error {
 			failures = errors.Join(failures, err)
 			continue
 		}
-		publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-		task.accounts.Cable.Publish(publishCtx, result.Commit.RoomID, rails.TurboStream("remove", "message_"+result.Commit.ClientID, ""))
-		cancel()
-		failures = errors.Join(failures, result.Processing)
+		_, processing := task.accounts.Publications.Removed(ctx, result)
+		failures = errors.Join(failures, processing)
 	}
 	return failures
 }
