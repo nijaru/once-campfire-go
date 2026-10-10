@@ -2,6 +2,7 @@ package cable
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -105,6 +106,30 @@ func (f presenceFixture) count(t *testing.T) int {
 		t.Fatal(err)
 	}
 	return count
+}
+
+func TestRepeatedPresentClearsUnreadWithoutClaimingAnotherConnection(t *testing.T) {
+	f := newPresenceFixture(t)
+	conn := f.connect(t)
+	if _, err := f.db.Write.ExecContext(f.ctx, "UPDATE memberships SET unread_at=? WHERE user_id=? AND room_id=?", database.Stamp(f.db.Now()), f.user.ID, f.room); err != nil {
+		t.Fatal(err)
+	}
+	for _, action := range []string{"refresh", "present", "present"} {
+		if err := wsjson.Write(f.ctx, conn, map[string]string{"command": "message", "identifier": f.identifier, "data": fmt.Sprintf(`{"action":%q}`, action)}); err != nil {
+			t.Fatal(err)
+		}
+		f.confirm(t, conn) // Ordered protocol barrier after the action.
+		var unread sql.NullString
+		if err := f.db.Read.QueryRowContext(f.ctx, "SELECT unread_at FROM memberships WHERE user_id=? AND room_id=?", f.user.ID, f.room).Scan(&unread); err != nil {
+			t.Fatal(err)
+		}
+		if want := action == "refresh"; unread.Valid != want {
+			t.Fatalf("%s: unread=%t, want %t", action, unread.Valid, want)
+		}
+		if got := f.count(t); got != 1 {
+			t.Fatalf("%s claimed another presence connection: %d", action, got)
+		}
+	}
 }
 
 func TestCancelledUnsubscribeRetainsPresenceCleanup(t *testing.T) {

@@ -294,7 +294,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 					continue
 				}
 				if action == "present" && sub.Present {
-					action = "refresh"
+					action = "read"
 				}
 				if (action == "absent" || action == "refresh") && !sub.Present {
 					continue

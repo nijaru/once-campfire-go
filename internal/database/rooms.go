@@ -85,6 +85,10 @@ func (d *DB) Presence(ctx context.Context, user, room int64, action string) erro
 		switch action {
 		case "present":
 			query = "UPDATE memberships SET connections=CASE WHEN connected_at>=? THEN connections+1 ELSE 1 END,connected_at=?,unread_at=NULL WHERE user_id=? AND room_id=?"
+		case "read":
+			// An already-owned present refreshes presence and marks the room read
+			// without adding another connection for the same subscription.
+			query = "UPDATE memberships SET connections=CASE WHEN connected_at>=? THEN connections ELSE 1 END,connected_at=?,unread_at=NULL WHERE user_id=? AND room_id=?"
 		case "refresh":
 			query = "UPDATE memberships SET connections=CASE WHEN connected_at>=? THEN connections ELSE 1 END,connected_at=? WHERE user_id=? AND room_id=?"
 		case "absent":
