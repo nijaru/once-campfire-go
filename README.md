@@ -53,8 +53,11 @@ docker run --rm -p 8080:80 -e DISABLE_SSL=1 -e SECRET_KEY_BASE \
 The container runs as uid/gid 1000. For a bind mount, make its storage writable by that user.
 `CAMPFIRE_STORAGE_PATH` defaults to `storage`, with databases in `db/`, media in `files/`, backups
 in `backups/`, and certificate cache in `thruster/`. `CAMPFIRE_DATABASE_PATH` and `CAMPFIRE_FILES_PATH`
-override individual locations; `RAILS_ENV` defaults to `production`. `campfire db:prepare` initializes
-an empty database and checks migration versions; existing databases missing migrations are rejected.
+override individual locations; `RAILS_ENV` defaults to `production`. The inherited ONCE restore
+hook only restores `/rails/storage/backups/$RAILS_ENV.sqlite3` to the default database path.
+Custom storage roots or database filenames require a matching manual restore procedure.
+`campfire db:prepare` initializes an empty database and checks migration versions;
+existing databases missing migrations are rejected.
 
 The public listener uses `HTTP_PORT=80`. Set `TLS_DOMAIN` for automatic ACME certificates and HTTPS
 on `HTTPS_PORT=443`. The internal application listener defaults to `TARGET_BIND=127.0.0.1` and
@@ -168,6 +171,9 @@ removes duplicate dispatch and records smaller, variable gains. The
 [completed-emission comparison](bench/results/completed-emission-20261009/README.md) records
 file HEAD and coding-metadata fixes, including uncached regressions. These local measurements
 differ from the upstream table in machine, revisions and methodology.
+The [final verification record](bench/results/final-verification-20261010/README.md) covers functional,
+browser and operational gates, improved Cable fanout, and the remaining POST tail disadvantage.
+It does not claim universal upstream parity or live external-provider acceptance.
 
 ## Known differences
 

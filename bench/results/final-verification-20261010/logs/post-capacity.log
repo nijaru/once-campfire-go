@@ -1,0 +1,53 @@
+go-before round 1: post_message 16 clients 2572.4 req/s
+go round 1: post_message 16 clients 2640.4 req/s
+rust round 1: post_message 16 clients 2898.7 req/s
+rust round 2: post_message 16 clients 2685.6 req/s
+go round 2: post_message 16 clients 2592.2 req/s
+go-before round 2: post_message 16 clients 2517.3 req/s
+go-before round 3: post_message 16 clients 2569.5 req/s
+go round 3: post_message 16 clients 2377.0 req/s
+rust round 3: post_message 16 clients 2778.6 req/s
+{
+  "go-before": {
+    "room_show": null,
+    "messages_page": null,
+    "sidebar": null,
+    "search": null,
+    "post_message": {
+      "median_rps": 2569.5,
+      "runs": [
+        2572.4,
+        2517.3,
+        2569.5
+      ]
+    }
+  },
+  "go": {
+    "room_show": null,
+    "messages_page": null,
+    "sidebar": null,
+    "search": null,
+    "post_message": {
+      "median_rps": 2592.2,
+      "runs": [
+        2640.4,
+        2592.2,
+        2377.0
+      ]
+    }
+  },
+  "rust": {
+    "room_show": null,
+    "messages_page": null,
+    "sidebar": null,
+    "search": null,
+    "post_message": {
+      "median_rps": 2778.6,
+      "runs": [
+        2898.7,
+        2685.6,
+        2778.6
+      ]
+    }
+  }
+}

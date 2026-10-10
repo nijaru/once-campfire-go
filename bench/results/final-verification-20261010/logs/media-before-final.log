@@ -1,0 +1,10 @@
+--- FAIL: TestMediaRecordValidatorsSurviveFileResponses (0.10s)
+    --- FAIL: TestMediaRecordValidatorsSurviveFileResponses/avatar (0.05s)
+        media_test.go:71: changed record has stale/missing validator: 200 OK map[Accept-Ranges:[bytes] Cache-Control:[max-age=1800, public, stale-while-revalidate=604800] Content-Disposition:[inline; filename="moon.webp"; filename*=UTF-8''moon.webp] Content-Length:[3364] Content-Type:[image/webp] Date:[Sat, 10 Oct 2026 07:43:39 GMT] Referrer-Policy:[strict-origin-when-cross-origin] X-Content-Type-Options:[nosniff] X-Frame-Options:[SAMEORIGIN] X-Permitted-Cross-Domain-Policies:[none] X-Rev:[0] X-Version:[Go] X-Xss-Protection:[0]]
+    --- FAIL: TestMediaRecordValidatorsSurviveFileResponses/logo (0.00s)
+        media_test.go:61: stock response lacks record validator: 200 OK map[Accept-Ranges:[bytes] Cache-Control:[max-age=300, public, stale-while-revalidate=604800] Content-Disposition:[inline; filename="app-icon.png"; filename*=UTF-8''app-icon.png] Content-Length:[405666] Content-Type:[image/png] Date:[Sat, 10 Oct 2026 07:43:39 GMT] Referrer-Policy:[strict-origin-when-cross-origin] X-Content-Type-Options:[nosniff] X-Frame-Options:[SAMEORIGIN] X-Permitted-Cross-Domain-Policies:[none] X-Rev:[0] X-Version:[Go] X-Xss-Protection:[0]]
+    --- FAIL: TestMediaRecordValidatorsSurviveFileResponses/bot (0.00s)
+        media_test.go:61: stock response lacks record validator: 200 OK map[Accept-Ranges:[bytes] Cache-Control:[max-age=1800, public, stale-while-revalidate=604800] Content-Disposition:[inline; filename="default-bot-avatar.svg"; filename*=UTF-8''default-bot-avatar.svg] Content-Length:[884] Content-Type:[image/svg+xml] Date:[Sat, 10 Oct 2026 07:43:39 GMT] Referrer-Policy:[strict-origin-when-cross-origin] X-Content-Type-Options:[nosniff] X-Frame-Options:[SAMEORIGIN] X-Permitted-Cross-Domain-Policies:[none] X-Rev:[0] X-Version:[Go] X-Xss-Protection:[0]]
+FAIL
+FAIL	github.com/basecamp/once-campfire-go/internal/web	0.151s
+FAIL
