@@ -53,7 +53,7 @@ func (s *Messages) create(ctx context.Context, actor, room int64, client string,
 	if upload != nil {
 		upload.Commit(*commit.Uploaded)
 		// This committed obligation stays joined to the command, but a posting
-		// disconnect must not abandon it. Media subprocesses retain their bounds.
+		// disconnect must not abandon it. Processing owns its whole-pipeline bound.
 		_, result.Processing = s.Storage.ProcessAttachment(context.WithoutCancel(ctx), upload.Blob)
 	}
 	return result, nil

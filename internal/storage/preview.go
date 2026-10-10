@@ -107,6 +107,10 @@ func (s *Store) Representation(ctx context.Context, b database.Blob, v Variation
 }
 
 func (s *Store) ProcessAttachment(ctx context.Context, b database.Blob) (database.Blob, error) {
+	// Cover admission and database waits as well as the 30s analysis and 60s
+	// preview subprocesses. Native libvips work still cannot be preempted.
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
 	b, err := s.Analyze(ctx, b)
 	if err != nil {
 		return b, err

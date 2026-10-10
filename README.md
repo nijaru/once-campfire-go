@@ -278,6 +278,12 @@ exemption; bot-key endpoints exempt authenticated bots only.
   Go and Rust also match a separate native ARM64 Rails capture. A matching version string alone
   does not guarantee matching bytes. Web Push is verified locally, not against external push providers.
 
+Committed attachment processing survives a posting disconnect and has a two-minute pipeline
+budget covering media admission, analysis, derivatives and database waits. Analysis and preview
+subprocesses retain their 30-second and 60-second limits. Native libvips work cannot always be
+preempted. Unread publication and push preparation each have an independent five-second budget;
+an unread timeout does not cancel push preparation.
+
 As in Rust, background queues are bounded and in-process: a crash or forced exit can lose queued
 jobs. Shutdown stops intake and joins HTTP commands, sockets, presence cleanup and workers before
 closing SQLite. Workers are cancelled after a ten-second queue-drain grace; retained purge

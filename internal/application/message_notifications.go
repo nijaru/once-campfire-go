@@ -25,21 +25,12 @@ type MessageNotifications struct {
 }
 
 func (s *MessageNotifications) Created(message database.Message, room database.Room) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	members, err := s.DB.RoomMemberIDs(ctx, room.ID)
-	if err != nil {
-		slog.Error("unread notification failed", "error", err)
-	} else {
-		streams := make([]string, len(members))
-		for i, id := range members {
-			streams[i] = fmt.Sprintf("user_%d_unreads", id)
-		}
-		s.Cable.PublishStreams(ctx, map[string]any{"roomId": room.ID}, streams...)
-	}
+	s.unread(room.ID)
 	if s.Push.VAPID == nil {
 		return
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	deliveries, err := s.Queries.Push(ctx, presentation.Facts{Now: s.DB.Now()}, message, room)
 	if err != nil {
 		slog.Error("push preparation failed", "error", err)
@@ -50,6 +41,21 @@ func (s *MessageNotifications) Created(message database.Message, room database.R
 			slog.Warn("push delivery not admitted", "admission", admission)
 		}
 	}
+}
+
+func (s *MessageNotifications) unread(room int64) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	members, err := s.DB.RoomMemberIDs(ctx, room)
+	if err != nil {
+		slog.Error("unread notification failed", "error", err)
+		return
+	}
+	streams := make([]string, len(members))
+	for i, id := range members {
+		streams[i] = fmt.Sprintf("user_%d_unreads", id)
+	}
+	s.Cable.PublishStreams(ctx, map[string]any{"roomId": room}, streams...)
 }
 
 // The selected credentials and payload are an owned provider operation, not
