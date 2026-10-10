@@ -75,9 +75,28 @@ func PrepareMessages(records []database.Message) PreparedMessages {
 
 const UnrenderableMessage template.HTML = `<div class="message message--formatted message--failed center"><div class="message__body"><div class="message__body-content txt-align-center">Failed to load message content</div></div></div>`
 
-func (r *Renderer) Messages(facts Facts, p PreparedMessages, data map[int64]database.MessageDisplay, users map[int64]database.UserDisplay) ([]MessageView, error) {
+func (r *Renderer) Messages(facts Facts, p PreparedMessages, data map[int64]database.MessageDisplay, mentions map[int64]database.UserDisplay) ([]MessageView, error) {
+	views, err := r.MessageViews(facts, p, data, mentions)
+	if err != nil {
+		return nil, err
+	}
+	for i := range views {
+		if views[i].Fragment == UnrenderableMessage {
+			continue
+		}
+		body, err := r.MessageMarkup(views[i])
+		if err != nil {
+			return nil, err
+		}
+		views[i].Fragment = template.HTML(body)
+	}
+	return views, nil
+}
+
+// MessageViews prepares complete display inputs without selecting their envelope.
+func (r *Renderer) MessageViews(facts Facts, p PreparedMessages, data map[int64]database.MessageDisplay, mentions map[int64]database.UserDisplay) ([]MessageView, error) {
 	views := ViewMessages(p.Records)
-	rich := MentionContext(r.secrets, facts.Host, facts.Now, p.targets, users)
+	rich := MentionContext(r.secrets, facts.Host, facts.Now, p.targets, mentions)
 	for i := range views {
 		detail := data[views[i].ID]
 		if detail.Author == nil {
@@ -105,11 +124,6 @@ func (r *Renderer) Messages(facts Facts, p PreparedMessages, data map[int64]data
 				return nil, err
 			}
 		}
-		body, err := r.MessageMarkup(views[i])
-		if err != nil {
-			return nil, err
-		}
-		views[i].Fragment = template.HTML(body)
 	}
 	return views, nil
 }

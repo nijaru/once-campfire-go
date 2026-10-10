@@ -112,8 +112,21 @@ func avatarPath(secrets *rails.Secrets, id int64, updated time.Time) string {
 }
 
 func (s *Renderer) MessageMarkup(v MessageView) (string, error) {
+	return s.messageMarkup(v, "", "")
+}
+
+func (s *Renderer) AppendMessage(target string, v MessageView) (string, error) {
+	opening, closing := rails.TurboStreamEnvelope("append", target)
+	return s.messageMarkup(v, opening, closing)
+}
+
+func (s *Renderer) messageMarkup(v MessageView, opening, closing string) (string, error) {
 	if len(v.Boosts) > 0 || len(s.messageLayouts[0]) == 0 {
-		return s.Markup("message-uncached", v)
+		body, err := s.Markup("message-uncached", v)
+		if err != nil {
+			return "", err
+		}
+		return opening + body + closing, nil
 	}
 	values := [16]string{
 		strconv.FormatInt(v.ID, 10), strconv.FormatInt(v.RoomID, 10), strconv.FormatInt(v.CreatorID, 10),
@@ -138,7 +151,7 @@ func (s *Renderer) MessageMarkup(v MessageView) (string, error) {
 		values[15] = messageEscaper.Replace(v.Attachment.Filename)
 	}
 	var b strings.Builder
-	size := 0
+	size := len(opening) + len(closing)
 	for _, part := range s.messageLayouts[index] {
 		size += len(part.text)
 		if part.slot >= 0 {
@@ -146,11 +159,13 @@ func (s *Renderer) MessageMarkup(v MessageView) (string, error) {
 		}
 	}
 	b.Grow(size)
+	b.WriteString(opening)
 	for _, part := range s.messageLayouts[index] {
 		b.WriteString(part.text)
 		if part.slot >= 0 {
 			b.WriteString(values[part.slot])
 		}
 	}
+	b.WriteString(closing)
 	return b.String(), nil
 }

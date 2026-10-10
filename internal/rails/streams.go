@@ -84,11 +84,21 @@ func StreamRoom(name string) (string, int64, error) {
 }
 
 func TurboStream(action, target, markup string) string {
+	opening, closing := TurboStreamEnvelope(action, target)
+	if closing == "" {
+		return opening
+	}
+	return opening + markup + closing
+}
+
+// TurboStreamEnvelope lets a renderer assemble finite stream output without
+// first allocating a separate copy of the enclosed markup.
+func TurboStreamEnvelope(action, target string) (string, string) {
 	if action == "remove" {
 		return fmt.Sprintf(
 			`<turbo-stream action="remove" target="%s"></turbo-stream>`,
 			html.EscapeString(target),
-		)
+		), ""
 	}
 	attr := ""
 	if action == "replace" && strings.HasPrefix(target, "presentation_message_") ||
@@ -97,7 +107,7 @@ func TurboStream(action, target, markup string) string {
 	}
 	return `<turbo-stream action="` + action + `" target="` + html.EscapeString(
 		target,
-	) + `"` + attr + `><template>` + markup + `</template></turbo-stream>`
+	) + `"` + attr + `><template>`, `</template></turbo-stream>`
 }
 
 func UserRoomsStream(id int64) string {

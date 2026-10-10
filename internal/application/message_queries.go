@@ -7,6 +7,7 @@ import (
 
 	"github.com/basecamp/once-campfire-go/internal/database"
 	"github.com/basecamp/once-campfire-go/internal/presentation"
+	"github.com/basecamp/once-campfire-go/internal/rails"
 	"github.com/basecamp/once-campfire-go/internal/richtext"
 )
 
@@ -22,11 +23,29 @@ type MessageQueries struct {
 // query-cache fragments.
 func (s *MessageQueries) Views(ctx context.Context, facts presentation.Facts, records []database.Message) ([]presentation.MessageView, error) {
 	prepared := presentation.PrepareMessages(records)
-	data, users, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+	data, mentions, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
 	if err != nil {
 		return nil, err
 	}
-	return s.Presentation.Messages(facts, prepared, data, users)
+	return s.Presentation.Messages(facts, prepared, data, mentions)
+}
+
+// CreatedStream renders a receipt's complete message directly into its append
+// envelope. No intermediate message fragment is retained or admitted to caches.
+func (s *MessageQueries) CreatedStream(ctx context.Context, facts presentation.Facts, commit database.MessageCommit) (string, error) {
+	prepared := presentation.PrepareMessages([]database.Message{commit.Message})
+	data, mentions, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+	if err != nil {
+		return "", err
+	}
+	views, err := s.Presentation.MessageViews(facts, prepared, data, mentions)
+	if err != nil {
+		return "", err
+	}
+	if data[commit.ID].Author == nil {
+		return rails.TurboStream("append", commit.Room.DOM("messages"), string(views[0].Fragment)), nil
+	}
+	return s.Presentation.AppendMessage(commit.Room.DOM("messages"), views[0])
 }
 
 // Edit materializes only the attachment or editor inputs, not a displayed fragment.

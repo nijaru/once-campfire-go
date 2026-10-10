@@ -23,11 +23,10 @@ func (s *MessagePublications) Created(ctx context.Context, facts presentation.Fa
 	defer cancel()
 	facts.Now = s.Queries.DB.Now()
 	commit := result.Commit
-	views, err := s.Queries.Views(ctx, facts, []database.Message{commit.Message})
+	output, err := s.Queries.CreatedStream(ctx, facts, commit)
 	if err != nil {
 		return "", errors.Join(result.Processing, err)
 	}
-	output := rails.TurboStream("append", commit.Room.DOM("messages"), string(views[0].Fragment))
 	s.publish(commit.Room.ID, output)
 	return output, result.Processing
 }

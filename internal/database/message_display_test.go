@@ -61,8 +61,19 @@ func TestMessageDisplaysKeepSeparateCollectionsAndLowestAttachment(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(data) != 2 || len(users) != 2 || users[other.ID].Title() != "Other – Target" {
+	if len(data) != 2 || len(users) != 1 || users[other.ID].Title() != "Other – Target" {
 		t.Fatal(data, users)
+	}
+	if data[first.ID].Author == nil || data[first.ID].Author.ID != owner.ID || data[second.ID].Author == nil || data[second.ID].Author.ID != other.ID {
+		t.Fatal("mention selection lost message authors", data)
+	}
+	_, users, err = d.MessageDisplays(ctx, []Message{first.Message}, nil)
+	if err != nil || len(users) != 0 {
+		t.Fatal("unmentioned authors leaked into mention projection", users, err)
+	}
+	_, users, err = d.MessageDisplays(ctx, []Message{first.Message}, []int64{owner.ID})
+	if err != nil || len(users) != 1 || users[owner.ID].Name != owner.Name {
+		t.Fatal("mentioned author missing", users, err)
 	}
 	if data[first.ID].Attachment == nil || data[first.ID].Attachment.ID != blob.ID || data[second.ID].Attachment != nil {
 		t.Fatal("attachment collections mixed", data)

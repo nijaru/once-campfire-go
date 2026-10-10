@@ -37,6 +37,7 @@ type MessageDisplay struct {
 // MessageDisplays materializes associations in a short read snapshot. The caller
 // supplies owned records (including commit receipts); no rendering or IO holds the
 // connection. Each relationship is loaded separately to avoid multiplied rows.
+// Authors belong to their message; the separate user map contains only mentions.
 func (d *DB) MessageDisplays(ctx context.Context, records []Message, mentioned []int64) (map[int64]MessageDisplay, map[int64]UserDisplay, error) {
 	result := make(map[int64]MessageDisplay, len(records))
 	users := make(map[int64]UserDisplay)
@@ -110,7 +111,13 @@ func messageDisplays(ctx context.Context, tx *sql.Tx, records []Message, mention
 			result[id] = data
 		}
 	}
-	return result, users, nil
+	mentions := make(map[int64]UserDisplay, len(mentioned))
+	for _, id := range mentioned {
+		if user, exists := users[id]; exists {
+			mentions[id] = user
+		}
+	}
+	return result, mentions, nil
 }
 
 func displayIDs(ids map[int64]bool) string {

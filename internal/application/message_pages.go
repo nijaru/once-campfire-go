@@ -81,7 +81,7 @@ func (s *MessageQueries) readMessageList(ctx context.Context, scope presentation
 		return responsebody.Part{}, err
 	}
 	prepared := presentation.PrepareMessages(records)
-	data, users, err := read.Displays(ctx, prepared.Records, prepared.Mentioned)
+	data, mentions, err := read.Displays(ctx, prepared.Records, prepared.Mentioned)
 	if err != nil {
 		return responsebody.Part{}, err
 	}
@@ -89,7 +89,7 @@ func (s *MessageQueries) readMessageList(ctx context.Context, scope presentation
 		return responsebody.Part{}, err
 	}
 	scope = s.checkObservation(ctx, scope)
-	views, err := s.Fragments.Messages(scope, prepared, data, users)
+	views, err := s.Fragments.Messages(scope, prepared, data, mentions)
 	if err != nil {
 		return responsebody.Part{}, err
 	}

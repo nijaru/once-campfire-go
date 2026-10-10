@@ -44,6 +44,13 @@ func TestMessageLayoutsMatchContextualTemplate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		stream, err := app.AppendMessage("messages_Room_456", v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stream != `<turbo-stream action="append" target="messages_Room_456"><template>`+expected+`</template></turbo-stream>` {
+			t.Fatal("append envelope changed contextual template output")
+		}
 		if actual != expected {
 			for i := range min(len(actual), len(expected)) {
 				if actual[i] != expected[i] {
