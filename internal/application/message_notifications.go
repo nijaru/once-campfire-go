@@ -31,9 +31,11 @@ func (s *MessageNotifications) Created(message database.Message, room database.R
 	if err != nil {
 		slog.Error("unread notification failed", "error", err)
 	} else {
-		for _, id := range members {
-			s.Cable.PublishStream(ctx, fmt.Sprintf("user_%d_unreads", id), map[string]any{"roomId": room.ID})
+		streams := make([]string, len(members))
+		for i, id := range members {
+			streams[i] = fmt.Sprintf("user_%d_unreads", id)
 		}
+		s.Cable.PublishStreams(ctx, map[string]any{"roomId": room.ID}, streams...)
 	}
 	if s.Push.VAPID == nil {
 		return

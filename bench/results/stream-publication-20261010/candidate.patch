@@ -1,0 +1,139 @@
+diff --git i/internal/application/message_notifications.go w/internal/application/message_notifications.go
+index 008c574..71e4aad 100644
+--- i/internal/application/message_notifications.go
++++ w/internal/application/message_notifications.go
+@@ -31,9 +31,11 @@ func (s *MessageNotifications) Created(message database.Message, room database.R
+ 	if err != nil {
+ 		slog.Error("unread notification failed", "error", err)
+ 	} else {
+-		for _, id := range members {
+-			s.Cable.PublishStream(ctx, fmt.Sprintf("user_%d_unreads", id), map[string]any{"roomId": room.ID})
++		streams := make([]string, len(members))
++		for i, id := range members {
++			streams[i] = fmt.Sprintf("user_%d_unreads", id)
+ 		}
++		s.Cable.PublishStreams(ctx, map[string]any{"roomId": room.ID}, streams...)
+ 	}
+ 	if s.Push.VAPID == nil {
+ 		return
+diff --git i/internal/application/room_publications.go w/internal/application/room_publications.go
+index f7f5b0f..340f0e0 100644
+--- i/internal/application/room_publications.go
++++ w/internal/application/room_publications.go
+@@ -31,7 +31,7 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
+ 		if err != nil {
+ 			return err
+ 		}
+-		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
++		s.Cable.PublishStreams(ctx, rails.TurboStream(action, target, markup), "rooms")
+ 		return nil
+ 	}
+ 	audience, err := s.DB.RoomPublicationAudience(ctx, room)
+@@ -46,9 +46,11 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
+ 			return err
+ 		}
+ 		output := rails.TurboStream(action, target, markup)
+-		for _, id := range audience.Active {
+-			s.Cable.PublishStream(ctx, rails.UserRoomsStream(id), output)
++		streams := make([]string, len(audience.Active))
++		for i, id := range audience.Active {
++			streams[i] = rails.UserRoomsStream(id)
+ 		}
++		s.Cable.PublishStreams(ctx, output, streams...)
+ 		return nil
+ 	}
+ 	for _, id := range audience.Active {
+@@ -61,7 +63,7 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
+ 		if err != nil {
+ 			return err
+ 		}
+-		s.Cable.PublishStream(ctx, rails.UserRoomsStream(id), rails.TurboStream("prepend", "direct_rooms", markup))
++		s.Cable.PublishStreams(ctx, rails.TurboStream("prepend", "direct_rooms", markup), rails.UserRoomsStream(id))
+ 	}
+ 	return nil
+ }
+@@ -69,7 +71,7 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
+ func (s *RoomPublications) Removed(ctx context.Context, result RoomResult) error {
+ 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+ 	defer cancel()
+-	s.Cable.PublishStream(ctx, "rooms", rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""))
++	s.Cable.PublishStreams(ctx, rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""), "rooms")
+ 	return result.Processing
+ }
+ 
+@@ -89,6 +91,6 @@ func (s *RoomPublications) Involvement(ctx context.Context, user int64, commit d
+ 		}
+ 		output = rails.TurboStream("prepend", "shared_rooms", markup)
+ 	}
+-	s.Cable.PublishStream(ctx, rails.UserRoomsStream(user), output)
++	s.Cable.PublishStreams(ctx, output, rails.UserRoomsStream(user))
+ 	return nil
+ }
+diff --git i/internal/cable/hub.go w/internal/cable/hub.go
+index d2a9a2f..d02a235 100644
+--- i/internal/cable/hub.go
++++ w/internal/cable/hub.go
+@@ -243,7 +243,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User,
+ 					h.mu.Unlock()
+ 					c.send(map[string]string{"type": "confirm_subscription", "identifier": command.Identifier})
+ 					if sub.Channel == "PresenceChannel" {
+-						h.PublishStream(ctx, fmt.Sprintf("user_%d_reads", c.user.ID), map[string]any{"room_id": sub.Room})
++						h.PublishStreams(ctx, map[string]any{"room_id": sub.Room}, fmt.Sprintf("user_%d_reads", c.user.ID))
+ 					}
+ 					continue
+ 				}
+@@ -287,7 +287,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User,
+ 			switch sub.Channel {
+ 			case "TypingNotificationsChannel":
+ 				if payload.Action == "start" || payload.Action == "stop" {
+-					h.PublishStream(ctx, sub.Stream, map[string]any{"action": payload.Action, "user": map[string]any{"id": c.user.ID, "name": c.user.Name}})
++					h.PublishStreams(ctx, map[string]any{"action": payload.Action, "user": map[string]any{"id": c.user.ID, "name": c.user.Name}}, sub.Stream)
+ 				}
+ 			case "PresenceChannel":
+ 				action := payload.Action
+@@ -306,7 +306,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User,
+ 					h.setSubscription(c, command.Identifier, sub)
+ 					h.mu.Unlock()
+ 					if payload.Action == "present" {
+-						h.PublishStream(ctx, fmt.Sprintf("user_%d_reads", c.user.ID), map[string]any{"room_id": sub.Room})
++						h.PublishStreams(ctx, map[string]any{"room_id": sub.Room}, fmt.Sprintf("user_%d_reads", c.user.ID))
+ 					}
+ 				}
+ 			}
+@@ -340,16 +340,30 @@ func (h *Hub) Close() {
+ 	h.serving.Wait()
+ }
+ func (h *Hub) Publish(ctx context.Context, room int64, markup string) {
+-	h.publish(ctx, publication{room: room}, markup)
++	h.publish(ctx, markup, publication{room: room})
+ }
+-func (h *Hub) PublishStream(ctx context.Context, name string, message any) {
+-	h.publish(ctx, publication{stream: name}, message)
++
++// PublishStreams publishes one event to its selected streams. Each distinct
++// session is authorized afresh; frames are shared only for identical identifiers.
++func (h *Hub) PublishStreams(ctx context.Context, message any, names ...string) {
++	keys := make([]publication, 0, len(names))
++	seen := make(map[string]struct{}, len(names))
++	for _, name := range names {
++		if _, exists := seen[name]; !exists {
++			seen[name] = struct{}{}
++			keys = append(keys, publication{stream: name})
++		}
++	}
++	h.publish(ctx, message, keys...)
+ }
+-func (h *Hub) publish(ctx context.Context, key publication, message any) {
++
++func (h *Hub) publish(ctx context.Context, message any, keys ...publication) {
+ 	var recipients []recipient
+ 	h.mu.RLock()
+-	if bucket := h.subscribers[key]; key != (publication{}) && len(bucket) != 0 {
+-		recipients = append([]recipient(nil), bucket...)
++	for _, key := range keys {
++		if key != (publication{}) {
++			recipients = append(recipients, h.subscribers[key]...)
++		}
+ 	}
+ 	h.mu.RUnlock()
+ 	// Recheck every publication; batch distinct sessions rather than trusting a

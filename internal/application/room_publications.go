@@ -31,7 +31,7 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
 		if err != nil {
 			return err
 		}
-		s.Cable.PublishStream(ctx, "rooms", rails.TurboStream(action, target, markup))
+		s.Cable.PublishStreams(ctx, rails.TurboStream(action, target, markup), "rooms")
 		return nil
 	}
 	audience, err := s.DB.RoomPublicationAudience(ctx, room)
@@ -46,9 +46,11 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
 			return err
 		}
 		output := rails.TurboStream(action, target, markup)
-		for _, id := range audience.Active {
-			s.Cable.PublishStream(ctx, rails.UserRoomsStream(id), output)
+		streams := make([]string, len(audience.Active))
+		for i, id := range audience.Active {
+			streams[i] = rails.UserRoomsStream(id)
 		}
+		s.Cable.PublishStreams(ctx, output, streams...)
 		return nil
 	}
 	for _, id := range audience.Active {
@@ -61,7 +63,7 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
 		if err != nil {
 			return err
 		}
-		s.Cable.PublishStream(ctx, rails.UserRoomsStream(id), rails.TurboStream("prepend", "direct_rooms", markup))
+		s.Cable.PublishStreams(ctx, rails.TurboStream("prepend", "direct_rooms", markup), rails.UserRoomsStream(id))
 	}
 	return nil
 }
@@ -69,7 +71,7 @@ func (s *RoomPublications) Saved(ctx context.Context, room database.Room, update
 func (s *RoomPublications) Removed(ctx context.Context, result RoomResult) error {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
-	s.Cable.PublishStream(ctx, "rooms", rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""))
+	s.Cable.PublishStreams(ctx, rails.TurboStream("remove", result.Commit.Room.DOM("list"), ""), "rooms")
 	return result.Processing
 }
 
@@ -89,6 +91,6 @@ func (s *RoomPublications) Involvement(ctx context.Context, user int64, commit d
 		}
 		output = rails.TurboStream("prepend", "shared_rooms", markup)
 	}
-	s.Cable.PublishStream(ctx, rails.UserRoomsStream(user), output)
+	s.Cable.PublishStreams(ctx, output, rails.UserRoomsStream(user))
 	return nil
 }

@@ -243,7 +243,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 					h.mu.Unlock()
 					c.send(map[string]string{"type": "confirm_subscription", "identifier": command.Identifier})
 					if sub.Channel == "PresenceChannel" {
-						h.PublishStream(ctx, fmt.Sprintf("user_%d_reads", c.user.ID), map[string]any{"room_id": sub.Room})
+						h.PublishStreams(ctx, map[string]any{"room_id": sub.Room}, fmt.Sprintf("user_%d_reads", c.user.ID))
 					}
 					continue
 				}
@@ -287,7 +287,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 			switch sub.Channel {
 			case "TypingNotificationsChannel":
 				if payload.Action == "start" || payload.Action == "stop" {
-					h.PublishStream(ctx, sub.Stream, map[string]any{"action": payload.Action, "user": map[string]any{"id": c.user.ID, "name": c.user.Name}})
+					h.PublishStreams(ctx, map[string]any{"action": payload.Action, "user": map[string]any{"id": c.user.ID, "name": c.user.Name}}, sub.Stream)
 				}
 			case "PresenceChannel":
 				action := payload.Action
@@ -306,7 +306,7 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, user database.User, 
 					h.setSubscription(c, command.Identifier, sub)
 					h.mu.Unlock()
 					if payload.Action == "present" {
-						h.PublishStream(ctx, fmt.Sprintf("user_%d_reads", c.user.ID), map[string]any{"room_id": sub.Room})
+						h.PublishStreams(ctx, map[string]any{"room_id": sub.Room}, fmt.Sprintf("user_%d_reads", c.user.ID))
 					}
 				}
 			}
@@ -340,16 +340,30 @@ func (h *Hub) Close() {
 	h.serving.Wait()
 }
 func (h *Hub) Publish(ctx context.Context, room int64, markup string) {
-	h.publish(ctx, publication{room: room}, markup)
+	h.publish(ctx, markup, publication{room: room})
 }
-func (h *Hub) PublishStream(ctx context.Context, name string, message any) {
-	h.publish(ctx, publication{stream: name}, message)
+
+// PublishStreams publishes one event to its selected streams. Each distinct
+// session is authorized afresh; frames are shared only for identical identifiers.
+func (h *Hub) PublishStreams(ctx context.Context, message any, names ...string) {
+	keys := make([]publication, 0, len(names))
+	seen := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		if _, exists := seen[name]; !exists {
+			seen[name] = struct{}{}
+			keys = append(keys, publication{stream: name})
+		}
+	}
+	h.publish(ctx, message, keys...)
 }
-func (h *Hub) publish(ctx context.Context, key publication, message any) {
+
+func (h *Hub) publish(ctx context.Context, message any, keys ...publication) {
 	var recipients []recipient
 	h.mu.RLock()
-	if bucket := h.subscribers[key]; key != (publication{}) && len(bucket) != 0 {
-		recipients = append([]recipient(nil), bucket...)
+	for _, key := range keys {
+		if key != (publication{}) {
+			recipients = append(recipients, h.subscribers[key]...)
+		}
 	}
 	h.mu.RUnlock()
 	// Recheck every publication; batch distinct sessions rather than trusting a
