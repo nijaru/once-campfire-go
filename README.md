@@ -169,7 +169,7 @@ recognition and SQLite statement preparation, improving read medians by 5.5–9.
 improve. It also records a rejected query-fusion experiment rather than hiding its regressions.
 The [shared-contract comparison](bench/results/shared-contracts-20261008/README.md) validates
 every timed response and exact acknowledged write, combines duplicate session reads, and improves
-read medians by another 3.7–5.4%. Fresh Rust comparisons still favor Rust on every measured route.
+read medians by another 3.7–5.4%. That dated Rust comparison favors Rust on its measured routes.
 The [current-upstream comparison](bench/results/current-upstream-20261008/README.md) records
 connection-local reader plans and fresh generation batching, including read gains and posting
 regressions. The [ordered-routing comparison](bench/results/ordered-routing-20261008/README.md)
@@ -193,6 +193,10 @@ The [native cancellation follow-up](bench/results/native-cancellation-20261011/R
 fresh desktop comparisons and a corrected cancellation bridge rejected for its VM latency trade-off.
 The [correlated native POST traces](bench/results/native-post-trace-20261011/README.md) match
 36,000 client completions to handler and writer waits without claiming a general tail-latency cause.
+The [native Rust baseline and scoped-search comparison](bench/results/native-rust-search-20261011/README.md)
+closes the missing native comparison and improves an uncached sparse-search workload by 25.4% with
+one ordered, membership-scoped FTS query. The dense control is essentially unchanged; POST tails
+and intermittent collapse remain unresolved, including an adverse native POST-capacity run.
 
 ## Known differences
 

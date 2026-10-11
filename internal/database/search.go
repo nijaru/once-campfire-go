@@ -54,60 +54,21 @@ func (d *DB) Search(ctx context.Context, user int64, query string) ([]Message, e
 	return records, read.Finish()
 }
 
-const searchProbeLimit = 1000
-
 // Current upstream search selects the newest matching IDs, not timestamp windows.
-// Limit the global FTS probe; sparse membership then uses a scoped fallback, all
-// within the caller's transaction so selection cannot escape its matching bodies.
+// Order by the FTS rowid (equal to m.id) so SQLite can consume its descending
+// iterator without sorting. Membership filtering stays in the selection snapshot;
+// inaccessible rows, including malformed timestamps, never enter materialization.
 func searchReferences(ctx context.Context, tx *sql.Tx, user int64, terms string) ([]MessageReference, error) {
-	rows, err := tx.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at,member.user_id IS NOT NULL FROM message_search_index idx JOIN messages m ON m.id=idx.rowid LEFT JOIN memberships member ON member.room_id=m.room_id AND member.user_id=? WHERE idx.body MATCH ? ORDER BY idx.rowid DESC LIMIT 1000", user, terms)
+	rows, err := tx.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at FROM message_search_index idx JOIN messages m ON m.id=idx.rowid JOIN memberships member ON member.room_id=m.room_id AND member.user_id=? WHERE idx.body MATCH ? ORDER BY idx.rowid DESC LIMIT 100", user, terms)
 	if err != nil {
 		return nil, err
 	}
-	refs, examined, err := searchReferenceRows(rows)
+	refs, err := scanMessageReferences(rows)
 	if err != nil {
 		return nil, err
-	}
-	if len(refs) < 100 && examined == searchProbeLimit {
-		rows, err = tx.QueryContext(ctx, "SELECT m.id,m.room_id,m.updated_at,1 FROM messages m JOIN message_search_index idx ON idx.rowid=m.id JOIN memberships member ON member.room_id=m.room_id WHERE member.user_id=? AND idx.body MATCH ? ORDER BY m.id DESC LIMIT 100", user, terms)
-		if err != nil {
-			return nil, err
-		}
-		refs, _, err = searchReferenceRows(rows)
-		if err != nil {
-			return nil, err
-		}
 	}
 	slices.Reverse(refs)
 	return refs, nil
-}
-
-func searchReferenceRows(rows *sql.Rows) ([]MessageReference, int, error) {
-	defer rows.Close()
-	refs := []MessageReference{}
-	examined := 0
-	for rows.Next() {
-		examined++
-		var ref MessageReference
-		var version any
-		var reachable bool
-		if err := rows.Scan(&ref.ID, &ref.RoomID, &version, &reachable); err != nil {
-			return nil, examined, err
-		}
-		// Inaccessible rows, including malformed foreign timestamps, cannot
-		// affect a user's results or reveal their contents through an error.
-		if !reachable {
-			continue
-		}
-		if err := (timestamp{&ref.UpdatedAt}).Scan(version); err != nil {
-			return nil, examined, err
-		}
-		refs = append(refs, ref)
-		if len(refs) == 100 {
-			break
-		}
-	}
-	return refs, examined, rows.Err()
 }
 
 func searchTerms(query string) string {
