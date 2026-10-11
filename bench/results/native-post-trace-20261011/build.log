@@ -1,0 +1,19 @@
+STEP 1/8: FROM localhost/campfire-post-fix-desktop-before-wrapper:latest
+STEP 2/8: COPY current /build/current-trace
+--> 370273ccc2b3
+STEP 3/8: COPY upstream /build/upstream-trace
+--> 85f6895a782a
+STEP 4/8: RUN rm -rf /build/upstream-trace/assets/generated && cp -a /build/upstream/assets/generated /build/upstream-trace/assets/generated
+--> b35768c1d1b9
+STEP 5/8: RUN cd /build/current-trace && CGO_ENABLED=1 go test -race ./bench/httprate && CGO_ENABLED=1 go vet -tags sqlite_fts5 ./cmd/campfire ./internal/front ./internal/database && CGO_ENABLED=1 go build -buildvcs=false -trimpath -tags sqlite_fts5 -o /go-current-trace ./cmd/campfire && go build -trimpath -o /httprate-trace ./bench/httprate && cd /build/upstream-trace && CGO_ENABLED=1 go vet -tags sqlite_fts5 ./cmd/campfire ./internal/front ./internal/database && CGO_ENABLED=1 go build -buildvcs=false -trimpath -tags sqlite_fts5 -o /go-upstream-trace ./cmd/campfire
+ok  	github.com/basecamp/once-campfire-go/bench/httprate	1.493s
+--> 9cc737b7c271
+STEP 6/8: WORKDIR /rails
+--> a8d66e086529
+STEP 7/8: ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+--> d5532414e57d
+STEP 8/8: CMD ["/go-current-trace","server"]
+COMMIT localhost/campfire-native-post-trace
+--> 2b07a2c7544a
+Successfully tagged localhost/campfire-native-post-trace:latest
+2b07a2c7544a2578852cc8b065e7223664a144f160c5c3468f3b1c41f7a93be8

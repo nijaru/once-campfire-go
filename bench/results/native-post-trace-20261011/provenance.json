@@ -1,0 +1,39 @@
+{
+  "source_revision": "4e8d7b3",
+  "application_revision": "811ae04",
+  "upstream_revision": "c4ab53d",
+  "private_diagnostic_only": true,
+  "production_changed": false,
+  "runs": 4,
+  "timed_requests": 36000,
+  "warmup_requests": 12000,
+  "audited_writes": 48000,
+  "binary_sha256": {
+    "current": "b78bf85b3ee0ac1ea24f8a344ee919c5f4d4fcb2fcddfff6de5256cecffc9f7a",
+    "upstream": "4cf92bc79415ff4587d8904c6d4fa8bdd99033277cdb7325d2c03e7964bc7d38",
+    "generator": "4f1532b9cb2d3c54eee8809383ddf2d77dfdc2bcbfa113b0f61079840468928c"
+  },
+  "private_raw_trace_sha256": {
+    "go-before-2.trace": "27aa8ec0c9afad16e2046d31c42560dcf74338f736e92c5d1e834ac0d6c7bc2e",
+    "go-2.trace": "1282fdef4e627339961f7d1087ee333a518580e691fcf02c303c54e55c0a0d1b",
+    "go-before-1.trace": "2ca0f8532807a889e8405f92d668013bf83d6de53980c53ac8aca68a3ac8a874",
+    "go-1.trace": "8a6e1617702894578a9ea8b5cf6455f945f6acc469c78bc94cd869ab40d7c0bd"
+  },
+  "private_runtime_log_sha256": {
+    "go-before-2-runtime.log": "fbb6d16c91185d8330a4a567796724fbcd4f6f67448085f4d159932285557a76",
+    "go-before-1-runtime.log": "dcc63829bcb018b8eae7bbf80f42573ab2cf51e57806cfb20cebdbfdb7ac1fec",
+    "go-2-runtime.log": "a015458b5bd6bcd9a4c6a597191225c7f81dbe0728e9a456fe9c4192d0c28466",
+    "go-1-runtime.log": "26e137f98dbc852ba8cc2a8e7fd5b82791aa7da2d7dac233e6913791d8448c03"
+  },
+  "upstream_generated_assets": "Restored from accepted base image /build/upstream/assets/generated before compiling (see Dockerfile).",
+  "omitted": [
+    "raw traces",
+    "runtime logs",
+    "runtime databases",
+    "credentials",
+    "environment values",
+    "signed request paths",
+    "binaries",
+    "duplicate full waiting-span stacks"
+  ]
+}

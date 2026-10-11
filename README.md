@@ -190,6 +190,8 @@ CPU/scheduler measurements, another baseline collapse and a rejected contiguous-
 Reducing isolated transport writes did not improve the complete application.
 The [native cancellation follow-up](bench/results/native-cancellation-20261011/README.md) retains
 fresh desktop comparisons and a corrected cancellation bridge rejected for its VM latency trade-off.
+The [correlated native POST traces](bench/results/native-post-trace-20261011/README.md) match
+36,000 client completions to handler and writer waits without claiming a general tail-latency cause.
 
 ## Known differences
 
