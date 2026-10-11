@@ -367,22 +367,15 @@ func (h *Hub) publish(ctx context.Context, message any, keys ...publication) {
 	h.mu.RUnlock()
 	// Recheck every publication; batch distinct sessions rather than trusting a
 	// long-lived authorization cache or querying once for every receiving socket.
-	groups := make(map[int64]map[string]struct{})
+	allowed := make(map[int64]map[string]int64)
 	for _, recipient := range recipients {
-		if groups[recipient.room] == nil {
-			groups[recipient.room] = make(map[string]struct{})
+		if allowed[recipient.room] == nil {
+			allowed[recipient.room] = make(map[string]int64)
 		}
-		groups[recipient.room][recipient.client.token] = struct{}{}
+		allowed[recipient.room][recipient.client.token] = 0
 	}
-	allowed := make(map[int64]map[string]int64, len(groups))
-	for room, tokens := range groups {
-		keys := make([]string, 0, len(tokens))
-		for token := range tokens {
-			keys = append(keys, token)
-		}
-		var err error
-		allowed[room], err = h.db.AuthorizedSessions(ctx, keys, room)
-		if err != nil {
+	for room, sessions := range allowed {
+		if err := h.db.AuthorizeSessions(ctx, sessions, room); err != nil {
 			allowed[room] = nil
 		}
 	}

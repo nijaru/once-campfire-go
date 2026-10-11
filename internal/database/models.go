@@ -125,16 +125,30 @@ func scanMessages(rows *sql.Rows) ([]Message, error) {
 	return result, rows.Err()
 }
 
-// AuthorizedSessions checks a publication's distinct sessions in one snapshot.
+// AuthorizeSessions replaces a publication-owned token map's values with current
+// user IDs from one snapshot. Unknown or revoked sessions remain zero; any failure
+// clears all permissions. The caller must not access the map during this call.
 // json_each keeps the SQL shape stable and avoids SQLite's placeholder limit.
-func (d *DB) AuthorizedSessions(
+func (d *DB) AuthorizeSessions(
 	ctx context.Context,
-	tokens []string,
+	sessions map[string]int64,
 	room int64,
-) (map[string]int64, error) {
+) (err error) {
+	tokens := make([]string, 0, len(sessions))
+	for token := range sessions {
+		sessions[token] = 0
+		tokens = append(tokens, token)
+	}
+	defer func() {
+		if err != nil {
+			for token := range sessions {
+				sessions[token] = 0
+			}
+		}
+	}()
 	raw, err := json.Marshal(tokens)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	query := "SELECT s.token,s.user_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE u.status=0 AND s.token IN (SELECT value FROM json_each(?))"
 	args := []any{string(raw)}
@@ -144,17 +158,16 @@ func (d *DB) AuthorizedSessions(
 	}
 	rows, err := d.Read.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer rows.Close()
-	result := make(map[string]int64, len(tokens))
 	for rows.Next() {
 		var token string
 		var user int64
-		if err := rows.Scan(&token, &user); err != nil {
-			return nil, err
+		if err = rows.Scan(&token, &user); err != nil {
+			return err
 		}
-		result[token] = user
+		sessions[token] = user
 	}
-	return result, rows.Err()
+	return rows.Err()
 }

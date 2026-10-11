@@ -234,6 +234,11 @@ The [HTTP-boundary and room-read controls](bench/results/http-boundary-room-post
 retain healthy VM request correlations and a rejected POST candidate. These observations
 inform profile-guided work; they do not require another benchmark-ranking or slowdown
 reproduction campaign before useful, verified improvements can land.
+The [publication-local session-map comparison](bench/results/publication-session-map-20261011/README.md)
+removes a redundant token/result map while preserving fresh authorization. One native
+profile samples 4.34% fewer Go allocation bytes per message with flat CPU; bounded
+64-person and shared-cookie controls show no material regression. This is an
+allocation reduction, not a claim of higher throughput or lower latency.
 
 ## Known differences
 
