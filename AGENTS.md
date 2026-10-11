@@ -38,15 +38,31 @@ not old plans, benchmark tables, or assumptions about frameworks.
 
 ## Performance and delivery
 
-- For application-boundary refactors, follow [the design and execution plan](plans/architecture.md).
-  Settle ownership and contracts before profiling; complete affected caller migrations
-  and remove superseded paths. Then profile the complete application and use representative
-  measurements to resolve remaining query, allocation, cache and contention choices.
+- Fix demonstrated correctness failures before optimizing. Use the current
+  [application design contracts](plans/architecture.md), not the completed migration
+  checklist or historical validation records, to preserve ownership and compatibility.
+- Start with algorithms and system design: SQL access paths and transaction scope,
+  batch materialization, publication work and resource lifetimes. Only then consider
+  allocation, encoding or transport micro-optimizations supported by whole-application
+  evidence. Complete caller migrations and remove superseded paths.
+- Before an experiment, name the hypothesis, discriminator, bounded run budget and
+  landing/rejection criteria. End with a fix or a closed hypothesis that changes the
+  next decision; another diagnostic archive is not a resolved performance goal.
+  Inspect rejected controls before repeating them, and require new evidence to reopen
+  one. Healthy profiles do not explain an uncaptured bad phase.
 - Use the shared harness or `bench/application`: matched data, complete responses,
   persisted-write audits, settings and sequential interleaved repetitions. Keep raw
-  evidence and limitations in `bench/results/`; inspect relevant rejected experiments
-  before repeating them. No tests/builds running alongside timing comparisons.
+  evidence and limitations in `bench/results/`, including adverse runs and failed
+  offered populations. No task-owned agents, tests, builds or profilers during
+  uninstrumented timing. Correlate individual requests rather than subtracting
+  marginal percentiles; distinguish aggregate waits from wall-clock stalls.
 - Benchmark changed workloads as well as warm hits when invalidation or database work
   changes. Do not present a cache-hit benchmark as general application capacity.
-- Keep PR changes scoped and reviewable. Do not open PRs, post comments, publish or
+- Compare current source identities before claiming improvement over upstream Go or
+  Rust; old snapshots and instrumented diagnostics are not current baseline proof.
+  Do not buy gains with weaker authorization, cancellation, larger queues/cache
+  budgets, artificial heap retention or production GC tuning.
+- Prepare a PR only after affected correctness gates and matched performance evidence
+  support the result; explain remaining gaps and trade-offs rather than claiming
+  global optimality. Keep changes scoped. Do not open PRs, post comments, publish or
   release without explicit permission.

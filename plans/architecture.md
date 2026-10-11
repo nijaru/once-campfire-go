@@ -1,357 +1,204 @@
-# Cohesive application refactor
+# Application design and compatibility boundaries
 
-Design baseline: `38ab6c7`, reviewed 2026-10-08. Original review snapshots: Rust
-`64f86353021145b63849fb1cd93adeb08f3b8dbb`, Rails
-`90b330024dec3e757c79b6a7e6568f93da8e3148`.
+Reconciled against `70d6329` (application source `811ae04`). Review these contracts
+when changing their owners. This document describes the current boundaries and
+constraints to preserve, not a checklist of unfinished migrations or proof of
+performance parity. The [port implementation record](go-conversion.md) and
+[validation record](validation.md) are dated historical evidence.
 
-This is the accepted direction and execution plan for restructuring the Go port.
-Its ownership and correctness constraints guide each coherent migration. Current
-whole-application measurements determine performance priorities; completing every
-migration below is not a prerequisite for measuring an already coherent boundary.
-Refresh upstream Go, Rust and shared-verification `main` before integration or
-measurement. Record source revisions as evidence, not as a frozen acceptance target;
-retain `reference/` unchanged for reproducible fixture and compatibility work.
-The [implementation record](go-conversion.md) and [validation record](validation.md)
-remain historical evidence, not requirements or proof that the current design is
-optimal. Review this document when changing application boundaries. Update decisions
-in place when implementation evidence requires reconciliation.
+## Ownership
 
-## Goal and limits
+- `cmd/campfire/runtime.go` constructs services and owns resource lifetimes.
+  `internal/web.New` receives prepared dependencies; it does not open persistence,
+  install database effect callbacks or start workers.
+- `internal/web` adapts HTTP input, sessions, forgery checks, ordered routes and
+  operation results. Business SQL belongs in `internal/database`, not handlers.
+- `internal/application` coordinates cohesive command/query families, owned
+  receipts, display preparation and independent postcommit obligations. Browser,
+  bot and trusted queued replies share the relevant operation owners.
+- `internal/database` owns SQL, persisted graphs and transaction-current invariant
+  checks. Commands return receipts; persistence does not call into transports,
+  storage, workers or HTTP. The driver owns bounded connection-local statement
+  caches; there is no global read-statement wrapper to migrate.
+- `internal/presentation` renders prepared display data. `internal/richtext`
+  transforms owned content with resolved mentions, rather than DB callbacks.
+- `internal/storage` owns files, staging, media computation and purge
+  continuations. Database owns blob/attachment/variant rows; application coordinates
+  their commit boundary.
+- `internal/jobs` owns bounded scheduling and admission. Application task types own
+  meaning. `internal/cable` owns socket lifetimes, indexed recipient candidates,
+  fresh authorization and transport backpressure. Integration clients own provider
+  protocols.
 
-Establish one owner for each invariant, observation, resource and effect. Remove
-cross-layer orchestration, redundant data preparation and obsolete paths. Use
-concrete Go components, explicit SQL and the standard library; no web framework,
-ORM, DI container, generic repository layer, event bus or universal cache framework.
+Use concrete Go dependencies and one owner per invariant. A package extraction is
+not a reason to introduce an ORM, generic repository, DI container, event bus,
+replacement scheduler or universal cache. Complete affected caller migrations and
+remove superseded paths rather than retaining internal compatibility shims.
 
-Preserve existing installations: SQLite schema/data, storage keys/layout, cookies,
-signatures, routes and frontend. Compatible additions are possible but must serve
-the resulting query architecture. Do not change references or media algorithms.
-Keep declared safety differences and document any new intentional differences in
-[README.md](../README.md#known-differences).
+## Commit and effect boundaries
 
-Reconcile ownership and contracts for the affected paths before optimizing them.
-After correctness verification, measure and profile the complete application for
-warm, changed-data and write workloads to prioritize the remaining migrations. Principles establish
-ownership and algorithmic shape; they do not prove optimal pool sizes, indexes,
-cache admission or cross-language performance. Rust parity is not established.
+Message commands in `database/message_commands.go` and application `Messages`
+separate failed mutations from committed results with processing errors:
 
-## Current problems, grounded in source
+1. Decode typed input and prepare owned content/staged files outside the writer.
+2. Acquire the single immediate-transaction writer. Select current permission and
+   authoritative receipt inputs there. Authority linearizes at this observation,
+   not at response delivery or a previous HTTP check.
+3. Commit records, associations, canonical body, FTS and timestamps together.
+4. Return owned identities, display inputs and detached-file candidates. Transfer
+   staged-file ownership immediately after successful commit.
+5. Run independent postcommit obligations with replacement bounds; then present
+   and deliver output. Processing or delivery failure does not undo the commit.
 
-The whole-application review followed HTTP ingress through commands, persistence,
-presentation, publication, jobs and shutdown. These findings are source-derived;
-the concurrent/error cases still need focused regression reproduction.
+For omitted-body updates, derive search text from writer-current content,
+attachment fallback and mention inputs. Caller-prepared plaintext is not
+independently authoritative. Pure preparation can move outside the writer only
+when the exact committed inputs remain valid; timestamps alone do not establish
+that invariant. Do not render, process media or perform external IO under the
+writer. Trusted queued webhook replies remain an explicit operation, not a general
+boolean authorization bypass exposed to callers.
 
-- `internal/web/server.go::New` constructs storage, Cable and workers, and installs
-  database callbacks. `internal/database/database.go::DB` can initiate purge,
-  content-removal and reconnect effects through those callbacks. This is a runtime
-  ownership cycle despite the absence of an import cycle.
-- Browser creation, bot creation and webhook replies reconstruct related
-  commit/media/render/notification flows independently in `web/server.go`,
-  `web/bots.go`, `web/webhooks.go` and `web/message_attributes.go`.
-- `web/message_attributes.go::updateMessageAttributes` derives omitted-body search
-  text from an earlier read. `database/messages.go::UpdateMessageWithUpload` can
-  leave a concurrently changed body intact while overwriting FTS with that stale
-  text. Atomic writes alone do not establish the derivation invariant.
-- Room mutation authority is checked in HTTP before the mutation transaction.
-  Message mutations already put permission checks inside their transaction.
-- Some command paths commit, then require another read or media operation before
-  returning success. Later failure can obscure the committed state and suppress
-  independent effects.
-- `web/messages.go::hydrateMessageViews` loads boosts and attachments per missing
-  message and full users for display. References use partially populated `Message`
-  values and a `CreatorID == 0` sentinel. Rendering resolves mentions through DB
-  callbacks; infrastructure errors are discarded by several rich-text wrappers.
-- `database/read_pool.go` holds a global cache mutex during `PrepareContext`, which
-  can wait for a pooled connection. Admission retains the first 256 SQL shapes.
-- Completion and coding policy are divided among response buffering, recorded parts,
-  private-cache gzip, application compression and public compression.
-- Purge removes graph rows before unlinking, but loses descendant traversal and file
-  identity on an unlink error. Queue rejection and timeout shutdown have different
-  consequences for notifications, cleanup and still-running work, yet their owners
-  do not consistently distinguish them.
+Posting disconnect must not abandon committed work. Attachment processing stays
+joined to the command with `context.WithoutCancel`; `Store.ProcessAttachment`
+owns a two-minute budget covering admission and SQL as well as subprocess work.
+Analysis and preview children retain their separate 30/60-second limits. Native
+libvips calls are not preemptible through this API, so the context is not a hard
+wall-clock bound on native execution.
 
-Retain sound foundations: one immediate-transaction writer, bounded WAL readers,
-the pinned foreign-commit observer, staged files, immutable parts, guarded template
-escaping, indexed publication recipients and publication-local authorization.
+`MessageNotifications.Created` gives unread publication and push preparation
+separate five-second budgets. One timeout must not consume the other's budget.
+Notifications and webhook admission precede fallible created-message presentation.
+Each effect retains its own supported authorization/admission boundary; combining
+work must not move that boundary silently.
 
-## Responsibilities and dependency direction
+## Query algorithms and observations
 
-### Process runtime
+The local writer, bounded read-only WAL pool and separately pinned
+`PRAGMA data_version` observer have different jobs. The observer covers foreign
+as well as local commits; its token is connection-lifetime state, not a portable
+persisted revision. Statement caches reuse plans, never results or permission.
+Do not replace fresh authentication or foreign observation with a TTL or local
+application counter.
 
-The composition root parses immutable configuration, opens resources, constructs
-services/adapters and unwinds partial construction. HTTP construction must not
-install behavior on a database object or secretly create background services.
+Use selective read snapshots when membership, pagination and associations need
+one observation. Materialize SQL results before releasing the snapshot, then
+render, encode and transmit outside it. Cache generation checks bracket the
+observations they protect. If the generation changes, disable unsafe reuse or
+admission rather than relabeling old data with a new generation.
 
-Coordinate listener, socket, command, job and media lifetimes. Close persistence
-last. Do not replace one oversized `Server` with an oversized application object;
-keep operation families cohesive within the application package.
+`MessageQueries` uses explicit references, prepared display data and immutable
+fragments. Batch missing messages and relationship types—authors, boosts,
+attachments and mention targets—rather than querying per message. Do not join
+independent collections into a row-multiplying query. Preserve:
 
-### HTTP adapter
+- Lowest-attachment-ID selection and owned attachment display transformations.
+- Search's matching membership/body observation; a miss must not become unscoped
+  ID hydration.
+- `created_at` pagination and existing tied boundaries. An `(created_at,id)` cursor
+  is a separate compatibility change, not an incidental index optimization.
+- Set-based membership differences and indexed direct-room candidate selection.
 
-`internal/web` owns protocol adaptation: normalized request facts, ordered routing,
-cookies/browser state, forgery checks, bounded decoding, format selection and
-mapping operation results to HTTP. It does not own SQL, business effect sequencing,
-worker construction or hidden data preparation during rendering.
+These constraints leave query shape, compatible indexes and selective batching
+open to improvement. Measure actual plans, rows visited and complete workloads;
+package boundaries and cache-hit throughput do not establish algorithmic quality.
 
-Use one ordered route declaration for handler and policy: authentication mode,
-decoder, formats, completed/file/socket behavior and public-cache eligibility.
-Preserve declaration order, escaped paths, optional formats, method override,
-query precedence, null/absent distinctions and existing error contracts. This is
-not permission to substitute `ServeMux` semantics for the released route contract.
+## Publication and bounded work
 
-Normalize peer/proxy address, authority, scheme and original target once. Consumers
-must not independently reinterpret forwarding headers. Preserve configured proxy
-behavior; untrusted-header stripping must cover every alias consumed downstream.
+Cable's indexes select candidates, not authorization. `Hub.PublishStreams` batches
+same-event streams while retaining fresh session and membership checks local to
+publication. Release the hub lock before database work. The per-connection writer
+owns frame order, cancellation and its reusable write deadline; nonblocking bounded
+queue admission cancels overflowing connections rather than retaining more work.
+Do not increase queues or bypass live checks to improve a benchmark.
 
-### Application services
+Notification tasks normally retain small owned identities. Push is the deliberate
+exception: its selected subscription credentials and prepared payload are the
+admitted provider operation. Refetching in the worker would change recipient timing;
+an identity-to-payload registry would merely hide the same retained snapshot.
+Admission distinguishes accepted, full and closed queues. Best-effort rejection
+must remain visible; critical cleanup retains its continuation. A worker must not
+block indefinitely admitting dependent work to its own saturated queue.
 
-A small `internal/application` package owns command/query orchestration and
-post-commit obligations. Browser HTTP, bot HTTP and workers invoke the same
-operation families. It may coordinate a presenter for publication; transaction
-logic itself has no templates, HTTP writers or external transport work.
+`Cleanup.Detached` registers purge roots before job admission. Storage purge
+continuations retain graph-removal receipts, failed keys and the descendant
+frontier before unlinking. Each destructive graph step rechecks incoming
+references. Independent descendants continue after another unlink fails, and
+shutdown retries retained work. These continuations are process-owned, not
+crash-durable; this design does not introduce an outbox, exactly-once delivery or
+speculative orphan sweeps.
 
-Use concrete dependencies. Introduce interfaces only for real protocol boundaries,
-not to wrap every database operation. Trusted webhook replies and administrative
-cleanup remain explicit operations rather than boolean authorization bypasses.
+Media computation remains outside SQL transactions. Derivative winners link
+atomically and losers are discarded. Queued analysis reloads by blob ID rather
+than retaining request staging state. Preserve existing media algorithms and
+reference vectors when changing ownership.
 
-### Database
+## HTTP representations and caches
 
-`internal/database` owns explicit SQL, persisted graphs and transactional invariant
-checks. Expose typed commands/query results, not public raw pools to HTTP callers.
-Return operation-specific results instead of invoking callbacks into other owners.
+`front.PrepareResponse` and `front.EmitResponse` own finite application response
+completion: validators, selected coding/body length, conditional GET/HEAD and
+output. Borrowed request-buffer parts are valid through synchronous emission;
+retained caches must own copies. Live cookies and security headers remain outside
+retained representations. Preparation success is not successful socket delivery.
 
-Keep one local writer and read-only pooling. Use short, selective read snapshots
-where membership, pagination and associations require one observation; never hold
-a connection while rendering, encoding, transmitting or doing media/network work.
-The separate serialized `PRAGMA data_version` observer remains authoritative for
-local and foreign commits. Its token is connection-lifetime state, not a persisted
-revision interchangeable between connections.
+Files, upgraded sockets and streaming output keep their protocol-specific paths.
+Private completed-response coding and public compression have distinct policies;
+do not merge them merely to reduce the number of types. Finite Turbo markup is
+completed output despite its stream format name.
 
-### Presentation and content
-
-Extract `internal/presentation` for templates, message/shell assembly, signed
-presentation URLs and fragment reuse. Its inputs are complete owned display data,
-explicit host/origin and immutable configuration. It must not query a database or
-retain an HTTP request. Keep template ownership of markup and existing escaping
-safeguards; do not generalize manual interpolation.
-
-`internal/richtext` remains a transformation library. Supply resolved mention data
-rather than database callbacks. Separate deliberate malformed-content fallbacks
-from DB/cancellation failures. Parsing/canonicalization, search derivation and
-presentation are different consumers; do not calculate every output for every use.
-
-### Files, execution and transports
-
-Storage owns bytes, staging, media computation and derivative coordination.
-Database owns blob/attachment/variant rows. Application coordinates their commit
-boundary. Jobs own scheduling; application owns typed task meaning. Cable owns
-connection admission, recipient selection, live publication authorization and
-transport backpressure. Integration clients own network/provider protocols.
-
-Database does not import application, web, jobs, storage or Cable. Presentation
-does not load DB data. Web does not construct application dependencies. Remove the
-existing reverse callbacks and cross-layer staged lifecycle interface as callers
-migrate; do not leave compatibility paths for these internal interfaces.
-
-## Operation contracts
-
-### Commands and commit
-
-1. Decode typed input and prepare owned content/files outside the writer.
-2. Start a short writer transaction; load current actor/permission and authoritative
-   mutation inputs there. Authority linearizes at that transaction observation,
-   not at the last response byte. Do not invent stronger guarantees for in-flight
-   revocation.
-3. Commit record, associations, canonical content, FTS and timestamps together.
-4. Return an owned receipt plus explicit effect inputs: committed identities,
-   revoked users or detached blob candidates, as appropriate to that operation.
-5. Transfer staged-file ownership immediately on successful commit.
-6. Initiate post-commit effects independently of HTTP rendering/cancellation.
-7. Render/respond from the receipt or a separately identified follow-up query.
-
-Precommit failure, postcommit processing failure and response-delivery failure must
-remain distinguishable. Do not report a follow-up read failure as evidence that
-mutation did not commit, and do not emit a fake successful Turbo response. Preserve
-endpoint-specific responses initially while making commit phase explicit; settle
-any changed recovery/status behavior before changing that endpoint's contract.
-
-A submitted canonical body and its plaintext are one owned derivation. For omitted
-body updates, earlier caller plaintext is not authoritative. Derive from current
-transaction state, including attachment fallback and resolved mention inputs. Move
-pure preprocessing outside the writer where possible; any optimistic preparation
-must validate exact inputs, not merely timestamps, before committing. Do not put
-full presentation, file processing or external IO under the writer.
-
-### Scoped, cache-aware queries
-
-Use distinct reference, persisted-record and display types. Select authorized
-records/references in a bounded query. Identify reusable immutable fragments, then
-batch only missing messages, author displays, rooms/participants, boosts,
-attachments and mention targets. Assemble in the established order.
-
-The application query coordinator can consult presentation cache identities during
-preparation; the renderer cannot fetch data. If a logical query needs a read
-snapshot, finish all required SQL and materialize data before releasing it; render
-outside that lifetime. Cache generation checks bracket the relevant observations.
-A changed observation disables unsafe reuse/admission rather than relabeling older
-data with a newer generation.
-
-Query count should scale with relationship types/batches, not message count. Do
-not join independent collections into a row-multiplying query. Preserve the
-lowest-attachment-ID selection and search's matching membership/body observation;
-a search miss must not become unscoped ID hydration.
-
-Resolve pagination anchors once. Preserve `created_at` ordering and existing tied
-boundary behavior; adding an `(created_at,id)` cursor is a separate compatibility
-change. Use sets for membership differences and restrict direct-room candidates
-through indexed participant memberships rather than scanning all direct rooms.
-
-### Representation completion and caching
-
-Define a concrete completed representation: status, format, immutable parts,
-representation headers and cache/validator policy. Live cookies/security headers
-remain request-owned. One emitter owns coding, `Vary`, conditional GET/HEAD,
-selected-body length and final output. Distinguish preparation success from
-successful socket delivery.
-
-Keep files and upgraded sockets separate from completed-body retention. Finite
-Turbo markup is completed output despite its stream format name.
-
-Retain distinct policies:
+Keep these cache purposes distinct:
 
 - Public HTTP reuse: declared route/capability policy, freshness and variants.
-- Private response reuse: live identity/access and unchanged foreign-aware epoch.
+- Private response reuse: live identity/access and an unchanged foreign-aware epoch.
 - Fragments/shells: complete display dependencies and immutable parts.
-- Encoding memo: exact byte/part identity and coding parameters, not weak ETags.
+- Encoding memoization: exact byte/part identity and coding parameters, not weak ETags.
 
-Do not cache authentication or replace foreign observation with TTLs/application
-counters. Keep conservative invalidation until a finer mechanism preserves foreign
-writes. Use one encoding owner; remove superseded gzip paths after migration.
-Define retained-cache budgets separately from active work/memory/disk admission.
+Retained cache budgets are not active-work or disk-admission budgets. An optimization
+must reduce work rather than conceal it with more retained heap or headroom.
 
-### Post-commit work and cleanup
+Routing and policy share the ordered route declarations. Preserve escaped paths,
+optional formats, method override, query precedence, absent/null distinctions and
+endpoint errors. Normalize proxy/peer address, authority, scheme and original
+target once; untrusted-header stripping covers every downstream alias. Keep the
+configured trust policy rather than silently substituting new proxy defaults or
+`ServeMux` semantics.
 
-Use small owned task inputs, usually identities, not captured requests, contexts
-or staged handles. Push delivery is the specific exception: retain its selected
-subscription credentials and prepared payload before admission, matching the
-existing delivery policy. Reloading them in a worker would change admitted work;
-an extra identity-to-payload registry would only hide the same retained snapshot.
-Make admission outcomes explicit. Retain independent bounded queues and existing
-in-process durability; no outbox or exactly-once delivery requirement is introduced.
+## Shutdown and compatibility
 
-Do not make notification admission depend on successful message rendering. Critical
-cleanup must retain an owned continuation when child/background admission fails;
-best-effort notifications may have an explicit rejection policy. Do not block a
-worker indefinitely trying to admit dependent work to its own saturated queue.
+Runtime stops intake, closes and joins upgraded sockets/presence cleanup, joins
+admitted handlers, drains or cancels and joins jobs, retries purge continuations,
+and closes persistence last. `net/http.Shutdown` does not join upgraded sockets;
+cancellation is not a join. The CLI's forced-exit deadline handles native work
+that cannot finish. Forced exit is not successful resource teardown or proof of
+crash durability; shared resources must not close under surviving work.
 
-Graph deletion returns removed file identity and descendant candidates. Preserve
-the frontier before unlink; continue independent cleanup and retain actionable
-failed keys after rows disappear. Check current incoming references at each
-destructive step. Do not add speculative orphan sweeps.
+Keep existing SQLite data/upgrades, storage keys/layout, signatures, cookies,
+routes and frontend usable. Compatible query/index changes are allowed. Record
+intentional behavior changes in [README.md](../README.md#known-differences).
+Inherited public avatar caching can serve warm signed responses without another
+application authentication check; the pinned Rust also strips live cookies on
+public-cache misses. This is not an established Go-only bug. Do not silently
+change that policy, trusted webhook reply semantics, eager media timing, push
+recipient selection, timestamp ties or already-admitted Cable-frame revocation
+semantics. Stronger guarantees need a deliberate contract decision, not a refactor
+disguised as a bug fix.
 
-Retain eager media processing initially, its algorithms and vectors. Heavy compute
-stays outside transactions; derivative winners are linked atomically and losers
-are discarded. Queued analysis reloads by blob ID rather than capturing request
-staging state. Live delivery checks have an explicit admission point; they cannot
-retract traffic already sent.
+## Verification and design changes
 
-### Shutdown
+Fix demonstrated contract violations before optimizing. Use focused regressions,
+`bin/check` and applicable shared verification as described in [AGENTS.md](../AGENTS.md).
+Exercise the public listener for protocol/coding changes and media vectors for
+processing changes. Historical validation does not replace affected current checks.
 
-Stop listener/socket intake, drain active commands and socket/presence cleanup,
-then drain accepted jobs/continuations. On grace expiry cancel remaining work and
-account for completion before releasing resources. `net/http.Shutdown` does not
-join upgraded sockets; cancellation alone does not establish a join.
+Prefer better algorithms, query shape, batching, ownership and resource lifetimes
+before allocation or encoding micro-optimizations. A candidate needs a concrete
+hypothesis, bounded discriminator and matched complete-workload benefit; healthy
+profiles cannot explain an uncaptured failure. Preserve adverse populations and
+use current source identities when comparing Go upstream and Rust.
 
-Native libvips work is not preemptible through the current API. Preserve a bounded
-CLI shutdown policy without promising impossible graceful joins: if owned work
-cannot finish, forced process exit is distinct from successful resource teardown.
-Do not close shared DB resources under surviving work and call it graceful shutdown.
-
-## Compatibility decisions not to hide in refactoring
-
-- Pinned Rust/Rails public avatar caching can serve warm signed avatar responses
-  without another application authentication check; Rust also strips live cookies
-  on public-cache misses. This is inherited behavior, not a confirmed Go-only bug.
-  Preserve it initially and make route policy explicit. Tightening that contract
-  needs a deliberate documented security decision, not silent cache relocation.
-- Preserve existing proxy configuration while consolidating trust ownership.
-  Match reference handling where applicable; new trusted-proxy defaults are not
-  implicitly authorized by package extraction.
-- Retain trusted queued-webhook reply semantics, eager media timing, in-process job
-  durability, timestamp ties and file-controller protocol exceptions initially.
-- Do not silently change push recipient timing or already-admitted Cable-frame
-  revocation semantics. Define the supported live-check boundary and reconcile
-  any stronger policy before implementation of that change.
-
-These boundaries do not block internal ownership migrations. Resolve the relevant
-behavior choice before its migration cohort, using source and actual requirements.
-
-## Execution plan
-
-Execute coherent caller migrations, not isolated optimizations. Each completed
-cohort removes its superseded production paths. Necessary temporary migration
-boundaries are not permanent compatibility shims.
-
-1. **Command/commit boundary.** Reproduce stale omitted-body FTS and committed-result
-   failures with focused tests. Introduce authoritative message/room command inputs
-   and receipts, transactional permission checks, and explicit effect results.
-   Migrate browser, bot and webhook message callers together; remove stale derivation
-   and mandatory postcommit reconstruction. Start here.
-2. **Application and persisted graph ownership.** Extract shared orchestration;
-   migrate rooms/accounts/attachments and cleanup results. Move graph SQL to database,
-   file handles to storage coordination, and remove DB-installed effect callbacks
-   and transaction-capable staged interfaces once all callers migrate.
-3. **Query/presentation boundary.** Introduce explicit references and narrow display
-   inputs, cache-aware batch assemblers and batch-resolved mentions. Extract pure
-   presentation and remove per-item loads, DB callbacks and the broad page/model
-   sentinel paths. Preserve search and snapshot invariants.
-4. **Typed effects and runtime lifecycle.** Migrate task submissions/continuations,
-   admission outcomes and shared message effects. Move composition out of HTTP;
-   complete socket/worker/resource shutdown ownership and constructor unwind.
-5. **Ingress, routes and response ownership.** Consolidate normalization/dispatch,
-   typed decoding and completed representation emission. Migrate coding and cache
-   policies without changing inherited public/capability contracts accidentally.
-6. **Resulting query/resource design.** Remove redundant preparation layers: prefer
-   the supported bounded connection-local driver cache over the global read wrapper,
-   with one strategy per pool. Review actual resulting access paths and compatible
-   indexes, reader/page-cache budgets and active-work admission. Do not stack cache
-   mechanisms or revive rejected driver/checkpoint experiments without new rationale.
-7. **Verification, then profiling.** Run the current shared practical checks below
-   at coherent delivery boundaries, without waiting for every remaining migration.
-   Take fresh complete-application profiles for
-   warm, changed and write workloads; evaluate remaining choices with matched,
-   sequential measurements. Publish raw evidence and limitations, not optimality
-   or parity claims unsupported by results.
-
-## Verification and delivery
-
-Use focused observable regressions for demonstrated failures, then `bin/check` and
-applicable shared HTTP/write contracts and browser flows. Preserve original failing
-assertions and distinguish product defects from environment/oracle failures. Do
-not invent an exhaustive acceptance matrix or rerun unrelated media inventories.
-Run media vectors when processing changes; graph/lifecycle migrations use their
-existing integration coverage and focused failure cases.
-
-Exercise the real public listener when validating protocol/security/coding changes.
-Preserve fresh sessions/access, foreign commits, committed-write/FTS audits,
-cookies/flash, conditional/HEAD/ranges and cancellation in affected cohorts. No
-builds/tests/agents during timed comparisons. Reuse valid unchanged evidence.
-
-Commit coherent agent-owned chunks and synchronize only `origin/perf/campfire`.
-Do not bump versions, publish, open PRs, post comments or push upstream without
-explicit permission.
-
-## Primary sources and refresh
-
-Review current source whenever these owners change. Revisit external semantics
-when Go, SQLite or the protocol contract changes:
-
-- [Go connection ownership](https://go.dev/doc/database/manage-connections)
-- [Go transactions](https://go.dev/doc/database/execute-transactions)
-- [SQLite isolation](https://sqlite.org/isolation.html) and
-  [query planning](https://sqlite.org/queryplanner.html)
-- [HTTP semantics](https://httpwg.org/specs/rfc9110.html) and
-  [HTTP caching](https://httpwg.org/specs/rfc9111.html)
-- `go doc net/http.Server.Shutdown` for upgraded-connection ownership.
-
-These sources justify boundaries, not a universal architecture or projected speedup.
+External semantics to revisit when dependencies or contracts change:
+[Go connection ownership](https://go.dev/doc/database/manage-connections),
+[transactions](https://go.dev/doc/database/execute-transactions),
+[SQLite isolation](https://sqlite.org/isolation.html),
+[query planning](https://sqlite.org/queryplanner.html),
+[HTTP semantics](https://httpwg.org/specs/rfc9110.html) and
+[caching](https://httpwg.org/specs/rfc9111.html).

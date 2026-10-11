@@ -3,8 +3,9 @@
 Port: `once-campfire-go`. Pinned Rust: `64f86353021145b63849fb1cd93adeb08f3b8dbb`.
 Pinned Rails: `90b330024dec3e757c79b6a7e6568f93da8e3148`.
 
-This is a historical implementation record, not an optimal-design or universal-correctness claim.
-The current structural work follows [the application design and execution plan](architecture.md).
+This records the original port and its 2026-10-02/03 verification, not current gate
+results or an optimal-design claim. The maintained [application design](architecture.md)
+replaces the completed migration checklist; current checks follow [AGENTS.md](../AGENTS.md).
 
 The full application is implemented and independently runnable. The implementation uses the standard
 library for HTTP/routing, templates, SQL access and process lifecycle, with focused libraries for
@@ -28,25 +29,19 @@ existing database/storage/cookie formats. The Rust and Rails references are unch
 
 [route-coverage.json](route-coverage.json) records implemented routes and the deliberately preserved
 missing-action error contracts from the reference. A route entry is not a blanket parity claim.
-[validation.md](validation.md) records the final checks and screen-layer results. Known differences
+[validation.md](validation.md) records those checkpoints' checks and screen-layer results. Known differences
 are listed in [README.md](../README.md), including strict DOM/network failures; no additional parity
 masks or allowlists suppress them.
 
-## Benchmark protocol
+## Historical measurements
 
-Use native release binaries, matching installed media libraries, identical seed/secrets, four
-application workers, separate server/load-generator CPU sets, sequential alternating applications,
-and at least three repetitions. Each HTTP workload receives a two-second warmup before measurements
-at 1/16/64 clients. Cable uses 100/1,000/10,000 clients, with compression off and on. Every timed run
-must return successful responses, persist/index every acknowledged write and complete every expected
-Cable delivery. Upload measurements fetch the actual thumbnail and compare its bytes.
+The original protocol and populations belong to their dated records under
+[`bench/results/`](../bench/results/), not to a mandatory acceptance matrix for
+later changes. Use the shared verification harness or [`bench/application`](../bench/application)
+and the [current measurement rules](../AGENTS.md#performance-and-delivery).
 
-Report median/range, p50/p90/p99 (the original load generator exposes p90 rather than p95), startup,
-Pss, binary sizes and container size. Preserve toolchains, CPU/load, source/binary/seed hashes and raw
-samples. Startup is polled at 25 ms; final memory includes allocator high-water effects. Native
-direct-listener results do not measure public TLS/compression throughput. Local background workload
-is recorded but cannot be eliminated on this shared workstation.
-
-The health-only measurements and early application preflights remain historical evidence, not the
-final comparison. The initial application upload selector fetched an avatar; those media timings
-are invalidated. The final runner verifies actual representation URLs, image bytes and hashes.
+Health-only measurements and early application preflights are not full-application
+capacity evidence. The initial upload selector fetched an avatar; those timings
+remain invalid. Later media measurements fetch actual representation URLs and
+verify image bytes/hashes. Direct-listener results do not establish public
+TLS/compression throughput, and CPU affinity does not establish physical isolation.

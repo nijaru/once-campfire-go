@@ -1,6 +1,11 @@
 # Port validation — 2026-10-02
 
-The full application is implemented. Tests and browser workflows pass; the screenshot and accessibility layers match in the exercised inventory. **Strict all-layer parity is not a pass:** server/live DOM and network differences remain visible.
+This is a historical record of the 2026-10-02/03 binaries and exercised inventory,
+not a current gate report. At those checkpoints, tests and browser workflows passed,
+and screenshot/accessibility layers matched. **Strict all-layer parity was not a
+pass:** server/live DOM and network differences remained visible. Use the current
+[verification instructions](../AGENTS.md#verification) for changed code; retain the
+results below with their original source and binary identities.
 
 ## Automated checks
 

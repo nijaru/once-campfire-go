@@ -14,8 +14,9 @@ front server, automatic certificates, production packaging and backup/restore ho
 SQLite schema, storage keys/layout, password hashes and Rails signed/encrypted cookies are preserved.
 An upgrade test checks Go and Rust cookies in both directions and Rust reading/searching Go-written
 messages. The port is functionally implemented; **strict HTML/network parity is not complete**.
-See [validation](plans/validation.md) and the known differences below before replacing an installation.
-The [application design and refactor plan](plans/architecture.md) describes the structural work and its compatibility boundaries.
+See the [dated port validation](plans/validation.md) and the known differences below before replacing
+an installation. The [application design](plans/architecture.md) describes ownership and compatibility
+boundaries; historical validation is not proof of current correctness or performance.
 The pinned Rust source is in `reference/`, with its Rails source in `reference/reference/`.
 
 ## Dependencies
