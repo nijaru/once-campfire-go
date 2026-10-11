@@ -141,7 +141,40 @@ Container verification exercises setup, a live SQLite backup, offline restore, a
 default paths, storage/environment overrides, database overrides, combined overrides, and URI
 metacharacters in paths.
 
+## Profiling
+
+Once correctness checks pass, use representative CPU/allocation profiles to choose
+optimization work. Investigate blocking, scheduler behavior and SQL when CPU does
+not explain elapsed time. Prefer quiet native hardware when available; local/VM
+profiles remain useful diagnostics, not interchangeable capacity measurements.
+Validate changes with complete responses, persisted-write audits and matched
+end-to-end checks. A smaller profile percentage alone is not an improvement.
+
+The CLI supports an opt-in CPU profile. With the normal server environment pointed
+at a disposable fixture, run:
+
+```sh
+mkdir -p .cache/profiles
+GO_CPU_PROFILE=.cache/profiles/cpu.pprof ./campfire server
+# Exercise the representative workload, then stop the server gracefully.
+go tool pprof -top ./campfire .cache/profiles/cpu.pprof
+```
+
+The profile covers the process lifetime, including setup/authentication. Separate
+that work from the application phase being investigated; use a bounded phase
+capture if it would otherwise dominate. Graceful shutdown flushes the profile.
+Instrumented runs guide diagnosis; keep final benchmark comparisons uninstrumented.
+
 ## Benchmarks
+
+The records below describe their source, machine and workload, not current release
+gates. Historical ranking gaps and unexplained timing variability are not diagnosed
+application errors. In the instrumented low-throughput Cable workflow, every
+acknowledged message was delivered and socket queues did not grow; delivery followed
+slow POST completion. Its cause is unclassified, not a confirmed transport defect
+or an established system-noise explanation. See the
+[progress capture](bench/results/cable-progress-20261011/README.md) and
+[HTTP-boundary controls](bench/results/http-boundary-room-post-20261011/README.md).
 
 Upstream's published measurements use 16 concurrent clients on an AMD Ryzen AI MAX+ 395
 with 32 GB RAM and four hardware cores allocated to each app. These are not measurements of
@@ -184,10 +217,10 @@ The [POST tail investigation](bench/results/post-tail-20261010/README.md) record
 restore checks, a 16–17% allocation reduction, and a 6.2% POST capacity median gain over Go
 upstream. The [pacing and deadline comparison](bench/results/pacing-deadlines-20261010/README.md)
 adds native Linux measurements, explicit active client pacing and connection-owned Cable
-write deadlines. POST tails remain worse than upstream, and the earlier Cable collapse
-has not been causally resolved; neither record establishes readiness or universal parity.
+write deadlines. Its POST-tail comparisons favor upstream; the earlier VM throughput
+slowdown has no established cause. Neither record establishes universal parity.
 The [Cable scheduler follow-up](bench/results/cable-scheduler-20261010/README.md) retains phase
-CPU/scheduler measurements, another baseline collapse and a rejected contiguous-frame prototype.
+CPU/scheduler measurements, another low-rate baseline and a rejected contiguous-frame prototype.
 Reducing isolated transport writes did not improve the complete application.
 The [native cancellation follow-up](bench/results/native-cancellation-20261011/README.md) retains
 fresh desktop comparisons and a corrected cancellation bridge rejected for its VM latency trade-off.
@@ -195,8 +228,12 @@ The [correlated native POST traces](bench/results/native-post-trace-20261011/REA
 36,000 client completions to handler and writer waits without claiming a general tail-latency cause.
 The [native Rust baseline and scoped-search comparison](bench/results/native-rust-search-20261011/README.md)
 closes the missing native comparison and improves an uncached sparse-search workload by 25.4% with
-one ordered, membership-scoped FTS query. The dense control is essentially unchanged; POST tails
-and intermittent collapse remain unresolved, including an adverse native POST-capacity run.
+one ordered, membership-scoped FTS query. The dense control is essentially unchanged.
+Its POST-tail gap and adverse native POST-capacity sample remain unexplained observations.
+The [HTTP-boundary and room-read controls](bench/results/http-boundary-room-post-20261011/README.md)
+retain healthy VM request correlations and a rejected POST candidate. These observations
+inform profile-guided work; they do not require another benchmark-ranking or slowdown
+reproduction campaign before useful, verified improvements can land.
 
 ## Known differences
 

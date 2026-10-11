@@ -5,7 +5,14 @@ stops there, as declared; the other five attempts are not used. The phase is lim
 by completed POSTs, not a growing fanout/socket backlog. Its underlying cause is
 still unresolved. No production change is proposed or landed from these counters.
 Instrumentation overhead has not been isolated, so this is **not proof that the
-historical pristine collapse has the same cause**.
+historical pristine low-throughput runs have the same cause**.
+
+This is a timing observation, not a diagnosed Cable delivery error. Every
+acknowledged message reached all clients, and socket queues did not expand. Its
+cause remains unclassified; system noise has not been established. The current
+[profile-led workflow](../../../plans/architecture.md#verification-and-design-changes)
+uses representative profiles to improve demonstrated work without making this
+historical phase a standalone delivery gate.
 
 ## Workload and instrumentation
 
@@ -115,11 +122,14 @@ of pretending the fixture was clean. Both failures, original metadata and recove
 are retained. **No workload is rerun to obtain the pass.**
 
 The bounded capture is closed. Evidence does not justify a wire, cancellation,
-queue, authorization or scheduler rewrite. A new investigation would need bounded,
-individually correlated HTTP/POST timing and an explicit instrumentation-cost
-control; these observations alone cannot select a production fix. POST tails, the
-adverse native capacity sample and stable Cable performance remain open readiness
-gates. No PR-readiness or universal-correctness claim follows.
+queue, authorization or scheduler rewrite. The subsequent
+[HTTP-boundary control](../http-boundary-room-post-20261011/README.md) adds matched
+server-probe controls and individual request correlations, but captures only
+higher-throughput phases and does not isolate client recording overhead. Neither
+record establishes this historical phase's cause or a fix. These limits remain
+disclosed observations, not standalone readiness gates or a reason to block
+profile-guided improvements to ordinary operation. No universal-correctness claim
+follows.
 
 The [manifest](manifest.json) covers sanitized counters, samples, patches, adapters,
 analysis and gates. Runtime logs, raw ACK maps, databases, fixture/session files,

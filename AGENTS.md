@@ -41,15 +41,21 @@ not old plans, benchmark tables, or assumptions about frameworks.
 - Fix demonstrated correctness failures before optimizing. Use the current
   [application design contracts](plans/architecture.md), not the completed migration
   checklist or historical validation records, to preserve ownership and compatibility.
-- Start with algorithms and system design: SQL access paths and transaction scope,
-  batch materialization, publication work and resource lifetimes. Only then consider
-  allocation, encoding or transport micro-optimizations supported by whole-application
-  evidence. Complete caller migrations and remove superseded paths.
+- Profile representative complete workloads before choosing optimizations. Use CPU
+  and allocation evidence for expensive work; inspect blocking, scheduling and SQL
+  when wall time is not explained by CPU. Improve demonstrated algorithms, query
+  shape, batching and resource lifetimes before adding micro-optimization complexity.
+  Complete caller migrations and remove superseded paths.
+- Prefer quiet native hardware for profiling and matched performance comparisons
+  when available. Keep local/VM diagnostics scoped to that environment; variable
+  throughput alone is not a diagnosed Cable defect or proof of system noise.
 - Before an experiment, name the hypothesis, discriminator, bounded run budget and
   landing/rejection criteria. End with a fix or a closed hypothesis that changes the
   next decision; another diagnostic archive is not a resolved performance goal.
   Inspect rejected controls before repeating them, and require new evidence to reopen
-  one. Healthy profiles do not explain an uncaptured bad phase.
+  one. Profiles of ordinary operation can justify improvements to that work, but
+  cannot establish the cause or repair of an uncaptured slowdown. Historical ranking
+  gaps and unexplained VM variability are not independent delivery gates.
 - Use the shared harness or `bench/application`: matched data, complete responses,
   persisted-write audits, settings and sequential interleaved repetitions. Keep raw
   evidence and limitations in `bench/results/`, including adverse runs and failed

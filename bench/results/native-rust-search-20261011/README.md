@@ -1,8 +1,8 @@
 # Native Rust baseline and scoped search — 2026-10-11
 
-The first current native Rust application comparison closes a measurement gap,
-not the POST/Cable performance goals. A separate structural search change removes
-the global probe and restart: one membership-scoped, descending FTS iterator query
+The first current native Rust application comparison closes a measurement gap.
+A separate structural search change removes the global probe and restart: one
+membership-scoped, descending FTS iterator query
 selects the newest 100 accessible IDs in the existing read snapshot. Full sparse
 search throughput improved **25.4%** and capacity-run p99 improved **12.7%** across
 three matched pairs; the seeded dense control was essentially unchanged.
@@ -75,9 +75,9 @@ persisted-count/FTS/integrity and zero-presence-after-disconnect audits.
 
 Current median delivery is **22.1% below Rust**, while exceeding upstream Go by
 41.1%. Paced latency varies; the small median Go/Rust gap is not a general latency
-conclusion. No severe Cable collapse occurred in these native samples. This does
-not explain or erase the prior VM collapses. All **1,144,332 timed/warmup writes**
-across the 27 baseline runs passed their applicable audits.
+conclusion. No severe low-rate Cable phase occurred in these native samples. This
+does not explain or erase the prior VM timing observations. All **1,144,332
+timed/warmup writes** across the 27 baseline runs passed their applicable audits.
 
 ## Search design discriminator
 
@@ -147,4 +147,9 @@ query probes, source/binary provenance and gate/build logs. Duplicate raw sample
 private fixtures/databases, cookies, signed paths and runtime/server logs are not
 published. Media algorithms were not changed; media-output inventories were not
 rerun. This search improvement does **not** fix or explain POST tails, the adverse
-native POST-capacity sample, or intermittent Cable collapse. PR readiness remains open.
+native POST-capacity sample, or the intermittent low-throughput VM observations.
+Those measurements remain historical evidence, not diagnosed correctness defects
+or standalone readiness gates. The current
+[profile-led workflow](../../../plans/architecture.md#verification-and-design-changes)
+uses demonstrated costs to choose improvements and matched end-to-end checks to
+validate them; it does not require closing every historical ranking gap.

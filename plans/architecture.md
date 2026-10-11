@@ -189,11 +189,31 @@ Fix demonstrated contract violations before optimizing. Use focused regressions,
 Exercise the public listener for protocol/coding changes and media vectors for
 processing changes. Historical validation does not replace affected current checks.
 
-Prefer better algorithms, query shape, batching, ownership and resource lifetimes
-before allocation or encoding micro-optimizations. A candidate needs a concrete
-hypothesis, bounded discriminator and matched complete-workload benefit; healthy
-profiles cannot explain an uncaptured failure. Preserve adverse populations and
-use current source identities when comparing Go upstream and Rust.
+Use representative profiles to choose optimization work after correctness gates
+are satisfied. Start with CPU/allocation costs; when elapsed time is not explained
+by CPU, inspect blocking, scheduler behavior, SQL access paths and request boundaries.
+Prefer simpler algorithms, query shape, batching, ownership and resource lifetimes
+before micro-optimization complexity. Compare absolute work per completed operation,
+not just a smaller percentage in a changed profile; lower CPU alone does not prove
+better latency or throughput.
+
+Prefer quiet native hardware when available. Local/VM profiles can identify work in
+that environment, but keep their timing and causal claims separate from native
+results. A candidate needs a concrete hypothesis, bounded discriminator, preserved
+contracts and matched complete-workload benefit. Use uninstrumented end-to-end
+checks to validate profile-guided changes, retaining adverse populations and current
+source identities when comparing Go upstream and Rust.
+
+Distinguish delivery failures from timing variability. The retained
+[low-throughput Cable workflow observations](../bench/results/cable-progress-20261011/README.md)
+do not establish a transport defect: the instrumented slow phase delivered every
+acknowledged message without an expanding socket queue,
+and its lower delivered rate followed slower POST completion. Its cause remains
+unclassified. Ordinary-operation profiles can support useful improvements without
+explaining that historical phase. Do not claim it fixed, blame system noise without
+evidence, or make its reproduction or historical benchmark parity a standalone
+delivery gate. Diagnose and fix any demonstrated correctness or supported-workload
+regression; report unresolved measurement limits separately.
 
 External semantics to revisit when dependencies or contracts change:
 [Go connection ownership](https://go.dev/doc/database/manage-connections),

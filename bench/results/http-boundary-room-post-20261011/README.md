@@ -1,9 +1,16 @@
 # HTTP boundaries and redundant room read — 2026-10-11
 
-**No production change.** The six HTTP-boundary controls captured healthy Cable
-phases, not the historical collapse. A separate candidate removing the redundant
-room read from attachment-free browser POSTs lost all three fixed-rate p99 pairs
-and was rejected. Neither result closes the POST-tail or Cable performance goals.
+**No production change.** The six HTTP-boundary controls captured higher-throughput
+Cable phases, not the historical slowdown. A separate candidate removing the
+redundant room read from attachment-free browser POSTs lost all three fixed-rate
+p99 pairs and was rejected. Neither result establishes a general slowdown cause.
+
+The low-rate observation was not diagnosed as a Cable delivery error, and system
+noise was not established as its cause. The current
+[profile-led workflow](../../../plans/architecture.md#verification-and-design-changes)
+prioritizes correctness and reductions in demonstrated CPU/allocation or blocking
+work. Historical timing variability and ranking gaps remain disclosed limits, not
+standalone delivery gates. Measurements and rejection decisions below are unchanged.
 
 Current application source is `perf/campfire@86e0a1a`, byte-identical to `ccfa838`.
 Shared verification remains `ec02deb`. All probes, client extensions and candidate
