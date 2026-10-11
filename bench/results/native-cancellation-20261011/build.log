@@ -1,0 +1,26 @@
+STEP 1/6: FROM localhost/campfire-post-fix-desktop-before-wrapper:latest
+STEP 2/6: COPY source /build/current
+--> 3883a89f94ad
+STEP 3/6: RUN cd /build/current && CGO_ENABLED=1 go vet -tags sqlite_fts5 ./cmd/campfire ./internal/cable && CGO_ENABLED=1 go test -race -tags sqlite_fts5 ./internal/cable ./cmd/campfire && cd third_party/websocket && go test -race ./... && cd /build/current && CGO_ENABLED=1 go build -buildvcs=false -trimpath -tags sqlite_fts5 -o /go-current-native ./cmd/campfire
+ok  	github.com/basecamp/once-campfire-go/internal/cable	1.661s
+ok  	github.com/basecamp/once-campfire-go/cmd/campfire	1.323s
+ok  	github.com/coder/websocket	10.010s
+?   	github.com/coder/websocket/internal/bpool	[no test files]
+?   	github.com/coder/websocket/internal/errd	[no test files]
+?   	github.com/coder/websocket/internal/test	[no test files]
+?   	github.com/coder/websocket/internal/test/assert	[no test files]
+?   	github.com/coder/websocket/internal/test/wstest	[no test files]
+?   	github.com/coder/websocket/internal/test/xrand	[no test files]
+?   	github.com/coder/websocket/internal/util	[no test files]
+ok  	github.com/coder/websocket/internal/xsync	1.012s
+ok  	github.com/coder/websocket/wsjson	1.010s [no tests to run]
+--> 3beb551b8164
+STEP 4/6: WORKDIR /rails
+--> a596a16ff5db
+STEP 5/6: ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+--> 729b1ab16b25
+STEP 6/6: CMD ["/go-current-native", "server"]
+COMMIT localhost/campfire-native-boundary-current
+--> 7fe097721428
+Successfully tagged localhost/campfire-native-boundary-current:latest
+7fe097721428a77304c759519aed1aa2240440fb34ac1ed378a023db41dd7d6c

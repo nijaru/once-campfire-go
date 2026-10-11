@@ -188,6 +188,8 @@ has not been causally resolved; neither record establishes readiness or universa
 The [Cable scheduler follow-up](bench/results/cable-scheduler-20261010/README.md) retains phase
 CPU/scheduler measurements, another baseline collapse and a rejected contiguous-frame prototype.
 Reducing isolated transport writes did not improve the complete application.
+The [native cancellation follow-up](bench/results/native-cancellation-20261011/README.md) retains
+fresh desktop comparisons and a corrected cancellation bridge rejected for its VM latency trade-off.
 
 ## Known differences
 

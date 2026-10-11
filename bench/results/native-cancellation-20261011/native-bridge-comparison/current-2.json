@@ -1,0 +1,95 @@
+{
+  "app": "current",
+  "round": 2,
+  "cable": {
+    "clients": 64,
+    "connect_secs": 0.06,
+    "distinct_session_cookies": 64,
+    "failed": 0,
+    "latency": {
+      "all_clients": {
+        "max_ms": 6.639,
+        "mean_ms": 4.02,
+        "n": 100,
+        "p50_ms": 3.953,
+        "p90_ms": 4.267,
+        "p99_ms": 5.223
+      },
+      "complete": 100,
+      "messages": 100,
+      "per_client": {
+        "max_ms": 6.639,
+        "mean_ms": 3.62,
+        "n": 6400,
+        "p50_ms": 3.577,
+        "p90_ms": 4.001,
+        "p99_ms": 5.223
+      },
+      "post": {
+        "max_ms": 6.711,
+        "mean_ms": 3.75,
+        "n": 100,
+        "p50_ms": 3.707,
+        "p90_ms": 4.103,
+        "p99_ms": 4.983
+      },
+      "post_attempts": 100,
+      "post_errors": 0,
+      "post_successes": 100
+    },
+    "ready": 64,
+    "refreshes": 21,
+    "session_rows": 64,
+    "subscriptions_per_client": 6,
+    "subscriptions_per_client_range": {
+      "max": 6,
+      "min": 6
+    },
+    "throughput": {
+      "all_clients": {
+        "max_ms": 10.151,
+        "mean_ms": 1.91,
+        "n": 16949,
+        "p50_ms": 1.686,
+        "p90_ms": 2.993,
+        "p99_ms": 5.199
+      },
+      "complete": 16949,
+      "delivered_msgs_per_sec": 3389.0,
+      "drain_secs": 0.0,
+      "frames_per_sec": 216893.0,
+      "per_client": {
+        "max_ms": 10.151,
+        "mean_ms": 1.45,
+        "n": 1084736,
+        "p50_ms": 1.306,
+        "p90_ms": 2.239,
+        "p99_ms": 3.867
+      },
+      "post": {
+        "max_ms": 9.023,
+        "mean_ms": 1.18,
+        "n": 16949,
+        "p50_ms": 1.054,
+        "p90_ms": 1.894,
+        "p99_ms": 3.245
+      },
+      "post_attempts": 16949,
+      "post_errors": 0,
+      "posted": 16949,
+      "posters": 4,
+      "posts_per_sec": 3389.0,
+      "wire_mb_per_sec": null
+    },
+    "unread_frames": 1091136,
+    "verified_distinct_people": 64,
+    "generator_cpu_percent": 68.57046722763273,
+    "write_audit": {
+      "persisted": 17049,
+      "exact_unique_markers": true,
+      "indexed": 17049,
+      "integrity": "ok",
+      "presence_after_disconnect": 0
+    }
+  }
+}

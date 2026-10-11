@@ -1,0 +1,38 @@
+{
+  "started_at": "2026-10-11T02:21:08Z",
+  "people": 64,
+  "server_cpus": "0,2,4,6",
+  "client_cpus": "8,10,12,14",
+  "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+  "loadgen_sha256": "37f24cdb586b8bca50b122c098c8ff54a0be168569dea2e2a55fc800c31d1d95",
+  "source_revision": "66895c8f44b4756a3f0337af71c85e890980774d",
+  "application_revision": "811ae046389282ac44f5dd714d29ce43d6f0a276",
+  "phases": {
+    "latency_msgs": 100,
+    "interval_ms": 100,
+    "tput_secs": 5,
+    "posters": 4,
+    "refresh_secs": 50
+  },
+  "images": {
+    "current": "7fe097721428a77304c759519aed1aa2240440fb34ac1ed378a023db41dd7d6c",
+    "bridge": "47c66ab6182cec8f07dce148c1cca6400c9137cf3f15856122f9ce7a5416d284"
+  },
+  "observation": {
+    "mode": "uninstrumented",
+    "observer_cpus": "16,18",
+    "application_hooks": false,
+    "generator_hooks": false,
+    "periodic_sampling": false
+  },
+  "cohort": {
+    "rounds": 3,
+    "order": "current-bridge/bridge-current/current-bridge",
+    "stop_early": false
+  },
+  "candidate": "private connection-owned cancellation bridge with immediate graceful-close interruption; production unchanged",
+  "binary_sha256": {
+    "current": "6446e567b3f3486fb9616e8fe84f155fd4db718798b733d01c143b98e95505e7",
+    "bridge": "edc31d2e7ae52b9b483413aadf2a43274663095d19986be480a656fc1496136e"
+  }
+}

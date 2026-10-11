@@ -1,0 +1,38 @@
+{
+  "started_at": "2026-10-11T01:48:39Z",
+  "people": 64,
+  "server_cpus": "0,2,4,6",
+  "client_cpus": "8,10,12,14",
+  "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+  "loadgen_sha256": "37f24cdb586b8bca50b122c098c8ff54a0be168569dea2e2a55fc800c31d1d95",
+  "source_revision": "66895c8f44b4756a3f0337af71c85e890980774d",
+  "application_revision": "811ae046389282ac44f5dd714d29ce43d6f0a276",
+  "phases": {
+    "latency_msgs": 100,
+    "interval_ms": 100,
+    "tput_secs": 5,
+    "posters": 4,
+    "refresh_secs": 50
+  },
+  "images": {
+    "go-before": "7fe097721428a77304c759519aed1aa2240440fb34ac1ed378a023db41dd7d6c",
+    "go": "7fe097721428a77304c759519aed1aa2240440fb34ac1ed378a023db41dd7d6c"
+  },
+  "observation": {
+    "mode": "phase-boundaries only",
+    "periodic_sampling": false,
+    "observer_cpus": "16,18",
+    "clock_ticks_per_second": 100,
+    "instrumentation": "external proc counters; no application/generator hooks"
+  },
+  "cohort": {
+    "rounds": 3,
+    "order": "upstream-current/current-upstream/upstream-current",
+    "stop_early": false
+  },
+  "upstream_revision": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+  "binary_sha256": {
+    "current": "6446e567b3f3486fb9616e8fe84f155fd4db718798b733d01c143b98e95505e7",
+    "upstream": "70cca09f7fa45eac8e383a2160990ac1ad9a1bdd9c6b95f47dc666b60b987b54"
+  }
+}

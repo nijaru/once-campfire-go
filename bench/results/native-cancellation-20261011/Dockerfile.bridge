@@ -1,0 +1,6 @@
+FROM localhost/campfire-post-fix-desktop-before-wrapper:latest
+COPY bridge-source /build/current
+RUN cd /build/current && CGO_ENABLED=1 go vet -tags sqlite_fts5 ./cmd/campfire ./internal/cable && CGO_ENABLED=1 go test -race -tags sqlite_fts5 -count=5 ./internal/cable && CGO_ENABLED=1 go build -buildvcs=false -trimpath -tags sqlite_fts5 -o /go-bridge-native ./cmd/campfire
+WORKDIR /rails
+ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+CMD ["/go-bridge-native", "server"]

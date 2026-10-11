@@ -1,0 +1,15 @@
+STEP 1/6: FROM localhost/campfire-post-fix-desktop-before-wrapper:latest
+STEP 2/6: COPY bridge-source /build/current
+--> 6382da116863
+STEP 3/6: RUN cd /build/current && CGO_ENABLED=1 go vet -tags sqlite_fts5 ./cmd/campfire ./internal/cable && CGO_ENABLED=1 go test -race -tags sqlite_fts5 -count=5 ./internal/cable && CGO_ENABLED=1 go build -buildvcs=false -trimpath -tags sqlite_fts5 -o /go-bridge-native ./cmd/campfire
+ok  	github.com/basecamp/once-campfire-go/internal/cable	4.699s
+--> 728f1324a440
+STEP 4/6: WORKDIR /rails
+--> fdc09970947c
+STEP 5/6: ENV CAMPFIRE_STORAGE_PATH=/rails/storage
+--> 8448fd9caa00
+STEP 6/6: CMD ["/go-bridge-native", "server"]
+COMMIT localhost/campfire-native-boundary-bridge
+--> cfcd2ccbc261
+Successfully tagged localhost/campfire-native-boundary-bridge:latest
+cfcd2ccbc2618a527825db26be9022e64051e5a479f488b04b04f49c447cc1fd

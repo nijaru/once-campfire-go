@@ -1,0 +1,95 @@
+{
+  "app": "bridge",
+  "round": 2,
+  "cable": {
+    "clients": 64,
+    "connect_secs": 0.06,
+    "distinct_session_cookies": 64,
+    "failed": 0,
+    "latency": {
+      "all_clients": {
+        "max_ms": 6.291,
+        "mean_ms": 3.91,
+        "n": 100,
+        "p50_ms": 3.877,
+        "p90_ms": 4.243,
+        "p99_ms": 4.891
+      },
+      "complete": 100,
+      "messages": 100,
+      "per_client": {
+        "max_ms": 6.291,
+        "mean_ms": 3.52,
+        "n": 6400,
+        "p50_ms": 3.503,
+        "p90_ms": 3.933,
+        "p99_ms": 4.891
+      },
+      "post": {
+        "max_ms": 6.471,
+        "mean_ms": 3.68,
+        "n": 100,
+        "p50_ms": 3.657,
+        "p90_ms": 4.075,
+        "p99_ms": 4.875
+      },
+      "post_attempts": 100,
+      "post_errors": 0,
+      "post_successes": 100
+    },
+    "ready": 64,
+    "refreshes": 21,
+    "session_rows": 64,
+    "subscriptions_per_client": 6,
+    "subscriptions_per_client_range": {
+      "max": 6,
+      "min": 6
+    },
+    "throughput": {
+      "all_clients": {
+        "max_ms": 12.655,
+        "mean_ms": 1.86,
+        "n": 17347,
+        "p50_ms": 1.64,
+        "p90_ms": 2.913,
+        "p99_ms": 5.119
+      },
+      "complete": 17347,
+      "delivered_msgs_per_sec": 3468.4,
+      "drain_secs": 0.0,
+      "frames_per_sec": 221977.0,
+      "per_client": {
+        "max_ms": 12.655,
+        "mean_ms": 1.41,
+        "n": 1110208,
+        "p50_ms": 1.28,
+        "p90_ms": 2.139,
+        "p99_ms": 3.741
+      },
+      "post": {
+        "max_ms": 8.903,
+        "mean_ms": 1.15,
+        "n": 17347,
+        "p50_ms": 1.039,
+        "p90_ms": 1.792,
+        "p99_ms": 3.169
+      },
+      "post_attempts": 17347,
+      "post_errors": 0,
+      "posted": 17347,
+      "posters": 4,
+      "posts_per_sec": 3468.6,
+      "wire_mb_per_sec": null
+    },
+    "unread_frames": 1116608,
+    "verified_distinct_people": 64,
+    "generator_cpu_percent": 69.25410736258745,
+    "write_audit": {
+      "persisted": 17447,
+      "exact_unique_markers": true,
+      "indexed": 17447,
+      "integrity": "ok",
+      "presence_after_disconnect": 0
+    }
+  }
+}

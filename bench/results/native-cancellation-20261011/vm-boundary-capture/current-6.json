@@ -1,0 +1,161 @@
+{
+  "app": "current",
+  "round": 6,
+  "cable": {
+    "clients": 64,
+    "connect_secs": 0.06,
+    "distinct_session_cookies": 64,
+    "failed": 0,
+    "latency": {
+      "all_clients": {
+        "max_ms": 27.519,
+        "mean_ms": 7.51,
+        "n": 100,
+        "p50_ms": 6.883,
+        "p90_ms": 9.903,
+        "p99_ms": 19.759
+      },
+      "complete": 100,
+      "messages": 100,
+      "per_client": {
+        "max_ms": 27.519,
+        "mean_ms": 6.27,
+        "n": 6400,
+        "p50_ms": 5.883,
+        "p90_ms": 8.815,
+        "p99_ms": 17.439
+      },
+      "post": {
+        "max_ms": 27.695,
+        "mean_ms": 5.83,
+        "n": 100,
+        "p50_ms": 4.551,
+        "p90_ms": 8.847,
+        "p99_ms": 19.631
+      },
+      "post_attempts": 100,
+      "post_errors": 0,
+      "post_successes": 100
+    },
+    "ready": 64,
+    "refreshes": 21,
+    "session_rows": 64,
+    "subscriptions_per_client": 6,
+    "subscriptions_per_client_range": {
+      "max": 6,
+      "min": 6
+    },
+    "throughput": {
+      "all_clients": {
+        "max_ms": 20.479,
+        "mean_ms": 2.83,
+        "n": 13230,
+        "p50_ms": 2.461,
+        "p90_ms": 4.707,
+        "p99_ms": 8.535
+      },
+      "complete": 13230,
+      "delivered_msgs_per_sec": 2645.0,
+      "drain_secs": 0.0,
+      "frames_per_sec": 169281.0,
+      "per_client": {
+        "max_ms": 20.479,
+        "mean_ms": 1.82,
+        "n": 846720,
+        "p50_ms": 1.559,
+        "p90_ms": 3.103,
+        "p99_ms": 5.923
+      },
+      "post": {
+        "max_ms": 13.551,
+        "mean_ms": 1.51,
+        "n": 13230,
+        "p50_ms": 1.242,
+        "p90_ms": 2.701,
+        "p99_ms": 5.231
+      },
+      "post_attempts": 13230,
+      "post_errors": 0,
+      "posted": 13230,
+      "posters": 4,
+      "posts_per_sec": 2645.0,
+      "wire_mb_per_sec": null
+    },
+    "unread_frames": 853120,
+    "verified_distinct_people": 64,
+    "phase_memory": [
+      {
+        "phase": "PHASE connect 1791683722685",
+        "memory": {
+          "VmHWM": "108576 kB",
+          "VmRSS": "108576 kB",
+          "Threads": "10"
+        }
+      },
+      {
+        "phase": "PHASE connected 1791683722746",
+        "memory": {
+          "VmHWM": "108596 kB",
+          "VmRSS": "108596 kB",
+          "Threads": "10"
+        }
+      },
+      {
+        "phase": "PHASE paced 1791683723757",
+        "memory": {
+          "VmHWM": "108320 kB",
+          "VmRSS": "87600 kB",
+          "Threads": "10"
+        }
+      },
+      {
+        "phase": "PHASE paced_drained 1791683734320",
+        "memory": {
+          "VmHWM": "108320 kB",
+          "VmRSS": "96896 kB",
+          "Threads": "12"
+        }
+      },
+      {
+        "phase": "PHASE saturated 1791683734320",
+        "memory": {
+          "VmHWM": "108320 kB",
+          "VmRSS": "97232 kB",
+          "Threads": "12"
+        }
+      },
+      {
+        "phase": "PHASE saturated_posted 1791683739322",
+        "memory": {
+          "VmHWM": "119976 kB",
+          "VmRSS": "119976 kB",
+          "Threads": "12"
+        }
+      },
+      {
+        "phase": "PHASE saturated_drained 1791683739322",
+        "memory": {
+          "VmHWM": "119984 kB",
+          "VmRSS": "119984 kB",
+          "Threads": "12"
+        }
+      },
+      {
+        "phase": "PHASE done 1791683739323",
+        "memory": {
+          "VmHWM": "119984 kB",
+          "VmRSS": "119984 kB",
+          "Threads": "12"
+        }
+      }
+    ],
+    "generator_cpu_percent": 41.82947117382445,
+    "write_audit": {
+      "persisted": 13330,
+      "exact_unique_markers": true,
+      "indexed": 13330,
+      "integrity": "ok",
+      "presence_after_disconnect": 0
+    }
+  }
+}
