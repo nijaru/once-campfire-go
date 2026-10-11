@@ -1,0 +1,44 @@
+File: go-profile
+Build ID: c3812ecc20704d68649579b9a8e96017eb035f0b
+Type: cpu
+Time: 2026-10-10 16:43:15 PDT
+Duration: 4.99s, Total samples = 11.95s (239.39%)
+Showing nodes accounting for 9.13s, 76.40% of 11.95s total
+Dropped 476 nodes (cum <= 0.06s)
+Showing top 35 nodes out of 224
+      flat  flat%   sum%        cum   cum%
+     3.98s 33.31% 33.31%      3.98s 33.31%  internal/runtime/syscall/linux.Syscall6
+     2.76s 23.10% 56.40%      2.89s 24.18%  runtime.cgocall
+     0.48s  4.02% 60.42%      0.87s  7.28%  runtime.selectgo
+     0.20s  1.67% 62.09%      0.20s  1.67%  runtime.memmove
+     0.15s  1.26% 63.35%      0.22s  1.84%  encoding/json/internal/jsonwire.AppendQuote
+     0.13s  1.09% 64.44%      0.13s  1.09%  runtime.nanotime (inline)
+     0.11s  0.92% 65.36%      0.11s  0.92%  runtime.lock2
+     0.11s  0.92% 66.28%      0.18s  1.51%  runtime.unlock2
+     0.09s  0.75% 67.03%      0.09s  0.75%  runtime.memclrNoHeapPointers
+     0.08s  0.67% 67.70%      0.10s  0.84%  runtime.getcallerfp
+     0.08s  0.67% 68.37%      0.14s  1.17%  runtime.mapaccess2_faststr
+     0.07s  0.59% 68.95%      0.07s  0.59%  runtime.mallocgcTinySC2
+     0.06s   0.5% 69.46%      1.20s 10.04%  github.com/mattn/go-sqlite3.(*SQLiteRows).Next
+     0.06s   0.5% 69.96%      0.06s   0.5%  runtime.(*mLockProfile).store (inline)
+     0.06s   0.5% 70.46%      0.06s   0.5%  runtime.exitsyscall
+     0.06s   0.5% 70.96%      0.46s  3.85%  runtime.mallocgc
+     0.05s  0.42% 71.38%      4.80s 40.17%  github.com/coder/websocket.(*Conn).writeFrame
+     0.05s  0.42% 71.80%      0.14s  1.17%  runtime.chansend
+     0.04s  0.33% 72.13%      5.84s 48.87%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).Serve.func2
+     0.04s  0.33% 72.47%      2.07s 17.32%  github.com/basecamp/once-campfire-go/internal/cable.(*Hub).publish
+     0.04s  0.33% 72.80%      4.20s 35.15%  net.(*conn).Write
+     0.04s  0.33% 73.14%      0.08s  0.67%  runtime.chanrecv
+     0.04s  0.33% 73.47%      0.08s  0.67%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.04s  0.33% 73.81%      0.06s   0.5%  runtime.sellock
+     0.04s  0.33% 74.14%      0.09s  0.75%  runtime.tryDeferToSpanScan
+     0.03s  0.25% 74.39%      0.08s  0.67%  context.removeChild
+     0.03s  0.25% 74.64%      5.10s 42.68%  github.com/coder/websocket.(*Conn).WritePrepared
+     0.03s  0.25% 74.90%      0.31s  2.59%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+     0.03s  0.25% 75.15%      0.08s  0.67%  runtime.(*mheap).alloc
+     0.03s  0.25% 75.40%      0.08s  0.67%  runtime.casgstatus
+     0.03s  0.25% 75.65%      0.11s  0.92%  runtime.findRunnable
+     0.03s  0.25% 75.90%      0.08s  0.67%  runtime.selunlock
+     0.02s  0.17% 76.07%      3.09s 25.86%  bufio.(*Writer).Flush
+     0.02s  0.17% 76.23%      0.07s  0.59%  context.(*cancelCtx).cancel
+     0.02s  0.17% 76.40%      1.22s 10.21%  database/sql.(*Rows).nextLocked

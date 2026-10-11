@@ -1,0 +1,32 @@
+{
+  "started_at": "2026-10-10T23:42:47Z",
+  "people": 64,
+  "server_cpus": "0-3",
+  "client_cpus": "4-7",
+  "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+  "loadgen_sha256": "8c9ac93fe2931af937219c862131c66b1b84fbb50cc48474b46883e09cd85e75",
+  "source_revision": "811ae046389282ac44f5dd714d29ce43d6f0a276",
+  "phases": {
+    "latency_msgs": 100,
+    "interval_ms": 100,
+    "tput_secs": 5,
+    "posters": 4,
+    "refresh_secs": 50
+  },
+  "images": {
+    "current": "sha256:21dc6cb2cf8459935ff6bd95db3a93b9c2dc3e0f7849424e94e29466550ab794"
+  },
+  "stop_rule": {
+    "maximum_attempts": 6,
+    "stop_after_first_delivered_rate_below": 1800,
+    "target": "moderate slowdown CPU attribution; not full-collapse proof",
+    "instrumented": true
+  },
+  "sampler": {
+    "interval_ms": 200,
+    "observer_cpus": "8-9",
+    "scheduler_stats_enabled": "unavailable",
+    "clock_ticks_per_second": 100
+  },
+  "application_sha256": "7b386b56302458fa38bfa919997182b5179ae79fc05bbb27e957b04875570f5c"
+}

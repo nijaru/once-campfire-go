@@ -1,0 +1,2 @@
+FROM campfire-compare-toolchain
+RUN apt-get update && apt-get install -y --no-install-recommends ruby sqlite3 docker-cli && rm -rf /var/lib/apt/lists/*

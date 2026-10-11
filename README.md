@@ -185,6 +185,9 @@ upstream. The [pacing and deadline comparison](bench/results/pacing-deadlines-20
 adds native Linux measurements, explicit active client pacing and connection-owned Cable
 write deadlines. POST tails remain worse than upstream, and the earlier Cable collapse
 has not been causally resolved; neither record establishes readiness or universal parity.
+The [Cable scheduler follow-up](bench/results/cable-scheduler-20261010/README.md) retains phase
+CPU/scheduler measurements, another baseline collapse and a rejected contiguous-frame prototype.
+Reducing isolated transport writes did not improve the complete application.
 
 ## Known differences
 

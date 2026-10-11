@@ -1,0 +1,44 @@
+File: go-profile
+Build ID: c3812ecc20704d68649579b9a8e96017eb035f0b
+Type: cpu
+Time: 2026-10-10 16:43:48 PDT
+Duration: 5s, Total samples = 11.80s (236.15%)
+Showing nodes accounting for 8.76s, 74.24% of 11.80s total
+Dropped 488 nodes (cum <= 0.06s)
+Showing top 35 nodes out of 233
+      flat  flat%   sum%        cum   cum%
+     3.95s 33.47% 33.47%      3.95s 33.47%  internal/runtime/syscall/linux.Syscall6
+     2.49s 21.10% 54.58%      2.59s 21.95%  runtime.cgocall
+     0.41s  3.47% 58.05%      0.82s  6.95%  runtime.selectgo
+     0.19s  1.61% 59.66%      0.27s  2.29%  encoding/json/internal/jsonwire.AppendQuote
+     0.17s  1.44% 61.10%      0.17s  1.44%  runtime.memmove
+     0.14s  1.19% 62.29%      0.15s  1.27%  runtime.lock2
+     0.13s  1.10% 63.39%      0.13s  1.10%  runtime.nanotime (inline)
+     0.13s  1.10% 64.49%      0.19s  1.61%  runtime.unlock2
+     0.07s  0.59% 65.08%      4.80s 40.68%  github.com/coder/websocket.(*Conn).writeFrame
+     0.07s  0.59% 65.68%      0.07s  0.59%  github.com/coder/websocket.writeFrameHeader
+     0.07s  0.59% 66.27%      0.07s  0.59%  runtime.acquirem (inline)
+     0.07s  0.59% 66.86%      0.14s  1.19%  runtime.chanrecv
+     0.07s  0.59% 67.46%      0.08s  0.68%  runtime.mallocgcTinySC2
+     0.06s  0.51% 67.97%      1.08s  9.15%  database/sql.(*Rows).nextLocked
+     0.05s  0.42% 68.39%      0.06s  0.51%  encoding/json/internal/jsonwire.appendEscapedASCII
+     0.05s  0.42% 68.81%      0.06s  0.51%  runtime.(*mspan).writeHeapBitsSmall
+     0.05s  0.42% 69.24%      0.08s  0.68%  runtime.casgstatus
+     0.05s  0.42% 69.66%      0.07s  0.59%  runtime.mapaccess2_faststr
+     0.05s  0.42% 70.08%      0.13s  1.10%  runtime.selunlock
+     0.04s  0.34% 70.42%      0.36s  3.05%  github.com/coder/websocket.(*mu).lock
+     0.04s  0.34% 70.76%      0.49s  4.15%  runtime.mallocgc
+     0.04s  0.34% 71.10%      0.13s  1.10%  runtime.mapassign_faststr
+     0.04s  0.34% 71.44%      0.11s  0.93%  runtime.reentersyscall
+     0.04s  0.34% 71.78%      0.07s  0.59%  sync/atomic.(*Value).Store
+     0.03s  0.25% 72.03%      0.07s  0.59%  context.(*cancelCtx).Done
+     0.03s  0.25% 72.29%      4.10s 34.75%  internal/poll.(*FD).Write
+     0.03s  0.25% 72.54%      0.16s  1.36%  runtime.(*mcache).nextFree
+     0.03s  0.25% 72.80%      0.06s  0.51%  runtime.(*mheap).initSpan
+     0.03s  0.25% 73.05%      0.18s  1.53%  runtime.chansend
+     0.03s  0.25% 73.31%      0.06s  0.51%  runtime.releaseSudog
+     0.03s  0.25% 73.56%      0.06s  0.51%  runtime.sellock
+     0.02s  0.17% 73.73%      2.94s 24.92%  bufio.(*Writer).Flush
+     0.02s  0.17% 73.90%      1.05s  8.90%  database/sql.(*DB).retry
+     0.02s  0.17% 74.07%      0.10s  0.85%  database/sql.(*Rows).scanLocked
+     0.02s  0.17% 74.24%      0.08s  0.68%  database/sql.convertAssignRows

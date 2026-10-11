@@ -1,0 +1,44 @@
+File: go-profile
+Build ID: c3812ecc20704d68649579b9a8e96017eb035f0b
+Type: cpu
+Time: 2026-10-10 16:44:21 PDT
+Duration: 4.99s, Total samples = 11.55s (231.59%)
+Showing nodes accounting for 8.78s, 76.02% of 11.55s total
+Dropped 510 nodes (cum <= 0.06s)
+Showing top 35 nodes out of 227
+      flat  flat%   sum%        cum   cum%
+     3.93s 34.03% 34.03%      3.93s 34.03%  internal/runtime/syscall/linux.Syscall6
+     2.76s 23.90% 57.92%      2.88s 24.94%  runtime.cgocall
+     0.39s  3.38% 61.30%      0.66s  5.71%  runtime.selectgo
+     0.23s  1.99% 63.29%      0.23s  1.99%  runtime.memmove
+     0.15s  1.30% 64.59%      0.24s  2.08%  encoding/json/internal/jsonwire.AppendQuote
+     0.12s  1.04% 65.63%      0.12s  1.04%  runtime.nanotime
+     0.09s  0.78% 66.41%      0.11s  0.95%  runtime.lock2
+     0.07s  0.61% 67.01%      0.10s  0.87%  runtime.mallocgcTinySC2
+     0.07s  0.61% 67.62%      0.07s  0.61%  runtime.memclrNoHeapPointers
+     0.06s  0.52% 68.14%      0.06s  0.52%  runtime.(*mLockProfile).store (inline)
+     0.06s  0.52% 68.66%      0.06s  0.52%  runtime.acquirem (inline)
+     0.06s  0.52% 69.18%      0.65s  5.63%  runtime.mallocgc
+     0.06s  0.52% 69.70%      0.07s  0.61%  runtime.reentersyscall
+     0.06s  0.52% 70.22%      0.12s  1.04%  runtime.unlock2
+     0.05s  0.43% 70.65%      0.06s  0.52%  runtime.getcallerfp
+     0.05s  0.43% 71.08%      0.07s  0.61%  runtime.tryDeferToSpanScan
+     0.04s  0.35% 71.43%      0.07s  0.61%  context.(*cancelCtx).Done
+     0.04s  0.35% 71.77%      4.73s 40.95%  github.com/coder/websocket.(*Conn).writeFrame
+     0.04s  0.35% 72.12%      4.07s 35.24%  internal/poll.(*FD).Write
+     0.04s  0.35% 72.47%      0.13s  1.13%  runtime.(*mheap).alloc
+     0.04s  0.35% 72.81%      0.08s  0.69%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.03s  0.26% 73.07%      0.07s  0.61%  database/sql.convertAssignRows
+     0.03s  0.26% 73.33%      0.41s  3.55%  github.com/mattn/go-sqlite3.(*SQLiteRows).readStepResultLocked
+     0.03s  0.26% 73.59%      0.06s  0.52%  runtime.(*mspan).writeHeapBitsSmall
+     0.03s  0.26% 73.85%      0.08s  0.69%  runtime.chanrecv
+     0.03s  0.26% 74.11%      0.11s  0.95%  runtime.chansend
+     0.03s  0.26% 74.37%      0.07s  0.61%  runtime.mapaccess2_faststr
+     0.03s  0.26% 74.63%      0.19s  1.65%  runtime.mapassign_faststr
+     0.03s  0.26% 74.89%      0.06s  0.52%  runtime.sellock
+     0.03s  0.26% 75.15%      3.99s 34.55%  syscall.write
+     0.02s  0.17% 75.32%      2.90s 25.11%  bufio.(*Writer).Flush
+     0.02s  0.17% 75.50%      0.10s  0.87%  context.(*cancelCtx).propagateCancel
+     0.02s  0.17% 75.67%      0.13s  1.13%  github.com/basecamp/once-campfire-go/internal/cable.(*client).sendFrame
+     0.02s  0.17% 75.84%      0.28s  2.42%  github.com/basecamp/once-campfire-go/internal/database.(*DB).RoomMemberIDs
+     0.02s  0.17% 76.02%      0.24s  2.08%  github.com/coder/websocket.(*mu).lock
