@@ -1,6 +1,8 @@
 # Skip unused write-request cache observations — local, 2026-10-12
 
-**Write requests no longer acquire a database cache generation they cannot use.**
+**Historical local experiment: landed at `513485a`, then reverted after
+[native non-regression failures](../post-cache-observation-native-20261012/README.md).**
+The measured guard avoids acquiring an unused write-request cache generation.
 The guard preserves every GET/HEAD observation, fresh session authentication,
 writer-current permission check, cache budget and postcommit obligation. Mutation
 query scopes retain generation zero, which disables persisted-fragment reuse and
@@ -10,14 +12,14 @@ Three matched, server-uninstrumented local pairs show **3.0% lower median proces
 CPU per completed write**, with the same direction in every pair. POST p99 is mixed
 and its median is **1.3% worse**; no latency or capacity improvement is claimed.
 This is local CPU/work evidence, **not validation of the native POST p99 gap** or a
-new upstream/Rust ranking. Desktop validation remains outstanding.
+new upstream/Rust ranking. Subsequent native validation rejects the guard.
 
 ## Sources and mechanism
 
 The application baseline is `8351224`; later `737625f` changes documentation only.
 The measured candidate is that application source plus the exact guard patch in
-[`manifest.json`](manifest.json). The prototype and integrated
-`internal/web/response_cache.go` match byte-for-byte. Profiles use the production
+[`manifest.json`](manifest.json). The prototype and initially integrated
+`internal/web/response_cache.go` at `513485a` match byte-for-byte. Profiles use the production
 `GO_CPU_PROFILE` hook, without a private hook or runtime tuning.
 
 `beginResponseCache` used to call `DB.ResponseVersion` before ruling out non-GET/HEAD
@@ -148,7 +150,9 @@ The manifest hashes the guard/rejected patches, exact adapters, profiles, per-ph
 raw ACK records, SQL probe, OS CPU/latency samples, gates and compatibility reports.
 Runtime secrets, cookies, databases and application request logs are excluded.
 
-The local work is verified and the direct-join premise is closed. Restore desktop
-availability for matched native POST/fanout controls and current cost attribution;
-do not claim the native tail gap repaired from local CPU counters. Performance work
-is not globally finished, and no PR is opened or prepared for publication.
+The local counters remain valid for these samples; both the direct-join premise and
+the guard are now closed. Native fixed POST median p99 +6.7% and paced all-client
+Cable p99 +5.8% miss the declared non-regression limits; the guard is reverted.
+The [native record](../post-cache-observation-native-20261012/README.md) owns those
+controls, failures and source identities. No historical slowdown or native tail gap
+is claimed repaired, and no PR is opened or prepared.

@@ -174,10 +174,11 @@ delivery and 12.6% lower paced all-client p99, but **17.8% higher fixed-load POS
 All 830,687 warm/timed writes pass their applicable audits. These are workload-specific
 results, not an overall application ranking or a diagnosis of older slow phases.
 
-A [newer local POST optimization](bench/results/post-cache-observation-20261012/README.md)
-skips cache-generation SQL observations for write methods. Three matched local
-pairs show 3.0% lower median process CPU per write; latency does not improve.
-It is not included in the native comparison above and awaits desktop validation.
+A [local cache-observation guard](bench/results/post-cache-observation-20261012/README.md)
+reduced median process CPU/write 3.0%, but its [native controls](bench/results/post-cache-observation-native-20261012/README.md)
+failed the declared non-regression gates: fixed POST p99 +6.7%, paced all-client
+Cable p99 +5.8%. It is reverted; the native comparison above again measures the
+unchanged production source. No latency or capacity gain is claimed for that guard.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction

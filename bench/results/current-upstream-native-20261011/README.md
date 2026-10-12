@@ -3,8 +3,9 @@
 **Fork source `8351224` versus upstream `c4ab53d`: higher POST capacity and
 live-delivery throughput, but higher fixed-load POST p99.** This is the latest native
 upstream comparison, not a relabeling of older Go/Rust or VM measurements. The
-[newer local POST cache-observation guard](../post-cache-observation-20261012/README.md)
-is not included and still needs desktop validation.
+[local POST cache-observation guard](../post-cache-observation-20261012/README.md)
+is not included and is now [reverted after its native controls](../post-cache-observation-native-20261012/README.md).
+Production again matches the application source measured here.
 
 Three sequential interleaved pairs per workload use the Fedora desktop, matched
 fixtures/settings, complete responses and applicable exact write/delivery audits.
