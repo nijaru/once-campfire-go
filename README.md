@@ -201,7 +201,17 @@ KLOC counts backend code plus executable code in templates; excludes plain HTML,
 
 [Shared verification](https://github.com/basecamp/once-campfire-verification) · [Detailed results](https://github.com/basecamp/once-campfire-verification/blob/main/docs/performance-review.md).
 
-See [`bench/`](bench/) for tooling. The [initial Go/Rust baseline](bench/results/current-baseline-20261007/README.md)
+See [`bench/`](bench/) for tooling. For fixed-rate POSTs, `bench/httprate` checks
+complete decoded Turbo receipts, gzip integrity, request identity and sequence,
+and emits `[sequence, message_id]` acknowledgements with their client-ID prefix.
+`bench/application` retains those receipts and matches them to exact persisted
+bodies, client IDs, creators, rooms and FTS rows; rebuild the client before using
+this audit. POST receipt retention grows with the completed write population;
+GET bodies are still drained without retention. Latency ends at complete wire-body
+consumption; validation runs before success accounting. Match client binaries
+between comparison arms—validation overhead is not assumed neutral.
+
+The [initial Go/Rust baseline](bench/results/current-baseline-20261007/README.md)
 and [sidebar hydration comparison](bench/results/sidebar-hydration-20261007/README.md) use identical
 fixtures and full-response/write validation on an ARM64 Linux VM. The [reference scan comparison](bench/results/scan-record-20261007/README.md)
 reduces allocations and improves measured room throughput. The

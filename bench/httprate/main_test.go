@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -156,6 +159,63 @@ func TestPostRequestContract(t *testing.T) {
 		r.Header.Get("Sec-Fetch-Site") != "same-origin" || r.Header.Get("X-CSRF-Token") != c.CSRF ||
 		values.Get("message[body]") != "bench write 7" || values.Get("message[client_message_id]") != "unique-7" || values.Get("authenticity_token") != c.CSRF {
 		t.Fatalf("POST no longer matches the reference load generator: %v %v %v", r.Method, r.Header, values)
+	}
+}
+
+func TestPostReceiptValidation(t *testing.T) {
+	for _, mode := range []string{"identity", "gzip", "incomplete", "corrupt-gzip", "wrong-sequence", "wrong-client", "wrong-type"} {
+		t.Run(mode, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if err := r.ParseForm(); err != nil {
+					t.Error(err)
+					return
+				}
+				body := r.Form.Get("message[body]")
+				client := r.Form.Get("message[client_message_id]")
+				if mode == "wrong-sequence" {
+					body = "bench write 01"
+				}
+				if mode == "wrong-client" {
+					client = "another-request"
+				}
+				plain := fmt.Sprintf(`<turbo-stream action="append" target="messages_rooms_open_42"><template><div id="message_%s" data-message-id="123">%s</div></template></turbo-stream>`, client, body)
+				if mode == "incomplete" {
+					plain = strings.TrimSuffix(plain, "</turbo-stream>")
+				}
+				w.Header().Set("Content-Type", "text/vnd.turbo-stream.html; charset=utf-8")
+				if mode == "wrong-type" {
+					w.Header().Set("Content-Type", "text/html")
+				}
+				if mode == "gzip" || mode == "corrupt-gzip" {
+					var wire bytes.Buffer
+					writer := gzip.NewWriter(&wire)
+					writer.Write([]byte(plain))
+					writer.Close()
+					encoded := wire.Bytes()
+					if mode == "corrupt-gzip" {
+						encoded[len(encoded)-8] ^= 1
+					}
+					w.Header().Set("Content-Encoding", "gzip")
+					w.Write(encoded)
+				} else {
+					io.WriteString(w, plain)
+				}
+			}))
+			defer server.Close()
+			c := testConfig(server.URL)
+			c.PostRoom, c.Rate, c.Gzip = "42", 1, mode == "gzip" || mode == "corrupt-gzip"
+			value, err := run(context.Background(), c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			valid := mode == "identity" || mode == "gzip"
+			if valid && (value.OK != 1 || value.Errors != 0 || len(value.Acknowledged) != 1 || value.Acknowledged[0] != [2]uint64{0, 123}) {
+				t.Fatalf("valid receipt rejected or acknowledgment lost: %+v", value)
+			}
+			if !valid && (value.OK != 0 || value.Errors != 1 || value.InvalidResponses != 1 || len(value.Acknowledged) != 0 || value.Latency["n"] != uint64(0)) {
+				t.Fatalf("invalid receipt counted as success: %+v", value)
+			}
+		})
 	}
 }
 
