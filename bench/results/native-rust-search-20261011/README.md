@@ -1,6 +1,12 @@
-# Native Rust baseline and scoped search — 2026-10-11
+# Historical native Rust baseline and scoped search — 2026-10-11
 
-The first current native Rust application comparison closes a measurement gap.
+**Historical comparison:** these Go/Rust/upstream measurements use Go `811ae04`,
+not current production. The [current native upstream comparison](../current-upstream-native-20261011/README.md)
+measures `8351224` directly against unchanged upstream Go; use it for current upstream
+status. Rust was not rerun in that newer cohort. Keep the slow historical sample
+below, but do not quote it as current capacity or blame system noise without evidence.
+
+The first native Rust application comparison closed a measurement gap.
 A separate structural search change removes the global probe and restart: one
 membership-scoped, descending FTS iterator query
 selects the newest 100 accessible IDs in the existing read snapshot. Full sparse
@@ -54,7 +60,7 @@ creator/room and normalized FTS. Fixed-rate response IDs are not captured.
 | Current Go | 9808.0 / 9745.8 / **4819.5** | 0.943 / 0.910 / 1.006 |
 | Rust | 7068.1 / 7077.5 / 7104.2 | 0.626 / 0.621 / 0.619 |
 
-Current median POST capacity is 9745.8/s versus Rust 7077.5/s, but the third Go run
+Historical baseline Go median POST capacity is 9745.8/s versus Rust 7077.5/s, but the third Go run
 loses substantially. It remains a valid audited adverse sample, not a discarded
 outlier or an explained failure. This does not establish a stable capacity advantage.
 At matched load, current p99 loses every pair: median **0.943 versus 0.798 ms**
@@ -73,7 +79,7 @@ persisted-count/FTS/integrity and zero-presence-after-disconnect audits.
 | Current Go | 3362.0 / 3355.1 / 3372.1 | 4.451 / 6.619 / 5.571 |
 | Rust | 4225.2 / 4314.9 / 4316.2 | 4.099 / 5.423 / 5.419 |
 
-Current median delivery is **22.1% below Rust**, while exceeding upstream Go by
+Historical baseline Go median delivery is **22.1% below Rust**, while exceeding upstream Go by
 41.1%. Paced latency varies; the small median Go/Rust gap is not a general latency
 conclusion. No severe low-rate Cable phase occurred in these native samples. This
 does not explain or erase the prior VM timing observations. All **1,144,332

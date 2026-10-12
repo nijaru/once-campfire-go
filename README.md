@@ -167,8 +167,15 @@ Instrumented runs guide diagnosis; keep final benchmark comparisons uninstrument
 
 ## Benchmarks
 
-The records below describe their source, machine and workload, not current release
-gates. Historical ranking gaps and unexplained timing variability are not diagnosed
+The [current native upstream comparison](bench/results/current-upstream-native-20261011/README.md)
+measures production `8351224` against unchanged upstream Go `c4ab53d` on the Fedora
+desktop. Three matched pairs give 7.4% higher POST capacity, 30.9% higher live-message
+delivery and 12.6% lower paced all-client p99, but **17.8% higher fixed-load POST p99**.
+All 830,687 warm/timed writes pass their applicable audits. These are workload-specific
+results, not an overall application ranking or a diagnosis of older slow phases.
+
+Older records below describe their source, machine and workload, not current release
+gates or current-fork measurements. Historical ranking gaps and unexplained timing variability are not diagnosed
 application errors. In the instrumented low-throughput Cable workflow, every
 acknowledged message was delivered and socket queues did not grow; delivery followed
 slow POST completion. Its cause is unclassified, not a confirmed transport defect
