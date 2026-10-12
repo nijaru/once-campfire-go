@@ -46,9 +46,11 @@ not old plans, benchmark tables, or assumptions about frameworks.
   when wall time is not explained by CPU. Improve demonstrated algorithms, query
   shape, batching and resource lifetimes before adding micro-optimization complexity.
   Complete caller migrations and remove superseded paths.
-- Prefer quiet native hardware for profiling and matched performance comparisons
-  when available. Keep local/VM diagnostics scoped to that environment; variable
-  throughput alone is not a diagnosed Cable defect or proof of system noise.
+- Prefer quiet native hardware for matched performance comparisons. When unavailable,
+  local profiling can support reductions in CPU, allocations or SQL work, not native
+  latency/capacity claims. Earlier local/VM runs overlapped other project builds and
+  workloads: exclude them from current decisions rather than making non-reproduction
+  unfinished work. Revisit a slow phase only with a controlled current reproduction.
 - Before an experiment, name the hypothesis, discriminator, bounded run budget and
   landing/rejection criteria. End with a fix or a closed hypothesis that changes the
   next decision; another diagnostic archive is not a resolved performance goal.

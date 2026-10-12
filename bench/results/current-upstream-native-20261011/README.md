@@ -1,8 +1,10 @@
-# Current fork versus upstream Go — native, 2026-10-11
+# Fork `8351224` versus upstream Go — native, 2026-10-11
 
-**Current production `8351224` versus upstream `c4ab53d`: higher POST capacity and
-live-delivery throughput, but higher fixed-load POST p99.** This is the current
-upstream comparison, not a relabeling of older Go/Rust or VM measurements.
+**Fork source `8351224` versus upstream `c4ab53d`: higher POST capacity and
+live-delivery throughput, but higher fixed-load POST p99.** This is the latest native
+upstream comparison, not a relabeling of older Go/Rust or VM measurements. The
+[newer local POST cache-observation guard](../post-cache-observation-20261012/README.md)
+is not included and still needs desktop validation.
 
 Three sequential interleaved pairs per workload use the Fedora desktop, matched
 fixtures/settings, complete responses and applicable exact write/delivery audits.
@@ -98,24 +100,16 @@ Cable writes**, including warmup/paced writes. Zero invalid/dropped offered requ
 or missing acknowledged delivery. This is workload-specific correctness evidence,
 not a whole-program audit or live-provider acceptance.
 
-## Historical variability and system noise
+## Scope of older measurements
 
-The earlier Go/Rust native record measured Go `811ae04`; its 4,819.5/s Go capacity
-run remains an audited historical observation, not a measurement of current
-`8351224`. The older low-throughput VM captures likewise remain separate populations.
-They must not be quoted as the current fork's speed or relabeled as current errors.
+Earlier local/VM runs overlapped other project builds and workloads. Those contended
+samples are archived, excluded from current performance decisions and not unfinished
+reproduction tasks. The older Go/Rust comparison also uses a different Go source,
+`811ae04`, not `8351224`. Raw historical tables remain intact.
 
-Their cause is unresolved. System noise is plausible but was not captured causally;
-no claim that noise caused those slow phases is established. The new consistent
-native pairs supersede their use for current upstream status, **not** their raw
-evidence or the need for causal proof before declaring a historical phenomenon
-fixed. Healthy runs cannot diagnose an uncaptured bad state.
-
-Conversely, the fixed-load POST disadvantage persists in every current native pair;
-there is no basis here to dismiss it as the older VM variability. To diagnose a
-future slow phase, capture host/application/client evidence in that same phase and
-use a bounded counterfactual. Do not infer a host cause from one marginal statistic
-or launch more healthy ranking sweeps as a substitute.
+The fixed-load POST disadvantage here is independently observed in every matched
+native pair at `8351224`. Diagnose current costs on their own evidence rather than
+reopening old local timing.
 
 ## Evidence and next decision
 
@@ -125,8 +119,8 @@ records, individual samples/audits, exact adapters, metadata, logs and summaries
 Runtime secrets, session files and databases are excluded. No production code
 changes or new correctness defect result from this comparison.
 
-Current status is a correctness-checked fork with measured bulk-POST/live-delivery
-advantages and a remaining **0.144 ms fixed-load POST p99 gap** in this workload.
+Snapshot `8351224` is correctness-checked, with measured bulk-POST/live-delivery
+advantages and a **0.144 ms fixed-load POST p99 gap** in this workload.
 Further work should investigate current native creation costs while preserving its
 contracts, rather than repeat closed controls or treat historical variability as a
 standalone readiness gate.

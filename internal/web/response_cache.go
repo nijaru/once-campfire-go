@@ -81,7 +81,7 @@ func (c *responseCache) put(entry *cachedResponse) {
 
 func (s *Server) beginResponseCache(r *http.Request) {
 	info := requestMetadata(r.Context())
-	if info == nil {
+	if info == nil || (r.Method != http.MethodGet && r.Method != http.MethodHead) {
 		return
 	}
 	version, err := s.DB.ResponseVersion(r.Context())
@@ -89,8 +89,7 @@ func (s *Server) beginResponseCache(r *http.Request) {
 		return
 	}
 	info.databaseVersion = version
-	if s.responses.limit == 0 || (r.Method != "GET" && r.Method != "HEAD") ||
-		r.ContentLength != 0 ||
+	if s.responses.limit == 0 || r.ContentLength != 0 ||
 		len(r.TransferEncoding) != 0 {
 		return
 	}

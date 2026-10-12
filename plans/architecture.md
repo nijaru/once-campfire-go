@@ -204,16 +204,13 @@ contracts and matched complete-workload benefit. Use uninstrumented end-to-end
 checks to validate profile-guided changes, retaining adverse populations and current
 source identities when comparing Go upstream and Rust.
 
-Distinguish delivery failures from timing variability. The retained
-[low-throughput Cable workflow observations](../bench/results/cable-progress-20261011/README.md)
-do not establish a transport defect: the instrumented slow phase delivered every
-acknowledged message without an expanding socket queue,
-and its lower delivered rate followed slower POST completion. Its cause remains
-unclassified. Ordinary-operation profiles can support useful improvements without
-explaining that historical phase. Do not claim it fixed, blame system noise without
-evidence, or make its reproduction or historical benchmark parity a standalone
-delivery gate. Diagnose and fix any demonstrated correctness or supported-workload
-regression; report unresolved measurement limits separately.
+Earlier local/VM timing overlapped other project builds and workloads. Keep that
+contended evidence archival and exclude it from current performance decisions;
+non-reproduction is not unfinished work. Diagnose a slowdown only when a controlled
+current workload reproduces it. Local profiling while native hardware is unavailable
+can support work reductions, but not native latency/capacity claims. Fix demonstrated
+correctness or supported-workload regressions without inventing historical parity
+or reproduction gates.
 
 External semantics to revisit when dependencies or contracts change:
 [Go connection ownership](https://go.dev/doc/database/manage-connections),
