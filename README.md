@@ -167,12 +167,16 @@ Instrumented runs guide diagnosis; keep final benchmark comparisons uninstrument
 
 ## Benchmarks
 
-The [latest native upstream comparison](bench/results/current-upstream-native-20261011/README.md)
-measures fork source `8351224` against unchanged upstream Go `c4ab53d` on the Fedora
-desktop. Three matched pairs give 7.4% higher POST capacity, 30.9% higher live-message
-delivery and 12.6% lower paced all-client p99, but **17.8% higher fixed-load POST p99**.
-All 830,687 warm/timed writes pass their applicable audits. These are workload-specific
-results, not an overall application ranking or a diagnosis of older slow phases.
+The [latest native three-way comparison](bench/results/current-three-way-20261013/README.md)
+measures fork source `8351224`, upstream Go `c4ab53d` and Rust `6dae2fd` on the physical
+Fedora desktop. Three balanced rounds give median fixed-load POST p99 of
+**0.965 / 0.831 / 0.635 ms** respectively; the fork loses every round to both.
+POST capacity is **9,765.5 / 9,094.9 / 7,155.7 requests/s**, live delivery
+**3,087.8 / 2,364.3 / 4,351.9 messages/s**, and paced all-client p99
+**6.507 / 7.311 / 4.951 ms**. All 1,190,787 warm/timed writes pass their applicable
+exact audits. These are repeatable workload-specific targets, not an overall ranking
+or evidence that a particular fork change introduced the deficits. The earlier
+[two-way Go comparison](bench/results/current-upstream-native-20261011/README.md) is retained.
 
 A [local cache-observation guard](bench/results/post-cache-observation-20261012/README.md)
 reduced median process CPU/write 3.0%, but its [native controls](bench/results/post-cache-observation-native-20261012/README.md)
@@ -184,7 +188,11 @@ The [native compression attribution pair](bench/results/native-compression-attri
 passes 132,000 exact write audits but exposes nonrepresentative sampled gzip-owner
 cost: current observed Close samples exceed those calls' summed elapsed-time upper
 bound. Extra compression CPU and the POST-tail cause are not established; no
-compression change follows.
+compression change follows. A [subsequent Linux perf pair](bench/results/native-perf-attribution-20261013/README.md)
+passes current-source CPU/elapsed consistency checks, but upstream sample loss and
+incomplete cgo caller chains prevent comparative owner inference. A
+[one-to-one association projection](bench/results/display-projection-20261013/README.md)
+passes 132,000 exact write audits but misses its 3% CPU-reduction gate and is rejected.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction

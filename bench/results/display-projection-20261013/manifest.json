@@ -1,0 +1,148 @@
+{
+  "status": "rejected; 3% CPU reduction gate missed; no application timing control cohort",
+  "audited_writes": 132000,
+  "conclusion": {
+    "decision": "rejected; no application control cohort or production change",
+    "audited_writes": 132000,
+    "baseline_cpu_seconds": 34.520649,
+    "candidate_cpu_seconds": 34.509049,
+    "percent_change": -0.0336030762341788,
+    "required_reduction_percent": 3
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/capture/candidate.json.gz",
+      "sha256": "82596dfa01359529e2614fae799ccb3f16a51522fe4370e1f5e8f3a22eb70253",
+      "raw_sha256": "8ea60688e0920706e79ab6268715a5b9f4f97ad01f63df63dd9999da7d7741a8",
+      "raw_bytes": 7774
+    },
+    {
+      "path": "artifacts/capture/results.json.gz",
+      "sha256": "b731da3f006f9ee2d6b35a38472000ef8b4b3d37c00b6f154df8c886d401749d",
+      "raw_sha256": "64647ccbda1319156b99da8e047129df484b544b3eddc533daa05ae45577f424",
+      "raw_bytes": 16832
+    },
+    {
+      "path": "artifacts/capture/metadata.json.gz",
+      "sha256": "b28d3e77b2f74c68ffbc0e73ad6993536484943c9b0ee4cb998056963a043b3a",
+      "raw_sha256": "ad30f1e60f2c3e81b99cf7535e64a717320bcd47bf88bd3aa247f0dea5ad7b5e",
+      "raw_bytes": 60508
+    },
+    {
+      "path": "artifacts/capture/current-2-receipts.json.gz",
+      "sha256": "0042fe2360d389dd2634a2518b04cc6142bcfd1d5741a7951c6e32fdedabd914",
+      "raw_sha256": "f517af196e6356f817f4c071bccb2bdde090e5e3c0142f3f86b76795c05a8cbf",
+      "raw_bytes": 102088
+    },
+    {
+      "path": "artifacts/capture/candidate-20-receipts.json.gz",
+      "sha256": "4940e0db0b9b31f348c61fe976765db2efbeb36eb7a50bdf7e2299b469561070",
+      "raw_sha256": "33ea965fe52a06e59c28cd472ea2d9efe884d017f897b2abb6c841c6b619233f",
+      "raw_bytes": 1070083
+    },
+    {
+      "path": "artifacts/capture/candidate-2-receipts.json.gz",
+      "sha256": "eb1dc109eb53b283c84973a02325a5db4060255e1cc905cb0917d9a771c9584f",
+      "raw_sha256": "0a4ff869d7b537f630cbc041f28f73ef482724552a8b58e586222301185f97cc",
+      "raw_bytes": 102086
+    },
+    {
+      "path": "artifacts/capture/current-20-receipts.json.gz",
+      "sha256": "6630f5c753450bd3f045be9f840dc58eb49c9940c1a317ef889902848654e958",
+      "raw_sha256": "aff4a16561ebc2e82de92cb7a2bb5b998550359fae6efa3c4749c29bcdba8162",
+      "raw_bytes": 1070102
+    },
+    {
+      "path": "artifacts/capture/current.json.gz",
+      "sha256": "412b77446dc028f9bfaa76c63f467662af310e0dc9006db40096d2cd6b7ec6ff",
+      "raw_sha256": "7e34df5b56f7f174ef6260b130b5f71b786e255c7db9ba1cd704cc54d6de961c",
+      "raw_bytes": 7793
+    },
+    {
+      "path": "artifacts/experiment.json.gz",
+      "sha256": "d877837db9ef617f5a8ba92b181ef8acb2628fb47c4b40303cc514a3fd56dd32",
+      "raw_sha256": "5e0c47886f2f13c36aa5bf4dadbff8aee3b1c15bc04b978c38ae0c49eb698fbd",
+      "raw_bytes": 1926
+    },
+    {
+      "path": "artifacts/conclusion.json.gz",
+      "sha256": "971c4031fb919eafc3d87f21334a041a247cde7ff66de55011802c917060badb",
+      "raw_sha256": "28857fdaa16d8c29dfecb3e4c4ea7ac51e47a01e0c896c4e5dc1431789201592",
+      "raw_bytes": 260
+    },
+    {
+      "path": "artifacts/capture.py.gz",
+      "sha256": "5ccf94fde526e09b4488ec38e8103360d144dd003ee5ad281911e68d4ca46b80",
+      "raw_sha256": "eab2e72ed2f89921c2e9c3c5530875d9b890d5a59d109ae2d16aaeeb46e1dcd9",
+      "raw_bytes": 7011
+    },
+    {
+      "path": "artifacts/supervise.py.gz",
+      "sha256": "ad7481767e2212f02cb7665d9789515e73ee3248656abfbae7dc2542f5fb859a",
+      "raw_sha256": "ee31003feb9f387366e1b1f9004eeae4b04b467a30ed251b955fc0b16a964541",
+      "raw_bytes": 851
+    },
+    {
+      "path": "artifacts/acknowledged_writes.py.gz",
+      "sha256": "6fce5970cdb234dd373da23d90f71081a13e863dbebf3353343380e4df46da8f",
+      "raw_sha256": "1b68a7981b5abccb8daa5d718276924e18e8aaefb026b931c69081124182556f",
+      "raw_bytes": 2351
+    },
+    {
+      "path": "artifacts/baseline-message_display.go.gz",
+      "sha256": "31f5acd3b085ce98c25e24eae36565cb0c20163c77e67b6f8985de8799eff822",
+      "raw_sha256": "f23efb95b4b5a123e9958690bdb4041a8e191cd5dbf27fe2acfb0105f085a138",
+      "raw_bytes": 6908
+    },
+    {
+      "path": "artifacts/projection.diff.gz",
+      "sha256": "e75c06bb925e15c1c7dfd0e05c3c3008ff33aa1a35ee1ce3da3ed03f1c6eb823",
+      "raw_sha256": "4ec0d2dbf4a38b89ac133ed5d96aa2b6f2e5303931988b763dc36ff9437645e4",
+      "raw_bytes": 9233
+    },
+    {
+      "path": "artifacts/focused.log.gz",
+      "sha256": "594d507cc2b39605817ef4b10fd6b7af5a94bc84bd0786126fe8b9f27c61a0c0",
+      "raw_sha256": "d561314ddf773f7308fbb0bd38bd86ff2cb239d301a5343bc1c97dc2958a5e2b",
+      "raw_bytes": 625
+    },
+    {
+      "path": "artifacts/focused-corrected.log.gz",
+      "sha256": "a215a24d30a944a0e0fc7cd6b518c8b97b4be3da6a44f11606b68f439d7b7378",
+      "raw_sha256": "ba845fd1e608efd5a99048d3b39cd879529b32a029dda6f44bd29bb760606b1a",
+      "raw_bytes": 208
+    },
+    {
+      "path": "artifacts/focused-final.log.gz",
+      "sha256": "2247d76f8d6c122e32ea4d781416ac5809e90ed6d86e7173c7ff07d4995a72c9",
+      "raw_sha256": "44f6dbf4fdd5c98f239cc0699d61731bf9e257c8ba2a0bc6011d064d4b8a4711",
+      "raw_bytes": 212
+    },
+    {
+      "path": "artifacts/build.log.gz",
+      "sha256": "ef7c65f3e04b0df7c19ab403cef0919784e24d1323ede6a2f43600d715a93779",
+      "raw_sha256": "443e404b00307f248d73059c85774832dc93e21f6d8ea20aa885b1bef70505c7",
+      "raw_bytes": 334
+    },
+    {
+      "path": "artifacts/build-missing-cache.log.gz",
+      "sha256": "2b7a3fab6f55888af9a35e70a42c9df3c13d7858e00a989dda1df66ef027b2f9",
+      "raw_sha256": "220ead619d2353150e1597fe74281309117d68ac9c9f6c2a28b519529efe4966",
+      "raw_bytes": 186
+    },
+    {
+      "path": "artifacts/candidate-message_display.go.gz",
+      "sha256": "23feefea3f06e16e630e2389c696249dd884c9a70004f8ca5bb93f00603cbadf",
+      "raw_sha256": "d761817128758ba1df640b18e30373234f9125857775500c9267d1339dbc2683",
+      "raw_bytes": 7194
+    },
+    {
+      "path": "artifacts/candidate-message_display_test.go.gz",
+      "sha256": "d516da31279ecee1fb9b60b8726958afa209d5a03753aaaf3ece585146eecf97",
+      "raw_sha256": "4802b9fe3a98fdc454e13b98ecde847e09899dd8ea24a04b352e6fcc1efe6a5e",
+      "raw_bytes": 4828
+    }
+  ],
+  "artifact_count": 22,
+  "compressed_bytes": 818244
+}
