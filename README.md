@@ -180,6 +180,12 @@ failed the declared non-regression gates: fixed POST p99 +6.7%, paced all-client
 Cable p99 +5.8%. It is reverted; the native comparison above again measures the
 unchanged production source. No latency or capacity gain is claimed for that guard.
 
+The [native compression attribution pair](bench/results/native-compression-attribution-20261013/README.md)
+passes 132,000 exact write audits but exposes nonrepresentative sampled gzip-owner
+cost: current observed Close samples exceed those calls' summed elapsed-time upper
+bound. Extra compression CPU and the POST-tail cause are not established; no
+compression change follows.
+
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction
 tasks or current-fork rankings.

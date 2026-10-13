@@ -68,7 +68,10 @@ including 1.63 s under the compressor and 1.60 s under gzip closure. Together th
 observations justify using explicit work counts and process-CPU controls rather
 than treating a negligible local sampled owner as absent work. They do **not**
 identify a Go profiler bug or establish the cause of the native owner/tail gap.
-Linux/amd64 profiling still needs its own matched absolute-work evidence.
+The subsequent [native attribution pair](../native-compression-attribution-20261013/README.md)
+provides that matched evidence: its observed Close samples exceed those calls'
+summed elapsed upper bound. The extra-compression-CPU premise is unsupported;
+this does not identify a specific profiling bug or explain POST tails.
 
 The algorithm and standalone timed loops total **120,000 compression operations**,
 not database writes. Diagnostic captures total **90,010 distinct audited writes**.
@@ -137,6 +140,8 @@ populations, failed probes and gates. Runtime
 secrets, cookies, databases and application request logs are excluded.
 The level-3 and arrival-perturbation premises are closed. Use the maintained
 receipt-audited client for subsequent comparisons with matched client hashes.
-Before a different compression policy, obtain native absolute-work evidence; do
-not revive this level control or change behavior merely to reduce a profile share.
+The linked native pair closes the old sampled-owner-based optimization premise,
+not the POST-tail cause. Before a different compression policy, establish a new
+representative work reduction; do not revive this level control or change behavior
+merely to reduce a profile share.
 No native gain, global completion, or PR preparation/publication is claimed.
