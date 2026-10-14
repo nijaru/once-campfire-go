@@ -197,6 +197,10 @@ The [current-source critical-path and encoder control](bench/results/post-critic
 correlates 48,000 timed responses and identifies substantial preparation work, not a tail cause.
 A specialized encoder saves 36% CPU in standalone replay but increases complete-application
 CPU 2.0%, missing its gate; it is rejected. All 192,256 writes pass exact audits.
+The [live critical-path and handoff control](bench/results/live-publication-handoff-20261014/README.md)
+joins 891,200 server frame lifecycles. Queued writers are mostly runnable, but a
+cooperative publication handoff gives only 0.94% more delivery and 2.32% worse
+paced p99; it is rejected. All 107,960 writes pass exact audits.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction
