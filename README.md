@@ -206,8 +206,11 @@ misses its 20% JSON-size reduction gate on reused receipts; no implementation or
 additional native timing follows.
 A [single-frame TCP gather-write prototype](bench/results/tcp-frame-writev-local-20261014/README.md)
 passes three physical Mac pairs: delivery +18.4% and joined CPU per audited write
-−16.1%, with 78,377 exact write audits. Production is unchanged; Linux comparisons
-and integration gates remain outstanding. These are local results, not new Go/Rust rankings.
+−16.1%, with 78,377 exact write audits. A separate [Mac head-to-head](bench/results/tcp-frame-writev-headtohead-mac-20261014/README.md)
+compares it with fresh upstream Go and Rust across 27 runs and 970,203 audited writes:
+live delivery is 2714.5/1053.4/2996.0 messages/s, respectively. Rust still leads fixed
+POST p99 and live delivery. Production is unchanged; Linux comparisons and integration
+gates remain outstanding. Mac and Linux rankings are not interchangeable.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction
