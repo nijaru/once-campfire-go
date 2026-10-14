@@ -201,6 +201,9 @@ The [live critical-path and handoff control](bench/results/live-publication-hand
 joins 891,200 server frame lifecycles. Queued writers are mostly runnable, but a
 cooperative publication handoff gives only 0.94% more delivery and 2.32% worse
 paced p99; it is rejected. All 107,960 writes pass exact audits.
+A [shared reaction-form screen](bench/results/reaction-form-20261014/README.md)
+misses its 20% JSON-size reduction gate on reused receipts; no implementation or
+additional native timing follows.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction
