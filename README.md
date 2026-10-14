@@ -211,6 +211,9 @@ compares it with fresh upstream Go and Rust across 27 runs and 970,203 audited w
 live delivery is 2714.5/1053.4/2996.0 messages/s, respectively. Rust still leads fixed
 POST p99 and live delivery. Production is unchanged; Linux comparisons and integration
 gates remain outstanding. Mac and Linux rankings are not interchangeable.
+A [later-PR investigation](bench/results/pr10-sqlite-review-20261014/README.md)
+closes direct rich-text escaping as low-yield and verifies the functional cost of
+disabling SQLite memory accounting; neither change is integrated.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction
