@@ -188,11 +188,15 @@ The [native compression attribution pair](bench/results/native-compression-attri
 passes 132,000 exact write audits but exposes nonrepresentative sampled gzip-owner
 cost: current observed Close samples exceed those calls' summed elapsed-time upper
 bound. Extra compression CPU and the POST-tail cause are not established; no
-compression change follows. A [subsequent Linux perf pair](bench/results/native-perf-attribution-20261013/README.md)
+compression change is promoted. A [subsequent Linux perf pair](bench/results/native-perf-attribution-20261013/README.md)
 passes current-source CPU/elapsed consistency checks, but upstream sample loss and
 incomplete cgo caller chains prevent comparative owner inference. A
 [one-to-one association projection](bench/results/display-projection-20261013/README.md)
 passes 132,000 exact write audits but misses its 3% CPU-reduction gate and is rejected.
+The [current-source critical-path and encoder control](bench/results/post-critical-path-deflate-20261014/README.md)
+correlates 48,000 timed responses and identifies substantial preparation work, not a tail cause.
+A specialized encoder saves 36% CPU in standalone replay but increases complete-application
+CPU 2.0%, missing its gate; it is rejected. All 192,256 writes pass exact audits.
 
 Older local/VM runs overlapped other project builds and workloads. They remain
 archival, excluded from current performance decisions—not unfinished reproduction
