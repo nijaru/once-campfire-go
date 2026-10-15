@@ -1,0 +1,2082 @@
+{
+  "sources": {
+    "implementation": "8351224b56c9a3c6784ed5d7510857212133ac4c",
+    "upstream_go": "c4ab53d00b0a19a55962e03d18057ca6c3da9437",
+    "rust": "6dae2fd3c1a2dce61ca11beb731bcce2b42b67ad"
+  },
+  "production_git_tree_sha256": "e66bb98377edbf411f5a22ef3c7e17adebb061d1a444642fcfb82c0e68eba639",
+  "full_evidence_archive": "https://github.com/nijaru/once-campfire-go/tree/d287f419d052a196c52497acb2c06fca85742f27/bench/results/current-three-way-20261013",
+  "full_manifest_sha256": "07edf75dbcddf7f3fd0a69d73e65cc245089d20eb62cb65fc0319ab952dc0ccd",
+  "capture_date": "2026-10-13",
+  "hardware": {
+    "cpu": "Intel i9-13900KF",
+    "logical_cpus": 32,
+    "kernel": "7.2.9-201.fc44.x86_64",
+    "virtualization": "none"
+  },
+  "seed_sha256": "691c52bfdc30b38bd8867e93b0914613df20e03d4cd7b00796ab68e0a5d26c9a",
+  "fixed_client_sha256": "4f8848e2a52927660d6aa031fa38c16b7f7e7cd500cf1c8aee7e3f245b73b1f9",
+  "settings": {
+    "GOMAXPROCS": 4,
+    "GOGC": 100,
+    "jobs": 3,
+    "server_cpus": "0,2,4,6",
+    "client_cpus": "8,10,12,14",
+    "runner_cpus": "16,18"
+  },
+  "orders": [
+    [
+      "upstream",
+      "current",
+      "rust"
+    ],
+    [
+      "rust",
+      "upstream",
+      "current"
+    ],
+    [
+      "current",
+      "rust",
+      "upstream"
+    ]
+  ],
+  "audited_writes": {
+    "fixed": 270000,
+    "capacity": 772202,
+    "cable": 148585
+  },
+  "results": {
+    "fixed": {
+      "private_capture_sha256": "7ce826c26f8e32dc8fde57ccef4769c23a38a484c6aff0d352aa0a6a04b599e7",
+      "rounds": [
+        {
+          "app": "upstream",
+          "round": 1,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.7694017265508,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.698637,
+                "mean_ms": 0.48175766216666666,
+                "n": 6000,
+                "p50_ms": 0.467,
+                "p90_ms": 0.554,
+                "p95_ms": 0.614,
+                "p99_ms": 0.998
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.9171321640893,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 4.258059,
+                "mean_ms": 0.46614243295833335,
+                "n": 24000,
+                "p50_ms": 0.456,
+                "p90_ms": 0.544,
+                "p95_ms": 0.59,
+                "p99_ms": 0.849
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "current",
+          "round": 1,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.713839298586,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.265733,
+                "mean_ms": 0.4551598575,
+                "n": 6000,
+                "p50_ms": 0.453,
+                "p90_ms": 0.535,
+                "p95_ms": 0.61,
+                "p99_ms": 1.017
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.931250200548,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 4.4053,
+                "mean_ms": 0.4937413785,
+                "n": 24000,
+                "p50_ms": 0.473,
+                "p90_ms": 0.558,
+                "p95_ms": 0.64,
+                "p99_ms": 1.018
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "rust",
+          "round": 1,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.697453514536,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.824734,
+                "mean_ms": 0.43175306900000004,
+                "n": 6000,
+                "p50_ms": 0.44,
+                "p90_ms": 0.521,
+                "p95_ms": 0.552,
+                "p99_ms": 0.728
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.9262858113048,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.195688,
+                "mean_ms": 0.45314995183333334,
+                "n": 24000,
+                "p50_ms": 0.457,
+                "p90_ms": 0.524,
+                "p95_ms": 0.548,
+                "p99_ms": 0.64
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "rust",
+          "round": 2,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.684490185638,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.429561,
+                "mean_ms": 0.46945314783333336,
+                "n": 6000,
+                "p50_ms": 0.462,
+                "p90_ms": 0.523,
+                "p95_ms": 0.553,
+                "p99_ms": 0.658
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.951246667309,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.912517,
+                "mean_ms": 0.467831888875,
+                "n": 24000,
+                "p50_ms": 0.462,
+                "p90_ms": 0.521,
+                "p95_ms": 0.544,
+                "p99_ms": 0.626
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "upstream",
+          "round": 2,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.769833660203,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.376966,
+                "mean_ms": 0.4734925745,
+                "n": 6000,
+                "p50_ms": 0.464,
+                "p90_ms": 0.548,
+                "p95_ms": 0.605,
+                "p99_ms": 0.917
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.9269251550213,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 4.123459,
+                "mean_ms": 0.47395880054166667,
+                "n": 24000,
+                "p50_ms": 0.469,
+                "p90_ms": 0.55,
+                "p95_ms": 0.594,
+                "p99_ms": 0.831
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "current",
+          "round": 2,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.7241303703504,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.025222,
+                "mean_ms": 0.49530402883333335,
+                "n": 6000,
+                "p50_ms": 0.479,
+                "p90_ms": 0.553,
+                "p95_ms": 0.627,
+                "p99_ms": 0.911
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.928592699708,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.588323,
+                "mean_ms": 0.491802302125,
+                "n": 24000,
+                "p50_ms": 0.474,
+                "p90_ms": 0.553,
+                "p95_ms": 0.627,
+                "p99_ms": 0.965
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "current",
+          "round": 3,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.223027280999,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.472447,
+                "mean_ms": 0.46602082683333335,
+                "n": 6000,
+                "p50_ms": 0.467,
+                "p90_ms": 0.548,
+                "p95_ms": 0.613,
+                "p99_ms": 0.942
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.8038417018643,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.650577,
+                "mean_ms": 0.46609443970833336,
+                "n": 24000,
+                "p50_ms": 0.466,
+                "p90_ms": 0.548,
+                "p95_ms": 0.611,
+                "p99_ms": 0.919
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "rust",
+          "round": 3,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.9590715583868,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.632995,
+                "mean_ms": 0.4254740515,
+                "n": 6000,
+                "p50_ms": 0.437,
+                "p90_ms": 0.522,
+                "p95_ms": 0.553,
+                "p99_ms": 0.683
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.951145045615,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.411512,
+                "mean_ms": 0.453502547875,
+                "n": 24000,
+                "p50_ms": 0.458,
+                "p90_ms": 0.527,
+                "p95_ms": 0.552,
+                "p99_ms": 0.635
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "upstream",
+          "round": 3,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 64,
+              "secs": 2,
+              "rps": 2999.644230195722,
+              "ok": 6000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.508933,
+                "mean_ms": 0.4833041726666667,
+                "n": 6000,
+                "p50_ms": 0.475,
+                "p90_ms": 0.554,
+                "p95_ms": 0.61,
+                "p99_ms": 0.856
+              },
+              "statuses": {
+                "200": 6000
+              },
+              "acknowledged_write_audit": {
+                "count": 6000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 6000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 64,
+              "secs": 8,
+              "rps": 2999.9369803238546,
+              "ok": 24000,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.906136,
+                "mean_ms": 0.4706791707083333,
+                "n": 24000,
+                "p50_ms": 0.467,
+                "p90_ms": 0.546,
+                "p95_ms": 0.591,
+                "p99_ms": 0.792
+              },
+              "statuses": {
+                "200": 24000
+              },
+              "acknowledged_write_audit": {
+                "count": 24000,
+                "exact_ids_body_client_creator_room_fts": true
+              },
+              "persisted_write_audit": {
+                "count": 24000,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "capacity": {
+      "private_capture_sha256": "5fc2e67829c96aefd3f26aed1ca1bafe22c77e430337a43a30a9c288526baf5c",
+      "rounds": [
+        {
+          "app": "upstream",
+          "round": 1,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 8650.9,
+              "ok": 17308,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.491,
+                "mean_ms": 0.44,
+                "n": 17308,
+                "p50_ms": 0.414,
+                "p90_ms": 0.526,
+                "p99_ms": 0.874
+              },
+              "statuses": {
+                "200": 17308
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 17308
+              },
+              "persisted_write_audit": {
+                "count": 17308,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 9139.6,
+              "ok": 73133,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 15.487,
+                "mean_ms": 1.73,
+                "n": 73133,
+                "p50_ms": 1.332,
+                "p90_ms": 3.431,
+                "p99_ms": 6.435
+              },
+              "statuses": {
+                "200": 73133
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 73133
+              },
+              "persisted_write_audit": {
+                "count": 73133,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "current",
+          "round": 1,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 9631.8,
+              "ok": 19270,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 2.989,
+                "mean_ms": 0.4,
+                "n": 19270,
+                "p50_ms": 0.367,
+                "p90_ms": 0.484,
+                "p99_ms": 0.799
+              },
+              "statuses": {
+                "200": 19270
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 19270
+              },
+              "persisted_write_audit": {
+                "count": 19270,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 9765.5,
+              "ok": 78141,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 16.047,
+                "mean_ms": 1.62,
+                "n": 78141,
+                "p50_ms": 1.229,
+                "p90_ms": 3.269,
+                "p99_ms": 6.163
+              },
+              "statuses": {
+                "200": 78141
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 78141
+              },
+              "persisted_write_audit": {
+                "count": 78141,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "rust",
+          "round": 1,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 6362.6,
+              "ok": 12730,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.503,
+                "mean_ms": 0.6,
+                "n": 12730,
+                "p50_ms": 0.581,
+                "p90_ms": 0.798,
+                "p99_ms": 1.041
+              },
+              "statuses": {
+                "200": 12730
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 12730
+              },
+              "persisted_write_audit": {
+                "count": 12730,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 7155.7,
+              "ok": 57261,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 7.255,
+                "mean_ms": 2.21,
+                "n": 57261,
+                "p50_ms": 2.197,
+                "p90_ms": 2.721,
+                "p99_ms": 3.479
+              },
+              "statuses": {
+                "200": 57261
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 57261
+              },
+              "persisted_write_audit": {
+                "count": 57261,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "rust",
+          "round": 2,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 6401.7,
+              "ok": 12808,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 1.969,
+                "mean_ms": 0.6,
+                "n": 12808,
+                "p50_ms": 0.579,
+                "p90_ms": 0.788,
+                "p99_ms": 1.04
+              },
+              "statuses": {
+                "200": 12808
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 12808
+              },
+              "persisted_write_audit": {
+                "count": 12808,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 7178.3,
+              "ok": 57439,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 7.307,
+                "mean_ms": 2.2,
+                "n": 57439,
+                "p50_ms": 2.189,
+                "p90_ms": 2.719,
+                "p99_ms": 3.471
+              },
+              "statuses": {
+                "200": 57439
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 57439
+              },
+              "persisted_write_audit": {
+                "count": 57439,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "upstream",
+          "round": 2,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 8603.2,
+              "ok": 17213,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 4.527,
+                "mean_ms": 0.45,
+                "n": 17213,
+                "p50_ms": 0.414,
+                "p90_ms": 0.529,
+                "p99_ms": 0.893
+              },
+              "statuses": {
+                "200": 17213
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 17213
+              },
+              "persisted_write_audit": {
+                "count": 17213,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 9076.0,
+              "ok": 72624,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 15.919,
+                "mean_ms": 1.74,
+                "n": 72624,
+                "p50_ms": 1.327,
+                "p90_ms": 3.477,
+                "p99_ms": 6.587
+              },
+              "statuses": {
+                "200": 72624
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 72624
+              },
+              "persisted_write_audit": {
+                "count": 72624,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "current",
+          "round": 2,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 9602.0,
+              "ok": 19211,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.593,
+                "mean_ms": 0.4,
+                "n": 19211,
+                "p50_ms": 0.368,
+                "p90_ms": 0.484,
+                "p99_ms": 0.786
+              },
+              "statuses": {
+                "200": 19211
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 19211
+              },
+              "persisted_write_audit": {
+                "count": 19211,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 9784.1,
+              "ok": 78290,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 15.071,
+                "mean_ms": 1.61,
+                "n": 78290,
+                "p50_ms": 1.227,
+                "p90_ms": 3.249,
+                "p99_ms": 6.199
+              },
+              "statuses": {
+                "200": 78290
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 78290
+              },
+              "persisted_write_audit": {
+                "count": 78290,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "current",
+          "round": 3,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 9475.2,
+              "ok": 18956,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 4.327,
+                "mean_ms": 0.4,
+                "n": 18956,
+                "p50_ms": 0.371,
+                "p90_ms": 0.494,
+                "p99_ms": 0.825
+              },
+              "statuses": {
+                "200": 18956
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 18956
+              },
+              "persisted_write_audit": {
+                "count": 18956,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 9743.2,
+              "ok": 77962,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 15.775,
+                "mean_ms": 1.62,
+                "n": 77962,
+                "p50_ms": 1.232,
+                "p90_ms": 3.267,
+                "p99_ms": 6.211
+              },
+              "statuses": {
+                "200": 77962
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 77962
+              },
+              "persisted_write_audit": {
+                "count": 77962,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "rust",
+          "round": 3,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 6390.6,
+              "ok": 12786,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 1.962,
+                "mean_ms": 0.6,
+                "n": 12786,
+                "p50_ms": 0.58,
+                "p90_ms": 0.79,
+                "p99_ms": 1.041
+              },
+              "statuses": {
+                "200": 12786
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 12786
+              },
+              "persisted_write_audit": {
+                "count": 12786,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 7120.1,
+              "ok": 56976,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 7.407,
+                "mean_ms": 2.22,
+                "n": 56976,
+                "p50_ms": 2.207,
+                "p90_ms": 2.743,
+                "p99_ms": 3.513
+              },
+              "statuses": {
+                "200": 56976
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 56976
+              },
+              "persisted_write_audit": {
+                "count": 56976,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        },
+        {
+          "app": "upstream",
+          "round": 3,
+          "samples": [
+            {
+              "warmup": true,
+              "conc": 4,
+              "secs": 2.0,
+              "rps": 8656.8,
+              "ok": 17319,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 3.659,
+                "mean_ms": 0.44,
+                "n": 17319,
+                "p50_ms": 0.415,
+                "p90_ms": 0.522,
+                "p99_ms": 0.863
+              },
+              "statuses": {
+                "200": 17319
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 17319
+              },
+              "persisted_write_audit": {
+                "count": 17319,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            },
+            {
+              "warmup": false,
+              "conc": 16,
+              "secs": 8.0,
+              "rps": 9094.9,
+              "ok": 72775,
+              "errors": 0,
+              "invalid_responses": 0,
+              "latency": {
+                "max_ms": 15.639,
+                "mean_ms": 1.74,
+                "n": 72775,
+                "p50_ms": 1.33,
+                "p90_ms": 3.473,
+                "p99_ms": 6.519
+              },
+              "statuses": {
+                "200": 72775
+              },
+              "acknowledged_write_audit": {
+                "verified": true,
+                "acknowledged": 72775
+              },
+              "persisted_write_audit": {
+                "count": 72775,
+                "exact_bodies": true,
+                "unique_client_ids": true,
+                "correct_creator_room": true,
+                "normalized_fts": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cable": {
+      "private_capture_sha256": "4f22faf2f92e14ddf3c466f5ae275955a927eea19e7108c76a4a217bac1f7744",
+      "rounds": [
+        {
+          "app": "upstream",
+          "round": 1,
+          "delivery_per_sec": 2364.3,
+          "paced_all_client_p99_ms": 7.311,
+          "saturated_post_p99_ms": 4.159,
+          "latency": {
+            "all_clients": {
+              "max_ms": 8.799,
+              "mean_ms": 3.95,
+              "n": 300,
+              "p50_ms": 3.761,
+              "p90_ms": 4.411,
+              "p99_ms": 7.311
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 8.799,
+              "mean_ms": 3.33,
+              "n": 19200,
+              "p50_ms": 3.235,
+              "p90_ms": 3.851,
+              "p99_ms": 5.963
+            },
+            "post": {
+              "max_ms": 9.255,
+              "mean_ms": 5.27,
+              "n": 300,
+              "p50_ms": 5.139,
+              "p90_ms": 5.723,
+              "p99_ms": 7.779
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 8.863,
+              "mean_ms": 1.78,
+              "n": 11825,
+              "p50_ms": 1.64,
+              "p90_ms": 2.611,
+              "p99_ms": 3.997
+            },
+            "complete": 11825,
+            "delivered_msgs_per_sec": 2364.3,
+            "drain_secs": 0.0,
+            "frames_per_sec": 151315.0,
+            "per_client": {
+              "max_ms": 8.863,
+              "mean_ms": 1.15,
+              "n": 756800,
+              "p50_ms": 1.037,
+              "p90_ms": 1.856,
+              "p99_ms": 3.003
+            },
+            "post": {
+              "max_ms": 9.783,
+              "mean_ms": 1.69,
+              "n": 11825,
+              "p50_ms": 1.5,
+              "p90_ms": 2.641,
+              "p99_ms": 4.159
+            },
+            "post_attempts": 11825,
+            "post_errors": 0,
+            "posted": 11825,
+            "posters": 4,
+            "posts_per_sec": 2364.3,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 12125,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 12125,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "current",
+          "round": 1,
+          "delivery_per_sec": 3119.9,
+          "paced_all_client_p99_ms": 6.507,
+          "saturated_post_p99_ms": 3.191,
+          "latency": {
+            "all_clients": {
+              "max_ms": 8.115,
+              "mean_ms": 4.11,
+              "n": 300,
+              "p50_ms": 3.977,
+              "p90_ms": 4.475,
+              "p99_ms": 6.507
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 8.115,
+              "mean_ms": 3.69,
+              "n": 19200,
+              "p50_ms": 3.603,
+              "p90_ms": 4.159,
+              "p99_ms": 6.087
+            },
+            "post": {
+              "max_ms": 7.391,
+              "mean_ms": 3.85,
+              "n": 300,
+              "p50_ms": 3.807,
+              "p90_ms": 4.267,
+              "p99_ms": 5.375
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 9.367,
+              "mean_ms": 2.07,
+              "n": 15603,
+              "p50_ms": 1.874,
+              "p90_ms": 3.209,
+              "p99_ms": 5.079
+            },
+            "complete": 15603,
+            "delivered_msgs_per_sec": 3119.9,
+            "drain_secs": 0.0,
+            "frames_per_sec": 199672.0,
+            "per_client": {
+              "max_ms": 9.367,
+              "mean_ms": 1.57,
+              "n": 998592,
+              "p50_ms": 1.439,
+              "p90_ms": 2.443,
+              "p99_ms": 3.841
+            },
+            "post": {
+              "max_ms": 8.131,
+              "mean_ms": 1.28,
+              "n": 15603,
+              "p50_ms": 1.154,
+              "p90_ms": 2.057,
+              "p99_ms": 3.191
+            },
+            "post_attempts": 15603,
+            "post_errors": 0,
+            "posted": 15603,
+            "posters": 4,
+            "posts_per_sec": 3120.0,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 15903,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 15903,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "rust",
+          "round": 1,
+          "delivery_per_sec": 4289.3,
+          "paced_all_client_p99_ms": 5.079,
+          "saturated_post_p99_ms": 2.235,
+          "latency": {
+            "all_clients": {
+              "max_ms": 9.583,
+              "mean_ms": 3.9,
+              "n": 300,
+              "p50_ms": 3.887,
+              "p90_ms": 4.191,
+              "p99_ms": 5.079
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 9.583,
+              "mean_ms": 3.45,
+              "n": 19200,
+              "p50_ms": 3.445,
+              "p90_ms": 3.903,
+              "p99_ms": 4.459
+            },
+            "post": {
+              "max_ms": 10.295,
+              "mean_ms": 3.93,
+              "n": 300,
+              "p50_ms": 3.939,
+              "p90_ms": 4.271,
+              "p99_ms": 4.631
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 6.659,
+              "mean_ms": 0.96,
+              "n": 21453,
+              "p50_ms": 0.864,
+              "p90_ms": 1.495,
+              "p99_ms": 2.305
+            },
+            "complete": 21453,
+            "delivered_msgs_per_sec": 4289.3,
+            "drain_secs": 0.0,
+            "frames_per_sec": 274518.0,
+            "per_client": {
+              "max_ms": 6.659,
+              "mean_ms": 0.74,
+              "n": 1372992,
+              "p50_ms": 0.694,
+              "p90_ms": 1.072,
+              "p99_ms": 1.75
+            },
+            "post": {
+              "max_ms": 7.175,
+              "mean_ms": 0.93,
+              "n": 21453,
+              "p50_ms": 0.854,
+              "p90_ms": 1.376,
+              "p99_ms": 2.235
+            },
+            "post_attempts": 21453,
+            "post_errors": 0,
+            "posted": 21453,
+            "posters": 4,
+            "posts_per_sec": 4290.0,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 21753,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 21753,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "rust",
+          "round": 2,
+          "delivery_per_sec": 4377.7,
+          "paced_all_client_p99_ms": 4.951,
+          "saturated_post_p99_ms": 2.125,
+          "latency": {
+            "all_clients": {
+              "max_ms": 9.743,
+              "mean_ms": 3.92,
+              "n": 300,
+              "p50_ms": 3.905,
+              "p90_ms": 4.207,
+              "p99_ms": 4.951
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 9.743,
+              "mean_ms": 3.46,
+              "n": 19200,
+              "p50_ms": 3.449,
+              "p90_ms": 3.897,
+              "p99_ms": 4.447
+            },
+            "post": {
+              "max_ms": 9.879,
+              "mean_ms": 3.92,
+              "n": 300,
+              "p50_ms": 3.927,
+              "p90_ms": 4.215,
+              "p99_ms": 4.519
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 7.143,
+              "mean_ms": 0.93,
+              "n": 21893,
+              "p50_ms": 0.85,
+              "p90_ms": 1.373,
+              "p99_ms": 2.205
+            },
+            "complete": 21893,
+            "delivered_msgs_per_sec": 4377.7,
+            "drain_secs": 0.0,
+            "frames_per_sec": 280174.0,
+            "per_client": {
+              "max_ms": 7.143,
+              "mean_ms": 0.73,
+              "n": 1401152,
+              "p50_ms": 0.687,
+              "p90_ms": 1.042,
+              "p99_ms": 1.694
+            },
+            "post": {
+              "max_ms": 9.127,
+              "mean_ms": 0.91,
+              "n": 21893,
+              "p50_ms": 0.84,
+              "p90_ms": 1.332,
+              "p99_ms": 2.125
+            },
+            "post_attempts": 21893,
+            "post_errors": 0,
+            "posted": 21893,
+            "posters": 4,
+            "posts_per_sec": 4377.7,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 22193,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 22193,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "upstream",
+          "round": 2,
+          "delivery_per_sec": 2343.8,
+          "paced_all_client_p99_ms": 6.895,
+          "saturated_post_p99_ms": 3.977,
+          "latency": {
+            "all_clients": {
+              "max_ms": 8.207,
+              "mean_ms": 3.99,
+              "n": 300,
+              "p50_ms": 3.839,
+              "p90_ms": 4.243,
+              "p99_ms": 6.895
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 8.207,
+              "mean_ms": 3.37,
+              "n": 19200,
+              "p50_ms": 3.293,
+              "p90_ms": 3.825,
+              "p99_ms": 6.043
+            },
+            "post": {
+              "max_ms": 9.175,
+              "mean_ms": 5.35,
+              "n": 300,
+              "p50_ms": 5.147,
+              "p90_ms": 5.771,
+              "p99_ms": 8.719
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 9.159,
+              "mean_ms": 1.73,
+              "n": 11722,
+              "p50_ms": 1.59,
+              "p90_ms": 2.553,
+              "p99_ms": 4.019
+            },
+            "complete": 11722,
+            "delivered_msgs_per_sec": 2343.8,
+            "drain_secs": 0.0,
+            "frames_per_sec": 150002.0,
+            "per_client": {
+              "max_ms": 9.159,
+              "mean_ms": 1.12,
+              "n": 750208,
+              "p50_ms": 1.01,
+              "p90_ms": 1.803,
+              "p99_ms": 3.023
+            },
+            "post": {
+              "max_ms": 9.471,
+              "mean_ms": 1.7,
+              "n": 11722,
+              "p50_ms": 1.537,
+              "p90_ms": 2.649,
+              "p99_ms": 3.977
+            },
+            "post_attempts": 11722,
+            "post_errors": 0,
+            "posted": 11722,
+            "posters": 4,
+            "posts_per_sec": 2343.8,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 12022,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 12022,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "current",
+          "round": 2,
+          "delivery_per_sec": 2864.3,
+          "paced_all_client_p99_ms": 6.391,
+          "saturated_post_p99_ms": 3.981,
+          "latency": {
+            "all_clients": {
+              "max_ms": 6.811,
+              "mean_ms": 4.13,
+              "n": 300,
+              "p50_ms": 3.947,
+              "p90_ms": 4.699,
+              "p99_ms": 6.391
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 6.811,
+              "mean_ms": 3.69,
+              "n": 19200,
+              "p50_ms": 3.611,
+              "p90_ms": 4.175,
+              "p99_ms": 5.839
+            },
+            "post": {
+              "max_ms": 7.407,
+              "mean_ms": 3.82,
+              "n": 300,
+              "p50_ms": 3.783,
+              "p90_ms": 4.203,
+              "p99_ms": 5.043
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 18.783,
+              "mean_ms": 2.36,
+              "n": 14325,
+              "p50_ms": 2.107,
+              "p90_ms": 3.639,
+              "p99_ms": 6.951
+            },
+            "complete": 14325,
+            "delivered_msgs_per_sec": 2864.3,
+            "drain_secs": 0.0,
+            "frames_per_sec": 183315.0,
+            "per_client": {
+              "max_ms": 18.783,
+              "mean_ms": 1.71,
+              "n": 916800,
+              "p50_ms": 1.531,
+              "p90_ms": 2.683,
+              "p99_ms": 4.811
+            },
+            "post": {
+              "max_ms": 13.975,
+              "mean_ms": 1.39,
+              "n": 14325,
+              "p50_ms": 1.228,
+              "p90_ms": 2.289,
+              "p99_ms": 3.981
+            },
+            "post_attempts": 14325,
+            "post_errors": 0,
+            "posted": 14325,
+            "posters": 4,
+            "posts_per_sec": 2864.3,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 14625,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 14625,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "current",
+          "round": 3,
+          "delivery_per_sec": 3087.8,
+          "paced_all_client_p99_ms": 6.623,
+          "saturated_post_p99_ms": 3.207,
+          "latency": {
+            "all_clients": {
+              "max_ms": 6.915,
+              "mean_ms": 3.79,
+              "n": 300,
+              "p50_ms": 3.887,
+              "p90_ms": 4.407,
+              "p99_ms": 6.623
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 6.915,
+              "mean_ms": 3.39,
+              "n": 19200,
+              "p50_ms": 3.507,
+              "p90_ms": 4.041,
+              "p99_ms": 5.975
+            },
+            "post": {
+              "max_ms": 6.539,
+              "mean_ms": 3.52,
+              "n": 300,
+              "p50_ms": 3.683,
+              "p90_ms": 4.123,
+              "p99_ms": 5.935
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 10.215,
+              "mean_ms": 2.13,
+              "n": 15443,
+              "p50_ms": 1.904,
+              "p90_ms": 3.287,
+              "p99_ms": 5.403
+            },
+            "complete": 15443,
+            "delivered_msgs_per_sec": 3087.8,
+            "drain_secs": 0.0,
+            "frames_per_sec": 197617.0,
+            "per_client": {
+              "max_ms": 10.215,
+              "mean_ms": 1.59,
+              "n": 988352,
+              "p50_ms": 1.45,
+              "p90_ms": 2.467,
+              "p99_ms": 3.937
+            },
+            "post": {
+              "max_ms": 7.967,
+              "mean_ms": 1.29,
+              "n": 15443,
+              "p50_ms": 1.167,
+              "p90_ms": 2.085,
+              "p99_ms": 3.207
+            },
+            "post_attempts": 15443,
+            "post_errors": 0,
+            "posted": 15443,
+            "posters": 4,
+            "posts_per_sec": 3087.9,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 15743,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 15743,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "rust",
+          "round": 3,
+          "delivery_per_sec": 4351.9,
+          "paced_all_client_p99_ms": 4.715,
+          "saturated_post_p99_ms": 2.141,
+          "latency": {
+            "all_clients": {
+              "max_ms": 9.911,
+              "mean_ms": 3.92,
+              "n": 300,
+              "p50_ms": 3.883,
+              "p90_ms": 4.187,
+              "p99_ms": 4.715
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 9.911,
+              "mean_ms": 3.47,
+              "n": 19200,
+              "p50_ms": 3.465,
+              "p90_ms": 3.893,
+              "p99_ms": 4.387
+            },
+            "post": {
+              "max_ms": 10.095,
+              "mean_ms": 3.94,
+              "n": 300,
+              "p50_ms": 3.927,
+              "p90_ms": 4.211,
+              "p99_ms": 4.607
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 6.371,
+              "mean_ms": 0.94,
+              "n": 21762,
+              "p50_ms": 0.852,
+              "p90_ms": 1.399,
+              "p99_ms": 2.241
+            },
+            "complete": 21762,
+            "delivered_msgs_per_sec": 4351.9,
+            "drain_secs": 0.0,
+            "frames_per_sec": 278520.0,
+            "per_client": {
+              "max_ms": 6.371,
+              "mean_ms": 0.73,
+              "n": 1392768,
+              "p50_ms": 0.69,
+              "p90_ms": 1.048,
+              "p99_ms": 1.701
+            },
+            "post": {
+              "max_ms": 7.191,
+              "mean_ms": 0.92,
+              "n": 21762,
+              "p50_ms": 0.843,
+              "p90_ms": 1.347,
+              "p99_ms": 2.141
+            },
+            "post_attempts": 21762,
+            "post_errors": 0,
+            "posted": 21762,
+            "posters": 4,
+            "posts_per_sec": 4351.9,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 22062,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 22062,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        },
+        {
+          "app": "upstream",
+          "round": 3,
+          "delivery_per_sec": 2370.9,
+          "paced_all_client_p99_ms": 7.463,
+          "saturated_post_p99_ms": 4.071,
+          "latency": {
+            "all_clients": {
+              "max_ms": 7.971,
+              "mean_ms": 3.97,
+              "n": 300,
+              "p50_ms": 3.799,
+              "p90_ms": 4.247,
+              "p99_ms": 7.463
+            },
+            "complete": 300,
+            "messages": 300,
+            "per_client": {
+              "max_ms": 7.971,
+              "mean_ms": 3.34,
+              "n": 19200,
+              "p50_ms": 3.251,
+              "p90_ms": 3.813,
+              "p99_ms": 6.255
+            },
+            "post": {
+              "max_ms": 9.255,
+              "mean_ms": 5.31,
+              "n": 300,
+              "p50_ms": 5.159,
+              "p90_ms": 5.791,
+              "p99_ms": 8.295
+            },
+            "post_attempts": 300,
+            "post_errors": 0,
+            "post_successes": 300
+          },
+          "throughput": {
+            "all_clients": {
+              "max_ms": 11.423,
+              "mean_ms": 1.71,
+              "n": 11859,
+              "p50_ms": 1.585,
+              "p90_ms": 2.529,
+              "p99_ms": 3.845
+            },
+            "complete": 11859,
+            "delivered_msgs_per_sec": 2370.9,
+            "drain_secs": 0.0,
+            "frames_per_sec": 151740.0,
+            "per_client": {
+              "max_ms": 11.423,
+              "mean_ms": 1.11,
+              "n": 758976,
+              "p50_ms": 1.004,
+              "p90_ms": 1.779,
+              "p99_ms": 2.917
+            },
+            "post": {
+              "max_ms": 11.695,
+              "mean_ms": 1.68,
+              "n": 11859,
+              "p50_ms": 1.513,
+              "p90_ms": 2.613,
+              "p99_ms": 4.071
+            },
+            "post_attempts": 11859,
+            "post_errors": 0,
+            "posted": 11859,
+            "posters": 4,
+            "posts_per_sec": 2371.1,
+            "wire_mb_per_sec": null
+          },
+          "write_audit": {
+            "persisted": 12159,
+            "acknowledged_ids": true,
+            "exact_markers_bodies_creator_room_fts": true,
+            "indexed": 12159,
+            "integrity": "ok",
+            "unchanged_seed_fk_violations": 1,
+            "new_fk_violations": 0,
+            "presence_after_disconnect": 0
+          },
+          "clients": 64,
+          "subscriptions_per_client": 6
+        }
+      ]
+    }
+  }
+}
