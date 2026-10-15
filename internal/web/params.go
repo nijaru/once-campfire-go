@@ -88,6 +88,17 @@ func parseJSONParams(r *http.Request) error {
 		delete(nulls, key)
 	}
 	*r = *r.WithContext(context.WithValue(r.Context(), nullParamsKey{}, nulls))
+	if needsStructuredParams(r) {
+		params := formJSONValue(value).(map[string]any)
+		query, err := formTree(r.URL.RawQuery)
+		if err != nil {
+			return err
+		}
+		for key, value := range query {
+			params[key] = value
+		}
+		*r = *r.WithContext(context.WithValue(r.Context(), structuredParamsKey{}, params))
+	}
 	return nil
 }
 
