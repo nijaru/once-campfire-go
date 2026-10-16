@@ -225,6 +225,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
   Bare query/form keys remain null, distinct from `attachment=`; they no longer
   discard the API's raw message text. Last scalar and query-over-body precedence
   apply to this null metadata as well as to parameter values.
+- With forwarding disabled, the public listener also discards `Client-IP`. Private
+  peers can no longer use that header to spoof the IP used for throttling, bans and
+  session records. Explicitly enabled forwarding retains its existing behavior.
 - Push registration uses the selected subscription root: outer JSON fields cannot
   fill nested attributes, and a query hash replaces the body hash instead of merging
   its leaves. Rejected registrations no longer store credentials. Multipart nested

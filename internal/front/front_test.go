@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func TestForwardingPolicyCoversSchemeAliases(t *testing.T) {
+func TestForwardingPolicyCoversConsumedHeaders(t *testing.T) {
 	for _, trust := range []bool{false, true} {
 		r := httptest.NewRequest("GET", "http://chat.test/webmanifest", nil)
 		r.RemoteAddr = "127.0.0.1:1234"
@@ -26,14 +26,15 @@ func TestForwardingPolicyCoversSchemeAliases(t *testing.T) {
 		r.Header.Set("X-Forwarded-Scheme", "https")
 		r.Header.Set("X-Forwarded-Proto", "https")
 		r.Header.Set("X-Forwarded-Host", "proxy.test")
+		r.Header.Set("Client-IP", "127.0.0.1, 198.51.100.20")
 		next := http.HandlerFunc(func(w http.ResponseWriter, forwarded *http.Request) {
 			ssl, scheme := forwarded.Header.Get("X-Forwarded-Ssl"), forwarded.Header.Get("X-Forwarded-Scheme")
 			if trust {
-				if ssl != "on" || scheme != "https" || forwarded.Header.Get("X-Forwarded-Host") != "proxy.test" {
+				if ssl != "on" || scheme != "https" || forwarded.Header.Get("X-Forwarded-Host") != "proxy.test" || forwarded.Header.Get("Client-IP") != "127.0.0.1, 198.51.100.20" {
 					t.Fatal("trusted forwarding changed", forwarded.Header)
 				}
-			} else if ssl != "" || scheme != "" || forwarded.Header.Get("X-Forwarded-Proto") != "http" || forwarded.Header.Get("X-Forwarded-Host") != "chat.test" {
-				t.Fatal("untrusted scheme alias survived", forwarded.Header)
+			} else if ssl != "" || scheme != "" || forwarded.Header.Get("X-Forwarded-Proto") != "http" || forwarded.Header.Get("X-Forwarded-Host") != "chat.test" || forwarded.Header.Get("Client-IP") != "" {
+				t.Fatal("untrusted forwarding metadata survived", forwarded.Header)
 			}
 		})
 		forward(next, Config{ForwardHeaders: trust}).ServeHTTP(httptest.NewRecorder(), r)
