@@ -81,7 +81,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		r.Body = io.NopCloser(bytes.NewReader(raw))
-		if err := r.ParseForm(); err != nil {
+		if err := parseRequestForm(r); err != nil {
 			http.Error(w, "Invalid form", 400)
 			return
 		}
@@ -90,7 +90,10 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", 400)
 		return
 	}
-	normalizeScalarParams(r)
+	if err := normalizeScalarParams(r); err != nil {
+		http.Error(w, "Invalid query", 400)
+		return
+	}
 	attachmentSet := r.Form.Has("attachment") && !nullParam(r, "attachment")
 	route, _, _ := recognizeRequest(r)
 	if strings.Contains(route.Action, "::boosts::") {

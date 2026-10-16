@@ -222,6 +222,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
   whitespace-only JSON is rejected on browser and bot routes. Valid JSON remains
   raw message text unless a non-null scalar attachment parameter selects
   attachment-only attributes; null does not detach an existing attachment.
+  Bare query/form keys remain null, distinct from `attachment=`; they no longer
+  discard the API's raw message text. Last scalar and query-over-body precedence
+  apply to this null metadata as well as to parameter values.
 - HTML and bot JSON message pagination use the last repeated scalar cursor, reference
   integer-prefix casting, and blank-value rules. Invalid or zero cursors return 404
   rather than silently selecting the latest page. A present `before` still selects

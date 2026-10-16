@@ -1,0 +1,27 @@
+{
+  "scope": "Double-check and bare/null scalar preservation, no performance claim",
+  "baseline": "0e65a86, runtime equivalent to PRa441e6f",
+  "baseline_existing_http_passed": 30,
+  "check": "bin/check passed on final candidate",
+  "regression": "Real bot-key old source and executable lose raw body/FTS; pinned Rust passes; candidate passes",
+  "http_passed": 30,
+  "http_total": 30,
+  "binaries": {
+    "rust": "b797463aaa3d3173a9fa50e461cf2af543706861dc5c8147de0f28b0f2128960",
+    "go": "6114e83f4c2eb614d9c365e71758ab7d5f5272afeb9302298a62459969c5e08d"
+  },
+  "browser": {
+    "result": "PASS: setup, two-tab live messaging, duplicate suppression, and stored-markup safety, copying message permalinks, editing, search, profile/account updates, QR codes, live room creation/renaming, bots, custom styles, session transfers, joining, and autocomplete-started direct pings in Chromium.",
+    "shared_commit": "ec02debb3e44f40b8778a6a42db3c4515b2f9eaf",
+    "smoke_sha256": "1e2de0a95a6835b73f15f0133da90900cdae8523ddd950df3f17ffd23805532b",
+    "method": "Pristine sharedHEAD exported without modifying dirty sharedcheckout; fresh disposable Chromium/server state"
+  },
+  "review": "Initial independent review found bare-param loss; second read-only review found no further concrete issue in correction; parent ran checks",
+  "runtime_files": {
+    "internal/web/bots.go": "7101258af3cdfa3e499c06ca1a1581994abc2ff6476d3519446df4e15233e978",
+    "internal/web/params.go": "6430553ae2536c6734a4a7790d7613914e3fab02ce1266cb296e77655cd62df2",
+    "internal/web/server.go": "e2784d26fe713486ae0e5f82f39a80f0e7f533b24c3c2bdd61b7f528fc02910c",
+    "internal/web/structured_form.go": "255fa45c34fa0686c5ae551db399f006164405a4d019b49d49001485a054c7a0"
+  },
+  "limits": "Not proof of whole-app correctness, all malformed Rack parameters, browserplatforms, mediaoutput or native performance"
+}

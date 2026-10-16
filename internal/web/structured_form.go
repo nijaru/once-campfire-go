@@ -55,6 +55,9 @@ func parseRequestForm(r *http.Request) error {
 		if err != nil {
 			return err
 		}
+		if err = recordFormNulls(r, string(raw)); err != nil {
+			return err
+		}
 		if !needsStructuredParams(r) {
 			return r.ParseForm()
 		}

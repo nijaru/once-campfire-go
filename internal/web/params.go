@@ -108,7 +108,7 @@ func nullParam(r *http.Request, key string) bool {
 }
 
 // Rack overwrites repeated scalar keys; [] keys retain all values.
-func normalizeScalarParams(r *http.Request) {
+func normalizeScalarParams(r *http.Request) error {
 	for _, values := range []url.Values{r.Form, r.PostForm} {
 		for key, items := range values {
 			if len(items) > 1 && !strings.HasSuffix(key, "[]") {
@@ -116,4 +116,40 @@ func normalizeScalarParams(r *http.Request) {
 			}
 		}
 	}
+	return recordFormNulls(r, r.URL.RawQuery)
+}
+
+// url.Values loses the distinction between a bare key (null) and key= (empty).
+// Record it at intake, after decoding has validated the form. Later sources win,
+// including an explicit query value replacing a body null. Ordinary value-only
+// forms need no metadata allocation.
+func recordFormNulls(r *http.Request, raw string) error {
+	nulls, _ := r.Context().Value(nullParamsKey{}).(map[string]bool)
+	created := false
+	for pair := range strings.SplitSeq(raw, "&") {
+		if pair == "" {
+			continue
+		}
+		key, _, hasValue := strings.Cut(pair, "=")
+		if hasValue && len(nulls) == 0 {
+			continue
+		}
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return err
+		}
+		if hasValue {
+			delete(nulls, key)
+			continue
+		}
+		if nulls == nil {
+			nulls = map[string]bool{}
+			created = true
+		}
+		nulls[key] = true
+	}
+	if created {
+		*r = *r.WithContext(context.WithValue(r.Context(), nullParamsKey{}, nulls))
+	}
+	return nil
 }

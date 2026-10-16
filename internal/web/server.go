@@ -260,7 +260,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for key, values := range r.URL.Query() {
 			r.Form[key] = values
 		}
-		normalizeScalarParams(r)
+		if err := normalizeScalarParams(r); err != nil {
+			http.Error(w, "Invalid query", 400)
+			return
+		}
 		if r.Method == "POST" {
 			switch strings.ToUpper(r.PostForm.Get("_method")) {
 			case "PATCH":
@@ -278,7 +281,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	normalizeScalarParams(r)
+	if err := normalizeScalarParams(r); err != nil {
+		http.Error(w, "Invalid query", 400)
+		return
+	}
 	s.routeHTTP(w, r)
 }
 
