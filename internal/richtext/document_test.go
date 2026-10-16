@@ -4,8 +4,42 @@ import (
 	"html"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 )
+
+func TestContentKeepsPreparedDocumentReusable(t *testing.T) {
+	mention := Mention{ID: 7, Name: "Person", SGID: "canonical", Path: "/users/7", Avatar: "/avatar"}
+	ctx := Context{Resolve: func(string, bool) (*Mention, error) { return &mention, nil }}
+	for _, test := range []struct{ body, plain string }{
+		{`<p>Hello &amp; goodbye</p><script>not plaintext</script>`, "Hello & goodbye"},
+		{`<p>Hello <action-text-attachment sgid="user"></action-text-attachment></p>`, "Hello @Person"},
+	} {
+		doc := Prepare(test.body)
+		before, err := doc.Display(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := doc.Content(ctx)
+		if err != nil || want.Plain != test.plain {
+			t.Fatalf("content %+v (%v), want plaintext %q", want, err, test.plain)
+		}
+		var work sync.WaitGroup
+		for range 8 {
+			work.Go(func() {
+				got, err := doc.Content(ctx)
+				if err != nil || got.Plain != want.Plain || got.BodyHTML != want.BodyHTML {
+					t.Errorf("reused content changed: %+v (%v)", got, err)
+				}
+			})
+		}
+		work.Wait()
+		after, err := doc.Display(ctx)
+		if err != nil || after.Presentation != before.Presentation || after.Plain != before.Plain || after.Filtered != before.Filtered {
+			t.Fatal("content rendering changed later display", after, err)
+		}
+	}
+}
 
 func TestPreparedNestedMentionsUseRenderingSanitization(t *testing.T) {
 	for _, trix := range []string{`{"caption":"x"}`, `["invalid trix merge"]`} {

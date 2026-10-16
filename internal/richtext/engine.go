@@ -167,11 +167,18 @@ func (doc Document) process(ctx Context, fields outputFields) (Result, error) {
 	}
 
 	if fields&bodyOutput != 0 {
-		rendered := clone(root)
-		if err = replaceAttachments(rendered, ctx, false, 0); err != nil {
-			result.Errors["body_html"] = err
-		} else {
-			galleries(rendered, true)
+		rendered := root
+		if hasAttachments(root) {
+			rendered = clone(root)
+			if err = replaceAttachments(rendered, ctx, false, 0); err != nil {
+				result.Errors["body_html"] = err
+			} else {
+				galleries(rendered, true)
+			}
+		}
+		if result.Errors["body_html"] == nil {
+			// Reparse into an owned normalization tree before sanitizing. Without
+			// attachments the preceding stage only needs to read the original.
 			rendered, err = parse(serialize(rendered))
 			if err != nil {
 				return result, err
