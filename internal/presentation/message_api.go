@@ -73,6 +73,11 @@ func (r *Renderer) APIUser(facts Facts, user database.APIAuthor) APIUser {
 func (r *Renderer) APIMessages(facts Facts, content APIContent, data database.MessageAPIData) ([]APIMessage, error) {
 	resolved := MentionContext(r.secrets, facts.Host, facts.Now, content.targets, data.Mentions)
 	result := make([]APIMessage, 0, len(content.Records))
+	// Author data and origin are fixed within this response, not across calls.
+	var creators map[int64]APIUser
+	if len(content.Records) > 1 {
+		creators = make(map[int64]APIUser, min(len(content.Records), len(data.Authors)))
+	}
 	for i, record := range content.Records {
 		body, err := content.documents[i].Content(resolved)
 		if err != nil {
@@ -87,7 +92,14 @@ func (r *Renderer) APIMessages(facts Facts, content APIContent, data database.Me
 				message.Body.Plain = storage.Filename(filename)
 			}
 		}
-		message.Creator = r.APIUser(facts, data.Authors[record.CreatorID])
+		creator, exists := creators[record.CreatorID]
+		if !exists {
+			creator = r.APIUser(facts, data.Authors[record.CreatorID])
+			if creators != nil {
+				creators[record.CreatorID] = creator
+			}
+		}
+		message.Creator = creator
 		result = append(result, message)
 	}
 	return result, nil
