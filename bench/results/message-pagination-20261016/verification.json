@@ -16,5 +16,17 @@
     "internal/web/bots.go": "26473c7c2638b6f7e152a7a3aace4c32850009c19c468e8d57367cbb366f8f0f"
   },
   "review": "Independent read-only source review, no actionable finding; parent owns check execution",
-  "limits": "Not full nested/malformed parameter, browser or media certification; no refreshed native/performance claim"
+  "limits": "Not full nested/malformed parameter, browser or media certification; no refreshed native/performance claim",
+  "pr_verification": {
+    "source_commit": "a22542580ecb57e7048c9052c36bf3425c94fe15",
+    "check": "bin/check passed on actual PR branch",
+    "http_passed": 8,
+    "http_total": 8,
+    "scalar_cases": "10 cases x HTML/JSON x Go/Rust passed on actual PR binary",
+    "binaries": {
+      "rust": "b797463aaa3d3173a9fa50e461cf2af543706861dc5c8147de0f28b0f2128960",
+      "go": "308208c4542ef6e2ac8eac5e3e4ef222d24707a381af575cdcf5c03a8297a16e"
+    },
+    "source_equivalence": "cmd/internal/assets/third_party/go.mod/go.sum match retained verified source"
+  }
 }
