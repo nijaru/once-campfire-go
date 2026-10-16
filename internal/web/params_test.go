@@ -29,7 +29,7 @@ func TestJSONParametersKeepRawBodyAndQueryPrecedence(t *testing.T) {
 	if string(body) != raw {
 		t.Fatalf("raw body: %q", body)
 	}
-	for _, raw := range []string{`{"broken":`, `{} {}`} {
+	for _, raw := range []string{`{"broken":`, `{} {}`, " \r\n"} {
 		r := httptest.NewRequest("POST", "/", strings.NewReader(raw))
 		r.Header.Set("Content-Type", "application/json")
 		r.ParseForm()

@@ -86,7 +86,12 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if err := parseJSONParams(r); err != nil {
+		http.Error(w, "Invalid JSON", 400)
+		return
+	}
 	normalizeScalarParams(r)
+	attachmentSet := r.Form.Has("attachment") && !nullParam(r, "attachment")
 	route, _, _ := recognizeRequest(r)
 	if strings.Contains(route.Action, "::boosts::") {
 		s.botBoost(w, r, user, string(raw))
@@ -114,20 +119,24 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, 200, result.Messages)
 	case "POST":
+		hasUpload := r.MultipartForm != nil && len(r.MultipartForm.File["attachment"]) > 0
+		if !hasUpload && strings.TrimSpace(r.Form.Get("attachment")) == "" && strings.TrimSpace(string(raw)) == "" {
+			w.WriteHeader(422)
+			return
+		}
 		var staged *storage.Staged
 		var body *string
-		if r.MultipartForm != nil && len(r.MultipartForm.File["attachment"]) > 0 {
+		if hasUpload {
 			staged, err = s.stageAttachment(r, "attachment")
 			if err != nil {
 				s.fail(w, err)
 				return
 			}
-		} else if r.Form.Get("attachment") != "" {
-			http.Error(w, "Invalid attachment", 500)
-			return
-		} else if strings.TrimSpace(string(raw)) == "" {
-			w.WriteHeader(422)
-			return
+		} else if attachmentSet {
+			if r.Form.Get("attachment") != "" {
+				http.Error(w, "Invalid attachment", 500)
+				return
+			}
 		} else {
 			value := strings.ToValidUTF8(string(raw), "�")
 			body = &value
@@ -152,10 +161,12 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		body := strings.ToValidUTF8(string(raw), "�")
 		var rawBody *string = &body
-		if r.Form.Has("attachment") || r.MultipartForm != nil && len(r.MultipartForm.File["attachment"]) > 0 {
+		attachmentField := ""
+		if attachmentSet || r.MultipartForm != nil && len(r.MultipartForm.File["attachment"]) > 0 {
 			rawBody = nil
+			attachmentField = "attachment"
 		}
-		result, err := s.updateMessageAttributes(r, user, message, "", "attachment", rawBody)
+		result, err := s.updateMessageAttributes(r, user, message, "", attachmentField, rawBody)
 		if err != nil {
 			s.fail(w, err)
 			return

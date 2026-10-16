@@ -28,21 +28,22 @@ func requireMessage(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // Matches MessagesController#update and Messages::ByBotsController#message_params.
+// An empty field name disables that named assignment for raw-body API requests.
 func (s *Server) updateMessageAttributes(r *http.Request, user database.User, message database.Message, bodyField, attachmentField string, rawBody *string) (application.MessageResult, error) {
 	body := rawBody
-	if body == nil && r.Form.Has(bodyField) && !nullParam(r, bodyField) {
+	if body == nil && bodyField != "" && r.Form.Has(bodyField) && !nullParam(r, bodyField) {
 		value := r.Form.Get(bodyField)
 		body = &value
 	}
 	var attachment *int64
 	var uploaded *storage.Staged
-	if r.MultipartForm != nil && len(r.MultipartForm.File[attachmentField]) > 0 {
+	if attachmentField != "" && r.MultipartForm != nil && len(r.MultipartForm.File[attachmentField]) > 0 {
 		var err error
 		uploaded, err = s.stageAttachment(r, attachmentField)
 		if err != nil {
 			return application.MessageResult{}, err
 		}
-	} else if r.Form.Has(attachmentField) {
+	} else if attachmentField != "" && r.Form.Has(attachmentField) {
 		if r.Form.Get(attachmentField) != "" {
 			return application.MessageResult{}, errors.New("could not find or build blob: expected attachable")
 		}

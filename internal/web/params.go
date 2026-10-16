@@ -27,7 +27,7 @@ func parseJSONParams(r *http.Request) error {
 		return err
 	}
 	r.Body = io.NopCloser(bytes.NewReader(raw))
-	if len(bytes.TrimSpace(raw)) == 0 {
+	if len(raw) == 0 {
 		return nil
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
