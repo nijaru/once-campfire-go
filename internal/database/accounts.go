@@ -142,12 +142,14 @@ func (d *DB) RoomParticipants(ctx context.Context, room int64) ([]RoomParticipan
 func (d *DB) DirectPlaceholders(ctx context.Context, user int64) ([]RoomParticipant, error) {
 	// Exclusions include invisible directs and inactive participants. Appending
 	// the viewer consumes one slot even when they are already in the distinct set.
+	// At nineteen distinct exclusions no placeholders remain, so further
+	// exclusions cannot affect the result.
 	rows, err := d.Read.QueryContext(ctx, `
 WITH excluded AS MATERIALIZED (
  SELECT DISTINCT user_id FROM memberships WHERE room_id IN (
   SELECT r.id FROM rooms r JOIN memberships m ON m.room_id=r.id
   WHERE r.type='Rooms::Direct' AND m.user_id=?
- )
+ ) LIMIT 19
 )
 SELECT u.id,u.name,u.updated_at FROM users u
 WHERE u.status=0 AND u.id!=? AND u.id NOT IN (SELECT user_id FROM excluded)

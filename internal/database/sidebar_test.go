@@ -172,6 +172,14 @@ func TestSidebarHydrationKeepsParticipantsAndPlaceholderCounts(t *testing.T) {
 	if !found {
 		t.Fatal("inactive participant disappeared after external update")
 	}
+	if _, err := d.CreateRoom(ctx, viewer.ID, "Rooms::Direct", nil, ids[9:17]); err != nil {
+		t.Fatal(err)
+	}
+	checkPlaceholders(ids[17:18]) // Eighteen distinct exclusions leave one slot.
+	if _, err := d.CreateRoom(ctx, viewer.ID, "Rooms::Direct", nil, ids[17:18]); err != nil {
+		t.Fatal(err)
+	}
+	checkPlaceholders(nil) // The nineteenth distinct exclusion fills the last slot.
 	if _, err := d.CreateRoom(ctx, viewer.ID, "Rooms::Direct", nil, ids); err != nil {
 		t.Fatal(err)
 	}
