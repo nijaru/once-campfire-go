@@ -28,5 +28,16 @@
     "Initial read-only review found candidate multipart re-sorting defect before delivery",
     "Follow-up read-only review found no concrete introduced issue in ordered capture/validation/method/query/cleanup; no execution checks by reviewers"
   ],
-  "limits": "Existing sharedHTTP workflows extended narrowly; no provider sends, new browser/media recertification, full Rack parity or whole-app correctness guarantee. Earlier disclosed browser count timing failure unchanged."
+  "limits": "Existing sharedHTTP workflows extended narrowly; no provider sends, new browser/media recertification, full Rack parity or whole-app correctness guarantee. Earlier disclosed browser count timing failure unchanged.",
+  "pr_verification": {
+    "source_commit": "b930ce070a73ef722ce50cdb65979a6d1efc24c2",
+    "check": "bin/check passed on actual PR branch",
+    "http_passed": 16,
+    "http_total": 16,
+    "binaries": {
+      "rust": "b797463aaa3d3173a9fa50e461cf2af543706861dc5c8147de0f28b0f2128960",
+      "go": "0802deaf5eec7af5d7998317056f707f9b324775367bb0bceb56139ffcabe6f2"
+    },
+    "source_equivalence": "cmd/internal/assets/third_party/go.mod/go.sum match verified local db8e011"
+  }
 }
