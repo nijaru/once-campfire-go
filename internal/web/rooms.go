@@ -65,14 +65,7 @@ func (s *Server) roomForm(w http.ResponseWriter, r *http.Request, u database.Use
 
 // Strong room attributes distinguish omitted names, explicit null, and empty text.
 func roomName(r *http.Request) (*sql.NullString, error) {
-	params, ok := r.Context().Value(structuredParamsKey{}).(map[string]any)
-	if !ok {
-		var err error
-		params, err = formTree(r.Form.Encode())
-		if err != nil {
-			return nil, err
-		}
-	}
+	params, _ := r.Context().Value(structuredParamsKey{}).(map[string]any)
 	room := params["room"]
 	switch value := room.(type) {
 	case nil:

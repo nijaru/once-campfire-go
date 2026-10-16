@@ -43,7 +43,7 @@ func TestRoomMutationRechecksCapturedAdministrator(t *testing.T) {
 		if method != "POST" {
 			r.SetPathValue("id", fmt.Sprint(room.ID))
 		}
-		if err = r.ParseForm(); err != nil {
+		if err = parseRequestForm(r); err != nil {
 			t.Fatal(err)
 		}
 		w := httptest.NewRecorder()

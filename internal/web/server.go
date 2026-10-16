@@ -248,7 +248,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if err := parseJSONParams(r); err != nil {
+		if err := parseRequestParams(r); err != nil {
 			var limit *http.MaxBytesError
 			if errors.As(err, &limit) {
 				http.Error(w, "Request too large", 413)

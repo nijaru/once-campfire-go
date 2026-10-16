@@ -15,11 +15,18 @@ import (
 
 type nullParamsKey struct{}
 
-// Retain the raw body for direct uploads and push subscriptions, whose handlers
-// also consume JSON. Query parameters take precedence, as in Action Dispatch.
-func parseJSONParams(r *http.Request) error {
+// Decode JSON once while retaining raw bytes for bot message bodies. Strong
+// nested attributes use the same intake owner for JSON, forms and multipart.
+func parseRequestParams(r *http.Request) error {
 	media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if media != "application/json" {
+		if needsStructuredParams(r) {
+			if _, captured := r.Context().Value(structuredParamsKey{}).(map[string]any); !captured {
+				// URL-encoded and multipart intake capture their ordered fields.
+				// Other media types have no form-body source to merge with query.
+				return storeStructuredParams(r, map[string]any{})
+			}
+		}
 		return nil
 	}
 	raw, err := io.ReadAll(r.Body)
@@ -28,6 +35,9 @@ func parseJSONParams(r *http.Request) error {
 	}
 	r.Body = io.NopCloser(bytes.NewReader(raw))
 	if len(raw) == 0 {
+		if needsStructuredParams(r) {
+			return storeStructuredParams(r, map[string]any{})
+		}
 		return nil
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -89,15 +99,7 @@ func parseJSONParams(r *http.Request) error {
 	}
 	*r = *r.WithContext(context.WithValue(r.Context(), nullParamsKey{}, nulls))
 	if needsStructuredParams(r) {
-		params := formJSONValue(value).(map[string]any)
-		query, err := formTree(r.URL.RawQuery)
-		if err != nil {
-			return err
-		}
-		for key, value := range query {
-			params[key] = value
-		}
-		*r = *r.WithContext(context.WithValue(r.Context(), structuredParamsKey{}, params))
+		return storeStructuredParams(r, formJSONValue(value).(map[string]any))
 	}
 	return nil
 }

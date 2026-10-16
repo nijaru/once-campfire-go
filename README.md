@@ -225,6 +225,10 @@ exemption; bot-key endpoints exempt authenticated bots only.
   Bare query/form keys remain null, distinct from `attachment=`; they no longer
   discard the API's raw message text. Last scalar and query-over-body precedence
   apply to this null metadata as well as to parameter values.
+- Push registration uses the selected subscription root: outer JSON fields cannot
+  fill nested attributes, and a query hash replaces the body hash instead of merging
+  its leaves. Rejected registrations no longer store credentials. Multipart nested
+  attributes preserve wire order, including direct-upload arrays of metadata hashes.
 - HTML and bot JSON message pagination use the last repeated scalar cursor, reference
   integer-prefix casting, and blank-value rules. Invalid or zero cursors return 404
   rather than silently selecting the latest page. A present `before` still selects

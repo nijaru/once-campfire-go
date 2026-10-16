@@ -15,43 +15,40 @@ import (
 const pushPath = "/users/me/push_subscriptions"
 
 func subscriptionParams(r *http.Request) (map[string]*string, error) {
-	attrs := map[string]*string{}
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		var raw map[string]json.RawMessage
-		if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
-			return nil, err
-		}
-		if nested, ok := raw["push_subscription"]; ok {
-			if err := json.Unmarshal(nested, &raw); err != nil {
-				return nil, err
-			}
-		}
-		if len(raw) == 0 {
+	params, _ := r.Context().Value(structuredParamsKey{}).(map[string]any)
+	root := params["push_subscription"]
+	switch value := root.(type) {
+	case nil:
+		return nil, errors.New("push_subscription is required")
+	case string:
+		if strings.TrimSpace(value) == "" {
 			return nil, errors.New("push_subscription is required")
 		}
-		for _, key := range []string{"endpoint", "p256dh_key", "auth_key"} {
-			if value, ok := raw[key]; ok {
-				var str *string
-				if err := json.Unmarshal(value, &str); err == nil {
-					attrs[key] = str
-				}
-			}
+	case []any:
+		if len(value) == 0 {
+			return nil, errors.New("push_subscription is required")
 		}
-		return attrs, nil
-	}
-	present := false
-	for key := range r.Form {
-		if strings.HasPrefix(key, "push_subscription[") {
-			present = true
+	case map[string]any:
+		if len(value) == 0 {
+			return nil, errors.New("push_subscription is required")
 		}
 	}
-	if !present {
-		return nil, errors.New("push_subscription is required")
-	}
+	attributes, _ := root.(map[string]any)
+	attrs := map[string]*string{}
 	for _, key := range []string{"endpoint", "p256dh_key", "auth_key"} {
-		if r.Form.Has("push_subscription[" + key + "]") {
-			str := r.Form.Get("push_subscription[" + key + "]")
-			attrs[key] = &str
+		if value, present := attributes[key]; present {
+			switch value := value.(type) {
+			case nil:
+				attrs[key] = nil
+			case string:
+				attrs[key] = &value
+			case bool:
+				text := strconv.FormatBool(value)
+				attrs[key] = &text
+			case json.Number:
+				text := value.String()
+				attrs[key] = &text
+			}
 		}
 	}
 	return attrs, nil

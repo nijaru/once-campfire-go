@@ -218,6 +218,24 @@ func TestDirectUploadMetadataRoundtrip(t *testing.T) {
 		"numbered":  map[string]any{"0": "zero", "1": "one"},
 		"duplicate": "last",
 	}
+	var multipartBody bytes.Buffer
+	writer := multipart.NewWriter(&multipartBody)
+	for key, values := range fields {
+		if err := writer.WriteField(key, values[0]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, pair := range [][2]string{
+		{"[name]", "one"}, {"[details][x]", "1"}, {"[details][y]", "2"},
+		{"[name]", "two"}, {"[details][x]", "3"}, {"[tags][]", "a"}, {"[tags][]", "b"},
+	} {
+		if err := writer.WriteField("blob[metadata][items][]"+pair[0], pair[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
 	jsonBody := `{"blob":{"filename":"metadata.txt","byte_size":0,"checksum":"1B2M2Y8AsgTpgAmY7PhCfg==","metadata":{"flag":true,"count":42,"nothing":null,"nested":{"tags":["x",false,null,7]}}}}`
 	large := strings.Repeat("x", 10<<20) // Still below the application's 16 MiB body cap.
 	var deep any = "value"
@@ -229,6 +247,7 @@ func TestDirectUploadMetadataRoundtrip(t *testing.T) {
 		want                                   map[string]any
 	}{
 		{"form", "application/x-www-form-urlencoded", body, "", "", want},
+		{"multipart/ordered hashes", writer.FormDataContentType(), multipartBody.String(), "", "", map[string]any{"items": want["items"]}},
 		{
 			"form/large", "application/x-www-form-urlencoded",
 			fields.Encode() + "&blob[metadata][large]=" + large, "", "",

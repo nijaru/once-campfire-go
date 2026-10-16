@@ -17,18 +17,8 @@ import (
 )
 
 func (s *Server) directUpload(w http.ResponseWriter, r *http.Request, _ database.User) {
-	attributes := make(map[string]any)
-	if params, ok := r.Context().Value(structuredParamsKey{}).(map[string]any); ok {
-		attributes, _ = params["blob"].(map[string]any)
-	} else {
-		// Multipart fields remain flat; JSON and ordered URL-encoded forms use
-		// the structured parameters owned by the request parsing boundary.
-		for key, values := range r.Form {
-			if strings.HasPrefix(key, "blob[") && strings.HasSuffix(key, "]") {
-				attributes[key[len("blob["):len(key)-1]] = values[len(values)-1]
-			}
-		}
-	}
+	params, _ := r.Context().Value(structuredParamsKey{}).(map[string]any)
+	attributes, _ := params["blob"].(map[string]any)
 	if len(attributes) == 0 {
 		http.Error(w, "Invalid blob", 400)
 		return

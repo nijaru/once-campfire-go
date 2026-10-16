@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"maps"
 	"mime"
 	"net/http"
 	"net/url"
@@ -32,13 +33,13 @@ func needsStructuredParams(r *http.Request) bool {
 	}
 	switch route.Action {
 	case "active_storage::direct_uploads_create", "rooms::opens::create", "rooms::opens::update",
-		"rooms::closeds::create", "rooms::closeds::update":
+		"rooms::closeds::create", "rooms::closeds::update", "users::push_subscriptions::create":
 		return true
 	}
 	return false
 }
 
-// Direct uploads and room attributes need a tree, not flattened url.Values.
+// Strong nested attributes need a tree, not flattened url.Values.
 // Keep other form consumers on their existing flat representation.
 func parseRequestForm(r *http.Request) error {
 	media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
@@ -65,17 +66,39 @@ func parseRequestForm(r *http.Request) error {
 		if err != nil {
 			return err
 		}
-		query, err := formTree(r.URL.RawQuery)
-		if err != nil {
+		if err := storeStructuredParams(r, params); err != nil {
 			return err
 		}
-		// Ctx::new merges query hashes at the top level, not at flattened leaves.
-		for key, value := range query {
-			params[key] = value
-		}
-		*r = *r.WithContext(context.WithValue(r.Context(), structuredParamsKey{}, params))
 	}
 	return r.ParseForm()
+}
+
+// Merge sources before strong attributes are selected. JSON wrapping uses only
+// body parameters and must not replace an explicitly supplied body or query root.
+func storeStructuredParams(r *http.Request, params map[string]any) error {
+	query, err := formTree(r.URL.RawQuery)
+	if err != nil {
+		return err
+	}
+	media, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	route, _, _ := recognizeRequest(r)
+	if media == "application/json" && route != nil && route.Action == "users::push_subscriptions::create" {
+		_, bodyRoot := params["push_subscription"]
+		_, queryRoot := query["push_subscription"]
+		if !bodyRoot && !queryRoot {
+			wrapped := maps.Clone(params)
+			for _, key := range []string{"authenticity_token", "_method", "utf8"} {
+				delete(wrapped, key)
+			}
+			params["push_subscription"] = wrapped
+		}
+	}
+	// Ctx::new merges query hashes at the top level, not at flattened leaves.
+	for key, value := range query {
+		params[key] = value
+	}
+	*r = *r.WithContext(context.WithValue(r.Context(), structuredParamsKey{}, params))
+	return nil
 }
 
 // The valid bracket forms from kit's store_nested_param. Bare values are nil;
@@ -105,33 +128,44 @@ func formTree(raw string) (map[string]any, error) {
 			}
 			value = text
 		}
-		if !utf8.ValidString(key) || !utf8.ValidString(text) {
-			return nil, errors.New("invalid parameter encoding")
-		}
-		path := []string{key}
-		if start := strings.IndexByte(key, '['); start >= 0 {
-			path[0] = key[:start]
-			for rest := key[start:]; rest != ""; {
-				end := strings.IndexByte(rest, ']')
-				if rest[0] != '[' || end < 0 || strings.ContainsAny(rest[1:end], "[]") {
-					return nil, errors.New("invalid parameter key")
-				}
-				path = append(path, rest[1:end])
-				// A builder step consumes at most a hash key and its [] suffix.
-				if len(path) > 200 {
-					return nil, errors.New("parameters too deep")
-				}
-				rest = rest[end+1:]
-			}
-		}
-		if path[0] == "" {
-			return nil, errors.New("invalid parameter key")
-		}
-		if _, err := storeFormParam(params, path, value, 0); err != nil {
+		if err := storeFormValue(params, key, value); err != nil {
 			return nil, err
 		}
 	}
 	return params, nil
+}
+
+// Multipart supplies decoded field names and values in wire order. Share key
+// validation and nesting with URL-encoded input without re-sorting the pairs.
+func storeFormValue(params map[string]any, key string, value any) error {
+	if key == "" {
+		return nil
+	}
+	text, _ := value.(string)
+	if !utf8.ValidString(key) || !utf8.ValidString(text) {
+		return errors.New("invalid parameter encoding")
+	}
+	path := []string{key}
+	if start := strings.IndexByte(key, '['); start >= 0 {
+		path[0] = key[:start]
+		for rest := key[start:]; rest != ""; {
+			end := strings.IndexByte(rest, ']')
+			if rest[0] != '[' || end < 0 || strings.ContainsAny(rest[1:end], "[]") {
+				return errors.New("invalid parameter key")
+			}
+			path = append(path, rest[1:end])
+			// A builder step consumes at most a hash key and its [] suffix.
+			if len(path) > 200 {
+				return errors.New("parameters too deep")
+			}
+			rest = rest[end+1:]
+		}
+	}
+	if path[0] == "" {
+		return errors.New("invalid parameter key")
+	}
+	_, err := storeFormParam(params, path, value, 0)
+	return err
 }
 
 func storeFormParam(node any, path []string, value any, depth int) (any, error) {

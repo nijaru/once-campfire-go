@@ -86,7 +86,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := parseJSONParams(r); err != nil {
+	if err := parseRequestParams(r); err != nil {
 		http.Error(w, "Invalid JSON", 400)
 		return
 	}
