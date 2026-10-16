@@ -54,3 +54,26 @@ data/storage, complete rosters and binaries remain private. No full arbitrary Ra
 parameter, browser-platform, media-output or whole-application correctness guarantee
 is claimed. This double-check found and repaired a real gap; passing gates alone
 had not established its absence.
+
+## Browser-count follow-up
+
+A bounded follow-up on runtime PR `41a8c2b` captured the assertion's state in one
+browser evaluation. Three unforced instances produced two passes and one original
+assertion failure: the sender had IDs 1/2 plus one pending message; the receiver had
+IDs 1/2/3, with its third DOM ID matching the sender's pending ID. After rendering
+completed, both had the same three unique persisted messages and no pending node.
+The failed run remains a failure in the record; it was not relabeled a passing gate.
+
+A fourth, controlled instance gated only the sender's third-message rendering and
+reproduced that state, then converged after release. The original exact-three and
+stored-markup assertions remain unchanged after synchronization. These are focused
+phase diagnostics, not new full-browser acceptance runs. They establish a real
+sender-synchronization gap in the harness; they do not retroactively capture the
+older uninstrumented failed instant. In particular, request idle alone was not a
+sufficient render-completion signal in the captured unforced failure.
+
+The corrective wait belongs before the harness's exact-count assertion. Its existing
+unrelated working-copy change was preserved, not edited or published by this task.
+No production rendering workaround or cross-repository write was introduced. The
+three-message diagnostic source, finite budget, all four outcomes and source/binary
+identities are retained in the browser-count artifacts below.

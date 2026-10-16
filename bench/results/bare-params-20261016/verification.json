@@ -54,5 +54,15 @@
         "limits": "Known sender-echo synchronization gap supports harness-race interpretation; this run observed3before/after and does not independently establish the failed instant count or its cause. No repeat-to-win."
       }
     }
+  },
+  "browser_count_followup": {
+    "runtime_pr": "41a8c2b",
+    "unforced_original_assertions": [
+      "pass",
+      "pass",
+      "fail"
+    ],
+    "controlled_render_gate": "Captured2persisted+1pending sender,3persistedreceiver; both3uniqueafterrendercomplete",
+    "scope": "Three-message phase diagnostic; sharedcheckout/productionunchanged; originalfailedinstantnotretroactivelycaptured"
   }
 }
