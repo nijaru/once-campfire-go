@@ -13,8 +13,10 @@ import (
 	"github.com/basecamp/once-campfire-go/internal/storage"
 )
 
+var htmlEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;")
+
 func escape(s string) string {
-	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;").Replace(s)
+	return htmlEscaper.Replace(s)
 }
 func rubyFloat(n float64) string {
 	s := strconv.FormatFloat(n, 'g', -1, 64)
