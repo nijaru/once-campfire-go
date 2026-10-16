@@ -782,17 +782,16 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request, u database.Use
 		s.fail(w, err)
 		return
 	}
+	anchor, direction, _, err := messagePagination(r)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
 	if hit := s.responseHit(r); hit != nil {
 		hit.serve(w)
 		return
 	}
-	before, _ := strconv.ParseInt(r.URL.Query().Get("before"), 10, 64)
-	direction := "before"
-	if before == 0 {
-		before, _ = strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
-		direction = "after"
-	}
-	messageBody, count, err := s.MessageQueries.Page(r.Context(), s.messageScope(r.Context()), u.ID, room.ID, before, direction, false)
+	messageBody, count, err := s.MessageQueries.Page(r.Context(), s.messageScope(r.Context()), u.ID, room.ID, anchor, direction, false)
 	if err != nil {
 		s.fail(w, err)
 		return

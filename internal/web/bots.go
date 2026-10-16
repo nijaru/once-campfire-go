@@ -86,6 +86,7 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	normalizeScalarParams(r)
 	route, _, _ := recognizeRequest(r)
 	if strings.Contains(route.Action, "::boosts::") {
 		s.botBoost(w, r, user, string(raw))
@@ -93,14 +94,12 @@ func (s *Server) botRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case "GET", "HEAD":
-		before, _ := strconv.ParseInt(r.URL.Query().Get("before"), 10, 64)
-		direction := "before"
-		if before == 0 {
-			before, _ = strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
-			direction = "after"
+		anchor, direction, linkAfter, err := messagePagination(r)
+		if err != nil {
+			s.fail(w, err)
+			return
 		}
-		linkAfter := r.URL.Query().Get("after") != ""
-		result, err := s.MessageQueries.APIPage(r.Context(), s.presentationFacts(r.Context()), user.ID, room.ID, before, direction, linkAfter)
+		result, err := s.MessageQueries.APIPage(r.Context(), s.presentationFacts(r.Context()), user.ID, room.ID, anchor, direction, linkAfter)
 		if err != nil {
 			s.fail(w, err)
 			return

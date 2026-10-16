@@ -217,6 +217,10 @@ exemption; bot-key endpoints exempt authenticated bots only.
 
 - Bot APIs select actions from the ordered route table, not substrings of the bot key.
   A key beginning with `boosts` no longer turns a message request into a boost request.
+- HTML and bot JSON message pagination use the last repeated scalar cursor, reference
+  integer-prefix casting, and blank-value rules. Invalid or zero cursors return 404
+  rather than silently selecting the latest page. A present `before` still selects
+  the page even when `after` independently selects the API Link direction.
 
 - Completed gzip uses the selected byte length for GET and HEAD; conditional coding
   metadata no longer depends on cache warmth. Successful avatar/logo files stream
