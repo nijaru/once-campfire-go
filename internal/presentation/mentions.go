@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/basecamp/once-campfire-go/internal/database"
@@ -47,16 +48,24 @@ func MentionContext(secrets *rails.Secrets, host string, now time.Time, targets 
 	if name, _, err := net.SplitHostPort(host); err == nil {
 		host = name
 	}
-	resolved := make(map[int64]*richtext.Mention, len(users))
+	// Capture user facts now, but sign/format only mentions actually requested.
+	// Contexts can be reused concurrently, so each lazy value is synchronized.
+	resolved := make(map[int64]func() *richtext.Mention, len(users))
 	for id, user := range users {
-		mention := Mention(secrets, user)
-		resolved[id] = &mention
+		resolved[id] = sync.OnceValue(func() *richtext.Mention {
+			mention := Mention(secrets, user)
+			return &mention
+		})
 	}
 	return richtext.Context{Host: host, Resolve: func(token string, verified bool) (*richtext.Mention, error) {
 		target := targets[token]
+		id, err := target.ID, target.Error
 		if verified {
-			return resolved[VerifiedMentionID(secrets, token, now)], nil
+			id, err = VerifiedMentionID(secrets, token, now), nil
 		}
-		return resolved[target.ID], target.Error
+		if resolve := resolved[id]; resolve != nil {
+			return resolve(), err
+		}
+		return nil, err
 	}}
 }
