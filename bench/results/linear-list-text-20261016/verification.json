@@ -1,0 +1,26 @@
+{
+  "check": {
+    "command": "bin/check",
+    "pass": true
+  },
+  "focused_races": "Complete richtext, database and web packages; original-source overlay confirms new plaintext expectations",
+  "write_probe": "Actual CreateMessage and UpdateMessage check exact persisted1000/20-item FTS text against independent lines",
+  "independent_review": "No material semantic/complexity finding; reviewed actual Document/API/OpenGraph/FTS callers, no independent execution",
+  "http": {
+    "passed": 8,
+    "total": 8,
+    "workflows": [
+      "message_lifecycle",
+      "pagination",
+      "room_membership",
+      "direct_ping"
+    ],
+    "binaries": {
+      "rust": "b797463aaa3d3173a9fa50e461cf2af543706861dc5c8147de0f28b0f2128960",
+      "go": "29a12e6fb4819e22b999ac54129bfacac40b1f0b6f14e62aa9b7741d1acf419b"
+    }
+  },
+  "tested_measured_binary_sha256": "29a12e6fb4819e22b999ac54129bfacac40b1f0b6f14e62aa9b7741d1acf419b",
+  "probe_removal_binary_identical": true,
+  "limits": "Local Mac work evidence only; long numbered-list workload, not general/native performance. Paragraph pairs mixed despite median gate pass. Not full browser/media certification. Raw profiles, runtime logs and generated credentials/data remain private."
+}
