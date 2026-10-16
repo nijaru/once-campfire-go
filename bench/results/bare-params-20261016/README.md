@@ -31,6 +31,15 @@ Verification:
   bots/styles, transfer/join and direct ping. The shared checkout had an unrelated
   three-line persisted-echo wait change; it was preserved, and a pristine `HEAD`
   export was used instead. Missing matching Playwright Chromium was installed locally.
+- Actual PR-branch `bin/check` and all **30/30** HTTP/state workflows also pass.
+  Its pristine browser rerun failed at the message-count assertion. That assertion
+  does not wait for the sender's persisted echo; failure diagnostics later showed
+  all three messages, but did not capture the failed instant's count. One bounded
+  diagnostic run added the shared checkout's existing persisted-count wait (plus
+  before/after logging), leaving the exact-three assertion unchanged, and completed
+  the full flow. It observed three before/after, so it does not independently prove
+  the original failure's cause. Both outcomes and the three-line harness-only diff
+  are retained; no production or shared-checkout change was used to get this result.
 - A fresh read-only review found no concrete issue in null ordering, current callers,
   multipart/nullable attributes or error/resource paths. Parent checks establish
   execution evidence; the review did not run tests.
