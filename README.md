@@ -225,6 +225,9 @@ exemption; bot-key endpoints exempt authenticated bots only.
   Bare query/form keys remain null, distinct from `attachment=`; they no longer
   discard the API's raw message text. Last scalar and query-over-body precedence
   apply to this null metadata as well as to parameter values.
+- Outbound compressed responses are decoded only when their bodies are read.
+  Push delivery therefore honors 201/404/410 status headers even if an unused
+  compressed body is malformed; body-consuming callers still get decoding errors.
 - With forwarding disabled, the public listener also discards `Client-IP`. Private
   peers can no longer use that header to spoof the IP used for throttling, bans and
   session records. Explicitly enabled forwarding retains its existing behavior.

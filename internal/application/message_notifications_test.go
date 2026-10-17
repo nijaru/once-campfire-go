@@ -7,7 +7,9 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -117,5 +119,76 @@ func TestUnreadTimeoutDoesNotAbandonPush(t *testing.T) {
 	runner.Close(time.Second)
 	if got := deliveries.Load(); got != 1 {
 		t.Fatalf("push deliveries after unread timeout: %d, want 1", got)
+	}
+}
+
+func TestCompressedGoneResponseDeletesOnlySelectedSubscription(t *testing.T) {
+	ctx := context.Background()
+	db, err := database.Open(filepath.Join(t.TempDir(), "push-gone.sqlite3"), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	owner, err := db.Setup(ctx, "Owner", "owner@test", "digest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := db.CreateUser(ctx, owner.ID, database.UserInput{Name: "Other", Email: "other@test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, err := ecdh.P256().GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encode := base64.RawURLEncoding.EncodeToString
+	publicKey, auth := encode(key.PublicKey().Bytes()), encode(make([]byte, 16))
+	endpoint := "https://fcm.googleapis.com/send/test"
+	for _, user := range []int64{owner.ID, other.ID} {
+		if err := db.SavePushSubscription(ctx, user, map[string]*string{"endpoint": &endpoint, "p256dh_key": &publicKey, "auth_key": &auth}, "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	vapid, err := integrations.NewVAPID("mailto:test@example.com", publicKey, encode(key.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(io.Discard, r.Body)
+		w.Header().Set("Content-Encoding", "gzip")
+		w.WriteHeader(http.StatusGone) // No gzip header/body; status alone expires it.
+	}))
+	defer provider.Close()
+	target, err := url.Parse(provider.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := integrations.HTTPClient(false, time.Second, nil)
+	push := integrations.NewPushSender(vapid)
+	push.Resolver = pushTestResolver{}
+	push.Client = &http.Client{Transport: pushTestTransport(func(request *http.Request) (*http.Response, error) {
+		// Change only network routing to the controlled provider. Keep the real
+		// HTTP exchange, transparent decoder and encrypted push/status handling.
+		request = request.Clone(request.Context())
+		request.URL.Scheme, request.URL.Host = target.Scheme, target.Host
+		return wire.Transport.RoundTrip(request)
+	})}
+	list, err := db.PushSubscriptions(ctx, owner.ID)
+	if err != nil || len(list) != 1 {
+		t.Fatal(list, err)
+	}
+	task := pushTask{notifications: &MessageNotifications{DB: db, Push: push}, delivery: PushDelivery{Subscription: list[0], Payload: []byte(`{"title":"test"}`)}}
+	if err := task.Run(ctx); err != nil {
+		t.Error(err)
+	}
+	for _, user := range []int64{owner.ID, other.ID} {
+		list, err := db.PushSubscriptions(ctx, user)
+		want := 0
+		if user == other.ID {
+			want = 1
+		}
+		if err != nil || len(list) != want {
+			t.Fatalf("user %d subscriptions: %v %v, want %d", user, list, err, want)
+		}
 	}
 }
