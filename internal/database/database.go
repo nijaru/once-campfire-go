@@ -112,12 +112,20 @@ func (d *DB) Close() error {
 }
 func Stamp(t time.Time) string { return t.UTC().Format("2006-01-02 15:04:05.000000") }
 func (d *DB) Transaction(ctx context.Context, fn func(*sql.Tx) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	tx, err := d.Write.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	if err = fn(tx); err != nil {
+		return err
+	}
+	// Statement calls may use a non-cancelable context to avoid the driver's
+	// per-statement goroutine. Observe cancellation at the transaction boundary.
+	if err = ctx.Err(); err != nil {
 		return err
 	}
 	return tx.Commit()

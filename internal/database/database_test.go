@@ -129,3 +129,31 @@ func TestPendingMigrationFails(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A statement may use a non-cancelable context to avoid the driver's
+// per-statement goroutine; cancellation must still roll back at the boundary.
+func TestTransactionRollsBackWhenCanceledBeforeCommit(t *testing.T) {
+	d := testDB(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	now := Stamp(d.Now())
+	err := d.Transaction(ctx, func(tx *sql.Tx) error {
+		cancel()
+		_, err := tx.ExecContext(context.WithoutCancel(ctx),
+			"INSERT INTO accounts(name,join_code,settings,created_at,updated_at) VALUES ('cancelled','code','{}',?,?)", now, now)
+		return err
+	})
+	// database/sql's awaitDone may already have rolled the transaction back, so
+	// either the explicit boundary check or ErrTxDone is acceptable. The invariant
+	// is that nothing commits.
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, sql.ErrTxDone) {
+		t.Fatalf("transaction error = %v, want context.Canceled or sql.ErrTxDone", err)
+	}
+	var count int
+	if err = d.Read.QueryRow("SELECT count(*) FROM accounts").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("canceled transaction committed %d accounts", count)
+	}
+}
