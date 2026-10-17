@@ -28,5 +28,17 @@
     "internal/application/message_notifications_test.go": "62b0e10a0bfb2783fe38574f9286c8a250f9afa6f383852fedd0be21ade25de7"
   },
   "review": "Read-onlycandidate review: no actionablefinding; tests/buildsparentowned",
-  "limits": "No actualexternalprovidercontact or freshbrowser/media/performanceclaim; notfullintegrationcorrectness"
+  "limits": "No actualexternalprovidercontact or freshbrowser/media/performanceclaim; notfullintegrationcorrectness",
+  "pr_verification": {
+    "source_commit": "fc9490860c60dfb7048996e94b39295ef8e8d626",
+    "check": "bin/check passed on actual PR branch",
+    "http_passed": 2,
+    "http_total": 2,
+    "binaries": {
+      "rust": "b797463aaa3d3173a9fa50e461cf2af543706861dc5c8147de0f28b0f2128960",
+      "go": "12a24a6500e828859514ffc935bdd1b7e0bdcd103ce19306291133cfe9d68185"
+    },
+    "native_evidence": "Linux checked source hashes match this PR source; Go1.27.1/libvips8.16.1 fullbin/check passed",
+    "source_equivalence": "cmd/internal/assets/third_party/go.mod/go.sum match local1092bdd"
+  }
 }
