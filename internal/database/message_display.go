@@ -59,6 +59,44 @@ func (d *DB) MessageDisplays(ctx context.Context, records []Message, mentioned [
 	return result, users, nil
 }
 
+// ReceiptDisplay prepares a created message from commit-owned room and upload
+// inputs. Current boosts and author/mention displays still share one short read
+// snapshot, so a boost that raced ahead of the created publication is retained.
+// Callers must use MessageDisplays for direct rooms or an existing blob id.
+func (d *DB) ReceiptDisplay(ctx context.Context, commit MessageCommit, mentioned []int64) (MessageDisplay, map[int64]UserDisplay, error) {
+	tx, err := d.Read.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return MessageDisplay{}, nil, err
+	}
+	defer tx.Rollback()
+	userIDs := map[int64]bool{commit.CreatorID: true}
+	for _, id := range mentioned {
+		userIDs[id] = true
+	}
+	users, err := userDisplays(ctx, tx, userIDs)
+	if err != nil {
+		return MessageDisplay{}, nil, err
+	}
+	boosts, err := messageBoosts(ctx, tx, map[int64]bool{commit.ID: true})
+	if err != nil {
+		return MessageDisplay{}, nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return MessageDisplay{}, nil, err
+	}
+	display := MessageDisplay{Message: commit.Message, Room: commit.Room, Attachment: commit.Uploaded, Boosts: boosts[commit.ID]}
+	if author, ok := users[commit.CreatorID]; ok {
+		display.Author = &author
+	}
+	mentions := make(map[int64]UserDisplay, len(mentioned))
+	for _, id := range mentioned {
+		if user, ok := users[id]; ok {
+			mentions[id] = user
+		}
+	}
+	return display, mentions, nil
+}
+
 func messageDisplays(ctx context.Context, tx *sql.Tx, records []Message, mentioned []int64) (map[int64]MessageDisplay, map[int64]UserDisplay, error) {
 	result := make(map[int64]MessageDisplay, len(records))
 	users := make(map[int64]UserDisplay)

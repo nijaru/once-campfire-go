@@ -34,7 +34,7 @@ func (s *MessageQueries) Views(ctx context.Context, facts presentation.Facts, re
 // envelope. No intermediate message fragment is retained or admitted to caches.
 func (s *MessageQueries) CreatedStream(ctx context.Context, facts presentation.Facts, commit database.MessageCommit) (string, error) {
 	prepared := presentation.PrepareMessages([]database.Message{commit.Message})
-	data, mentions, err := s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+	data, mentions, err := s.createdDisplays(ctx, commit, prepared)
 	if err != nil {
 		return "", err
 	}
@@ -46,6 +46,21 @@ func (s *MessageQueries) CreatedStream(ctx context.Context, facts presentation.F
 		return rails.TurboStream("append", commit.Room.DOM("messages"), string(views[0].Fragment)), nil
 	}
 	return s.Presentation.AppendMessage(commit.Room.DOM("messages"), views[0])
+}
+
+// createdDisplays renders a new receipt from transaction-current commit inputs.
+// An open/closed room cannot have a pre-existing attachment on create, so the
+// room, boost and attachment re-reads in MessageDisplays are unnecessary. Direct
+// rooms still need participants, and an existing blob id needs the generic path.
+func (s *MessageQueries) createdDisplays(ctx context.Context, commit database.MessageCommit, prepared presentation.PreparedMessages) (map[int64]database.MessageDisplay, map[int64]database.UserDisplay, error) {
+	if commit.Room.Type == "Rooms::Direct" || commit.AttachmentID != 0 && commit.Uploaded == nil {
+		return s.DB.MessageDisplays(ctx, prepared.Records, prepared.Mentioned)
+	}
+	display, mentions, err := s.DB.ReceiptDisplay(ctx, commit, prepared.Mentioned)
+	if err != nil {
+		return nil, nil, err
+	}
+	return map[int64]database.MessageDisplay{commit.ID: display}, mentions, nil
 }
 
 // Edit materializes only the attachment or editor inputs, not a displayed fragment.
