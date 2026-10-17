@@ -97,8 +97,14 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 				return err
 			}
 		}
+		if err = ctx.Err(); err != nil {
+			return err
+		}
 		plain, err := messageSearchText(txCtx, tx, result.ID, search)
 		if err != nil {
+			return err
+		}
+		if err = ctx.Err(); err != nil {
 			return err
 		}
 		for _, q := range []struct {
