@@ -1,0 +1,105 @@
+{
+  "source": "5741508 + f1203be",
+  "host": "Apple M3 Max, macOS arm64",
+  "go": "go1.27.1",
+  "workload": {
+    "rate": 3000,
+    "workers": 64,
+    "queue": 8192,
+    "warmup_s": 2,
+    "timed_s": 20,
+    "order": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ]
+  },
+  "runs": [
+    {
+      "label": "baseline",
+      "cpu_seconds": 29.964665000000004,
+      "cpu_per_write_us": 499.41108333333335,
+      "p99_ms": 53.632,
+      "mean_ms": 2.5599950188833334,
+      "audit": {
+        "count": 60000,
+        "exact_ids_body_client_creator_room_fts": true
+      },
+      "integrity": "ok",
+      "seed_fk_unchanged": true
+    },
+    {
+      "label": "candidate",
+      "cpu_seconds": 28.079234,
+      "cpu_per_write_us": 467.98723333333334,
+      "p99_ms": 364.544,
+      "mean_ms": 18.761402434283333,
+      "audit": {
+        "count": 60000,
+        "exact_ids_body_client_creator_room_fts": true
+      },
+      "integrity": "ok",
+      "seed_fk_unchanged": true
+    },
+    {
+      "label": "candidate",
+      "cpu_seconds": 25.527357000000002,
+      "cpu_per_write_us": 425.45595000000003,
+      "p99_ms": 1.708,
+      "mean_ms": 0.42494189769999996,
+      "audit": {
+        "count": 60000,
+        "exact_ids_body_client_creator_room_fts": true
+      },
+      "integrity": "ok",
+      "seed_fk_unchanged": true
+    },
+    {
+      "label": "baseline",
+      "cpu_seconds": 26.323544,
+      "cpu_per_write_us": 438.72573333333327,
+      "p99_ms": 1.752,
+      "mean_ms": 0.4382580207666667,
+      "audit": {
+        "count": 60000,
+        "exact_ids_body_client_creator_room_fts": true
+      },
+      "integrity": "ok",
+      "seed_fk_unchanged": true
+    }
+  ],
+  "create_benchmark": {
+    "baseline_ns": [
+      92289,
+      91866,
+      94168
+    ],
+    "candidate_ns": [
+      88547,
+      88514,
+      87124
+    ],
+    "baseline_bytes": [
+      5405,
+      5332,
+      5343
+    ],
+    "candidate_bytes": [
+      4204,
+      4171,
+      4160
+    ],
+    "baseline_allocs": [
+      122,
+      122,
+      122
+    ],
+    "candidate_allocs": [
+      100,
+      100,
+      100
+    ]
+  },
+  "limits": "Local shared Mac; no CPU affinity; first p99 runs contaminated by other host work; native Fedora comparison pending. CPU/allocation evidence only."
+}
