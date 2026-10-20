@@ -54,32 +54,27 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 	}
 	search := prepareMessageSearchBody(result.Body)
 	err := d.Transaction(ctx, func(tx *sql.Tx) error {
-		// The driver spawns a goroutine and waits on a select for every statement
-		// whenever the context has a Done channel. These short writer statements
-		// run synchronously instead; Transaction observes cancellation before
-		// commit, so a disconnect still rolls the command back.
-		txCtx := context.WithoutCancel(ctx)
 		// Select permission and receipt inputs together on the writer. Creation
 		// overwrites the room timestamp, so its previous value is not an input.
 		query := "SELECT r.id,r.creator_id,coalesce(r.name,''),r.type,u.name FROM rooms r JOIN users u ON u.id=? WHERE r.id=?"
 		if checkMembership {
 			query += " AND u.status=0 AND EXISTS(SELECT 1 FROM memberships m WHERE m.room_id=r.id AND m.user_id=u.id)"
 		}
-		err := tx.QueryRowContext(txCtx, query, user, room).Scan(&result.Room.ID, &result.Room.CreatorID, &result.Room.Name, &result.Room.Type, &result.Creator)
+		err := tx.QueryRowContext(ctx, query, user, room).Scan(&result.Room.ID, &result.Room.CreatorID, &result.Room.Name, &result.Room.Type, &result.Creator)
 		if checkMembership && errors.Is(err, sql.ErrNoRows) {
 			return ErrForbidden
 		}
 		if err != nil {
 			return err
 		}
-		blob, uploaded, err := d.messageUpload(txCtx, tx, input)
+		blob, uploaded, err := d.messageUpload(ctx, tx, input)
 		if err != nil {
 			return err
 		}
 		result.AttachmentID = blob
 		result.Uploaded = uploaded
 		stamp := Stamp(now)
-		r, err := tx.ExecContext(txCtx, "INSERT INTO messages(client_message_id,creator_id,room_id,created_at,updated_at) VALUES (?,?,?,?,?)", result.ClientID, user, room, stamp, stamp)
+		r, err := tx.ExecContext(ctx, "INSERT INTO messages(client_message_id,creator_id,room_id,created_at,updated_at) VALUES (?,?,?,?,?)", result.ClientID, user, room, stamp, stamp)
 		if err != nil {
 			return err
 		}
@@ -88,23 +83,17 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 			return err
 		}
 		if input.Body != nil {
-			if _, err = tx.ExecContext(txCtx, "INSERT INTO action_text_rich_texts(name,record_type,record_id,body,created_at,updated_at) VALUES ('body','Message',?,?,?,?)", result.ID, result.Body, stamp, stamp); err != nil {
+			if _, err = tx.ExecContext(ctx, "INSERT INTO action_text_rich_texts(name,record_type,record_id,body,created_at,updated_at) VALUES ('body','Message',?,?,?,?)", result.ID, result.Body, stamp, stamp); err != nil {
 				return err
 			}
 		}
 		if blob != 0 {
-			if _, err = tx.ExecContext(txCtx, "INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'Message',?,'attachment',?)", blob, result.ID, stamp); err != nil {
+			if _, err = tx.ExecContext(ctx, "INSERT INTO active_storage_attachments(blob_id,record_type,record_id,name,created_at) VALUES (?,'Message',?,'attachment',?)", blob, result.ID, stamp); err != nil {
 				return err
 			}
 		}
-		if err = ctx.Err(); err != nil {
-			return err
-		}
-		plain, err := messageSearchText(txCtx, tx, result.ID, search)
+		plain, err := messageSearchText(ctx, tx, result.ID, search)
 		if err != nil {
-			return err
-		}
-		if err = ctx.Err(); err != nil {
 			return err
 		}
 		for _, q := range []struct {
@@ -115,7 +104,7 @@ func (d *DB) createMessage(ctx context.Context, user, room int64, input MessageI
 			{"UPDATE rooms SET updated_at=? WHERE id=?", []any{stamp, room}},
 			{"UPDATE memberships SET unread_at=?,updated_at=? WHERE room_id=? AND user_id!=? AND involvement!='invisible' AND (connected_at IS NULL OR connected_at < ?)", []any{stamp, stamp, room, user, Stamp(now.Add(-60 * time.Second))}},
 		} {
-			if _, err = tx.ExecContext(txCtx, q.sql, q.args...); err != nil {
+			if _, err = tx.ExecContext(ctx, q.sql, q.args...); err != nil {
 				return err
 			}
 		}
