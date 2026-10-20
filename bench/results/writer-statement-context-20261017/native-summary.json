@@ -1,0 +1,51 @@
+{
+  "order": [
+    [
+      "baseline",
+      "campfire-baseline"
+    ],
+    [
+      "candidate",
+      "campfire-writer-context"
+    ],
+    [
+      "candidate",
+      "campfire-writer-context"
+    ],
+    [
+      "baseline",
+      "campfire-baseline"
+    ]
+  ],
+  "summary": {
+    "baseline": {
+      "runs": 2,
+      "cpu_seconds_median": 34.87278,
+      "cpu_per_write_us_median": 581.213,
+      "timed_p99_ms": [
+        0.968,
+        0.987
+      ],
+      "timed_mean_ms": [
+        0.49806010465,
+        0.4926081817333333
+      ],
+      "wire_bytes": "not retained by this client"
+    },
+    "candidate": {
+      "runs": 2,
+      "cpu_seconds_median": 35.154229,
+      "cpu_per_write_us_median": 585.9038166666667,
+      "timed_p99_ms": [
+        0.961,
+        0.991
+      ],
+      "timed_mean_ms": [
+        0.4991571162666667,
+        0.49845683115
+      ],
+      "wire_bytes": "not retained by this client"
+    },
+    "paired_median_delta_percent": 0.8070735972297077
+  }
+}
